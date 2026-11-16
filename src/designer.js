@@ -363,9 +363,9 @@ function roomFinishPanel() {
   const F = q.finish || {}, sw = (attr, cur) => PAINTS.map(([c, n]) => `<button type="button" ${attr}="${c}" title="${n}" aria-pressed="${cur === c}" style="background:${c}"></button>`).join('');
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:14px">Finishes</h3>
     <label class="fld">Floor <select id="rfFloor"><option value="">House default</option>${Object.entries(ROOM_FLOORS).map(([k, v]) => `<option value="${k}" ${F.floor === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-    <div class="fld">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default">Default</button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
+    <div class="fld fld-stack">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default" aria-label="House default"></button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
     <label class="fld">Accent wall <select id="rfSide"><option value="">None</option>${Object.entries(SIDE_NAME).map(([k, n]) => `<option value="${k}" ${F.accent?.side === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-    ${F.accent ? `<div class="fld"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
+    ${F.accent ? `<div class="fld fld-stack"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
   const set = fn => { pushHist(); q.finish = { ...(q.finish || {}) }; fn(q.finish); for (const k of Object.keys(q.finish)) if (q.finish[k] == null) delete q.finish[k]; if (!Object.keys(q.finish).length) delete q.finish; planChanged(); };
   el.querySelector('#rfFloor').onchange = e => set(f => f.floor = e.target.value || null);
   el.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => set(f => f.paint = b.dataset.rp || null));

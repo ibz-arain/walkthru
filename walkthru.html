@@ -340,10 +340,10 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peList h3.lib-tab:first-child{border-top:0;padding-top:0;margin-top:6px}
 .pe-card .seg.al{margin:4px 6px}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
-.chips button{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;padding:0}
+.chips button{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.15);cursor:pointer;padding:0}
 .chips button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
-.chips .def{width:auto;padding:0 7px;font:500 11px var(--f-ui);background:var(--paper-2);color:var(--ink-2)}
-.chip-c{position:relative;width:22px;height:22px;border-radius:6px;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);cursor:pointer}
+.chips .def{background:linear-gradient(135deg,transparent 46%,var(--ink-3) 46%,var(--ink-3) 54%,transparent 54%),var(--paper)!important;border-color:var(--rule-2)}
+.chip-c{position:relative;width:22px;height:22px;border-radius:50%;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);cursor:pointer}
 .chip-c input{position:absolute;inset:0;opacity:0;cursor:pointer}
 #peList button{display:flex;align-items:center;gap:8px;width:100%;font:12.5px var(--f-ui);color:var(--ink);background:transparent;border:0;border-radius:6px;padding:5px 6px;cursor:grab;text-align:left;touch-action:none}
 #peList button:hover{background:var(--paper-2)}
@@ -511,6 +511,17 @@ body.editing .cl-save{display:none}
 #peSide .pe-row .btn{padding:4px 8px;font-size:11.5px}
 #peSide .seg{margin:4px 6px}
 #peSide .pe-note{margin:6px 6px 0;font-size:11px}
+
+/* actions read like a right-click menu: one per line, Delete last */
+#peSide .pe-row{display:flex;flex-direction:column;gap:0;margin:8px 0 0;padding-top:6px;border-top:1px solid var(--rule)}
+#peSide .pe-row .btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:6px 8px;border:0;border-radius:6px;background:none;box-shadow:none;font:12.5px var(--f-ui);color:var(--ink);text-align:left}
+#peSide .pe-row .btn:hover{background:var(--paper-2)}
+#peSide .pe-row .btn.danger{color:#e5484d}
+#peSide .pe-row .btn.danger:hover{background:rgba(229,72,77,.1)}
+#peSide .pe-row kbd{font-size:10.5px;color:var(--ink-3);background:none;border:0;padding:0}
+#peSide .pe-row + .pe-row{border-top:0;margin-top:0;padding-top:0}
+#peSide .fld.fld-stack{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+#peSide .chips{gap:6px}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -766,7 +777,7 @@ body.editing .cl-save{display:none}
         <label class="fld" for="peType">Type <select id="peType"></select></label>
         <div class="pe-wd"><label class="fld" for="peW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD"><span>Depth (<span class="u-len">ft</span>)</span> <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
-        <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
+        <div class="pe-row"><button class="btn" id="peRot" type="button">Rotate furniture<kbd>R</kbd></button><button class="btn" id="peShuf" type="button">Shuffle furniture</button><button class="btn" id="peDup" type="button">Duplicate<kbd>⌘D</kbd></button><button class="btn danger" id="peDel" type="button">Delete<kbd>Del</kbd></button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
         <div id="peFin"></div>
       </div>
@@ -3821,9 +3832,9 @@ function roomFinishPanel() {
   const F = q.finish || {}, sw = (attr, cur) => PAINTS.map(([c, n]) => `<button type="button" ${attr}="${c}" title="${n}" aria-pressed="${cur === c}" style="background:${c}"></button>`).join('');
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:14px">Finishes</h3>
     <label class="fld">Floor <select id="rfFloor"><option value="">House default</option>${Object.entries(ROOM_FLOORS).map(([k, v]) => `<option value="${k}" ${F.floor === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-    <div class="fld">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default">Default</button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
+    <div class="fld fld-stack">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default" aria-label="House default"></button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
     <label class="fld">Accent wall <select id="rfSide"><option value="">None</option>${Object.entries(SIDE_NAME).map(([k, n]) => `<option value="${k}" ${F.accent?.side === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-    ${F.accent ? `<div class="fld"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
+    ${F.accent ? `<div class="fld fld-stack"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
   const set = fn => { pushHist(); q.finish = { ...(q.finish || {}) }; fn(q.finish); for (const k of Object.keys(q.finish)) if (q.finish[k] == null) delete q.finish[k]; if (!Object.keys(q.finish).length) delete q.finish; planChanged(); };
   el.querySelector('#rfFloor').onchange = e => set(f => f.floor = e.target.value || null);
   el.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => set(f => f.paint = b.dataset.rp || null));

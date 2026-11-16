@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.8b8e1148c8.js">
-<link rel="stylesheet" href="/assets/playground.82023280bd.css">
+<link rel="modulepreload" href="/assets/playground.85cb4f508d.js">
+<link rel="stylesheet" href="/assets/playground.0a25eb91a5.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -267,7 +267,7 @@
         <label class="fld" for="peType">Type <select id="peType"></select></label>
         <div class="pe-wd"><label class="fld" for="peW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD"><span>Depth (<span class="u-len">ft</span>)</span> <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
-        <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
+        <div class="pe-row"><button class="btn" id="peRot" type="button">Rotate furniture<kbd>R</kbd></button><button class="btn" id="peShuf" type="button">Shuffle furniture</button><button class="btn" id="peDup" type="button">Duplicate<kbd>⌘D</kbd></button><button class="btn danger" id="peDel" type="button">Delete<kbd>Del</kbd></button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
         <div id="peFin"></div>
       </div>
@@ -414,5 +414,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.8b8e1148c8.js"></script>
+<script type="module" src="/assets/playground.85cb4f508d.js"></script>
 </html>
