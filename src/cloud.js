@@ -22,7 +22,7 @@ async function cloudApi(method, path, data) {
 }
 
 // Forms here are handled in JS; never let the browser submit them (that would reload the page).
-document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome')) e.preventDefault(); }, true);
+document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome, #priceForm')) e.preventDefault(); }, true);
 
 // ---------- design helpers ----------
 const BEDS = new Set(['bedroom', 'primary', 'guest', 'nursery']);
@@ -232,6 +232,7 @@ async function openProject(id, keepView) {
   if (first) CL.tab = j.shares.some(s => s.status === 'submitted') ? 'share' : 'share';
   toggleSide(true); renderSide();
   CL.poll = setInterval(refreshProject, 20000);
+  loadCatalog();
 }
 async function refreshProject() {
   if (CL.route?.kind !== 'project' || document.hidden) return;
@@ -270,7 +271,7 @@ const EV = {
 };
 function renderProjectSide() {
   const P = CL.project, open = CL.comments.filter(c => c.author_role === 'customer' && !c.resolved).length, waiting = P.shares.filter(s => s.status === 'submitted').length;
-  sideTabs([['share', `Customers${waiting ? ` (${waiting})` : ''}`], ['comments', `Comments${open ? ` (${open})` : ''}`], ['activity', 'Activity'], ['versions', 'Versions']]);
+  sideTabs([['share', `Customers${waiting ? ` (${waiting})` : ''}`], ['comments', `Comments${open ? ` (${open})` : ''}`], ['pricing', 'Price'], ['activity', 'Activity'], ['versions', 'Versions']]);
   $c('clSideCount').textContent = open ? open : '';
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
   if (CL.tab === 'share') {
@@ -311,6 +312,7 @@ function renderProjectSide() {
       el.querySelector('[data-act="pass"]').onclick = async () => { const pw = prompt(s.has_pass ? 'New password for this link (leave empty to remove it)' : 'Password for this link'); if (pw === null) return; await cloudApi('PATCH', `share?token=${tok}`, { password: pw.trim() }); setSave(pw.trim() ? 'Password set. Share it with the customer separately.' : 'Password removed'); await refreshProject(); renderSide(); };
       el.querySelector('[data-act="revoke"]').onclick = async () => { await cloudApi('PATCH', `share?token=${tok}`, { revoked: !s.revoked }); await refreshProject(); renderSide(); };
     });
+  } else if (CL.tab === 'pricing') { B.innerHTML = priceSideHTML(true); wirePriceSide(true);
   } else if (CL.tab === 'comments') {
     B.innerHTML = CL.comments.length ? CL.comments.map(c => commentHTML(c, true)).join('') : '<p class="cl-sub">No comments yet. Customers can pin comments anywhere in the house.</p>';
     wireComments(B, true); F.innerHTML = composerHTML(true); wireComposer(true, async () => { await refreshProject(); renderPins(); renderSide(); });
@@ -337,6 +339,7 @@ async function openShare(token) {
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
   if (!seen) welcome();
+  loadCatalog();
   CL.poll = setInterval(async () => { if (document.hidden) return; try { const r = await cloudApi('GET', `comments?token=${token}`); if (r.comments.length !== CL.comments.length) { CL.comments = r.comments; renderPins(); renderSide(); } } catch (e) { } }, 20000);
 }
 function shareStatus() {
@@ -352,7 +355,7 @@ function shareSave() {
 }
 function renderShareSide() {
   const s = CL.share, canSave = s.access !== 'view';
-  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ['send', 'Send'], ['help', 'How to']]);
+  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ...(hasPricing() ? [['price', 'Price']] : []), ['send', 'Send'], ['help', 'How to']]);
   $c('clSideCount').textContent = CL.comments.length || '';
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
   if (CL.tab === 'comments') {
@@ -360,6 +363,7 @@ function renderShareSide() {
       (CL.comments.length ? CL.comments.map(c => commentHTML(c, false)).join('') : '<p class="cl-sub">Questions or ideas? Pin a comment to any spot in the house and we’ll see exactly what you mean.</p>');
     wireComments(B, false); F.innerHTML = composerHTML(false);
     wireComposer(false, async () => { const r = await cloudApi('GET', `comments?token=${CL.route.token}`); CL.comments = r.comments; renderPins(); renderSide(); setSave('Comment posted'); });
+  } else if (CL.tab === 'price') { B.innerHTML = priceSideHTML(false); wirePriceSide(false);
   } else if (CL.tab === 'send') {
     const sent = s.status === 'submitted';
     B.innerHTML = `<p class="cl-sub">${canSave ? (s.changed ? 'Your version is saved. When you’re happy with it, send it over and we’ll review your changes and comments.' : 'You haven’t changed anything yet. You can still send your comments.') : 'Send your comments when you’re ready.'}</p>

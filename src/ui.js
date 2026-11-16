@@ -320,6 +320,7 @@ function uiSync() {
   if (RS !== 'real') applyRS();
   if (panel === 'nav') renderNav(); if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();
+  pricesChanged();
 }
 const uiClock = new THREE.Clock();
 (function tick() { // sun study: sweep the day while the play button is on

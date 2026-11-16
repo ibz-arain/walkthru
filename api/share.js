@@ -77,7 +77,7 @@ export default route({
     const bm = s.has_copy ? await getJSON(keys.share(s.token)) : await getJSON(keys.version(p.id, p.version));
     const comments = await c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? AND (share_token = ? OR (share_token IS NULL AND author_role = ?)) ORDER BY created_at ASC', args: [p.id, s.token, 'studio-public'] });
     const org = p.org_id && (await c.execute({ sql: 'SELECT name FROM orgs WHERE id = ?', args: [p.org_id] })).rows[0];
-    send(res, 200, { brand: { ...brand(), name: org?.name || brand().name }, project: { name: p.name, address: p.address, version: p.version }, customer: s.customer, access: s.access, status: s.status, message: s.message,
+    send(res, 200, { brand: { ...brand(), name: org?.name || brand().name }, project: { name: p.name, address: p.address, version: p.version, base_price: p.base_price }, customer: s.customer, access: s.access, status: s.status, message: s.message,
       changed: !!s.has_copy, expires_at: s.expires_at, bm, comments: comments.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null })) });
   },
   async PUT(req, res) {
@@ -86,7 +86,7 @@ export default route({
     const b = body(req); if (!b.bm || !Array.isArray(b.bm.rooms)) return fail(res, 400, 'Bad design');
     if (s.access === 'finishes') { // finishes-only links can't move rooms: keep the builder's layout, take only their finish picks
       const p = await project(c, s.project_id);
-      const base = await getJSON(keys.version(p.id, p.version)); b.bm = { ...base, finishes: b.bm.finishes || {} };
+      const base = await getJSON(keys.version(p.id, p.version)); b.bm = { ...base, finishes: b.bm.finishes || {}, addons: Array.isArray(b.bm.addons) ? b.bm.addons.slice(0, 100) : [] };
     }
     await putJSON(keys.share(s.token), b.bm);
     const first = !s.has_copy || (now() - (s.updated_at || 0)) > 10 * 60e3; // one activity entry per editing session

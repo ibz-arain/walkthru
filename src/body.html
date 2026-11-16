@@ -292,6 +292,8 @@
         <button type="button" id="exFly"><svg class="ic"><use href="#i-rec"/></svg><span>Fly-around video</span></button>
         <button type="button" id="exVideo"><svg class="ic"><use href="#i-rec"/></svg><span>Record a walkthrough</span></button>
         <button type="button" id="exPlan"><svg class="ic"><use href="#i-lib"/></svg><span>Floor plan image</span></button>
+        <button type="button" id="exSel"><svg class="ic"><use href="#i-pdf"/></svg><span>Selections sheet</span></button>
+        <button type="button" id="exSelCsv"><svg class="ic"><use href="#i-info"/></svg><span>Selections (CSV)</span></button>
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule</span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file</span></button>
         <button type="button" id="exImport"><svg class="ic"><use href="#i-up"/></svg><span>Import a design</span></button>
@@ -323,7 +325,7 @@
   <header class="st-top">
     <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
     <span class="st-user" id="stUser" hidden></span>
-    <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
+    <div class="st-actions"><button class="btn st-ghost" id="stPrices" type="button" hidden>Price list</button><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -361,6 +363,7 @@
   <div class="cl-foot" id="clFoot"></div>
 </aside>
 <div class="panel st-modal" id="clWelcome" hidden role="dialog" aria-label="Welcome"></div>
+<form class="panel st-modal pl-modal" id="priceForm" hidden onsubmit="return false" aria-label="Price list"></form>
 
 <!-- ===== HUD ===== -->
 <div class="panel" id="lockTip" hidden>Click to look around</div>

@@ -7,7 +7,7 @@ mkdirSync('.data', { recursive: true });
 const file = `.data/test-${process.pid}.db`;
 process.env.TURSO_DATABASE_URL = `file:${file}`; delete process.env.ADMIN_KEY; delete process.env.RESEND_API_KEY; process.env.VERCEL = '1'; // VERCEL=1 keeps mail quiet
 const H = {};
-for (const n of ['auth', 'team', 'designs', 'projects', 'project', 'share', 'comments', 'log']) H[n] = (await import(`../api/${n}.js`)).default;
+for (const n of ['auth', 'team', 'designs', 'projects', 'project', 'share', 'comments', 'log', 'catalog']) H[n] = (await import(`../api/${n}.js`)).default;
 
 // A tiny client that keeps its own cookie, like one browser.
 function client() {
@@ -139,6 +139,26 @@ test('sign-in lockout, invite expiry, admin password reset', async () => {
   assert.equal((await client()('auth', 'POST', { action: 'reset' }, { token: tok, password: 'brandnewpass' })).code, 200);
   assert.equal((await client()('auth', 'POST', { action: 'login' }, { email: 'mate@example.com', password: 'brandnewpass' })).code, 200);
   assert.equal((await mate('auth')).body.user, null, 'old sessions end after a reset');
+});
+
+test('price list: owners edit, buyers read, project base price wins', async () => {
+  const own = client(), ed = client();
+  await own('auth', 'POST', { action: 'signup' }, { email: 'price@example.com', password: 'longpassword', workspace: 'Priced' });
+  const inv = (await own('team', 'POST', {}, { email: 'ed@example.com', role: 'editor' })).body.token;
+  await ed('auth', 'POST', { action: 'signup' }, { email: 'ed@example.com', password: 'longpassword', invite: inv });
+  const cat = { base: 650000, finish: { counter: { 1: 4200, 2: '2500' }, bad: { x: 9 } }, addons: [{ name: 'Finished basement', price: 45000, group: 'Packages' }, { name: '' }] };
+  assert.equal((await ed('catalog', 'PUT', {}, cat)).code, 403, 'editors cannot change prices');
+  const r = await own('catalog', 'PUT', {}, cat); assert.equal(r.code, 200);
+  assert.deepEqual(r.body.catalog.finish.counter, { 1: 4200, 2: 2500 }); assert.equal(r.body.catalog.addons.length, 1); assert.ok(r.body.catalog.addons[0].id);
+  assert.equal((await ed('catalog')).body.catalog.base, 650000);
+  const pid = (await own('projects', 'POST', {}, { name: 'P', bm })).body.id;
+  await own('project', 'PUT', { id: pid }, { base_price: 700000 });
+  const tok = (await own('share', 'POST', {}, { projectId: pid, customer: 'B', access: 'finishes', sendEmail: false })).body.token;
+  const buyer = client(), got = await buyer('catalog', 'GET', { token: tok });
+  assert.equal(got.body.catalog.base, 700000); assert.equal(got.body.catalog.finish.counter[1], 4200);
+  assert.equal((await buyer('share', 'PUT', { token: tok }, { bm: { ...bm, rooms: [], finishes: { counter: 1 }, addons: [r.body.catalog.addons[0].id] } })).code, 200);
+  const saved = (await buyer('share', 'GET', { token: tok })).body.bm;
+  assert.equal(saved.rooms.length, 1, 'finishes-only links keep the builder layout'); assert.deepEqual(saved.addons, [r.body.catalog.addons[0].id]);
 });
 
 test.after(() => { try { rmSync(file); } catch (e) { } });

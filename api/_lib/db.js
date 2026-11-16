@@ -42,12 +42,15 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, name TEXT NOT NULL, detail TEXT, path TEXT, user_id TEXT, created_at INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS logs_kind ON logs(kind, created_at)`,
   // Failed sign-in / link-password attempts, for rate limiting.
+  // Workspace price list (base price, finish upgrades, add-ons) as one JSON document.
+  `CREATE TABLE IF NOT EXISTS catalogs (org_id TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS attempts (key TEXT PRIMARY KEY, n INTEGER NOT NULL, first_at INTEGER NOT NULL, locked_until INTEGER)`,
 ];
 // Columns added after the first release. SQLite has no "ADD COLUMN IF NOT EXISTS", so each one is tried and "duplicate column" is ignored.
 const COLUMNS = [
   ['projects', 'org_id TEXT'], ['projects', 'created_by TEXT'],
   ['shares', 'expires_at INTEGER'], ['shares', 'pass_hash TEXT'],
+  ['projects', 'base_price INTEGER'],
 ];
 
 export async function db() {

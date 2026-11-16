@@ -46,6 +46,7 @@ export default route({
     const sets = [], args = [];
     for (const k of ['name', 'client', 'address', 'status']) if (typeof b[k] === 'string') { sets.push(`${k} = ?`); args.push(b[k].slice(0, 120)); }
     for (const k of ['summary', 'preview']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(JSON.stringify(b[k])); }
+    if (b.base_price !== undefined) { sets.push('base_price = ?'); args.push(b.base_price === null || b.base_price === '' ? null : Math.max(0, Math.round(+b.base_price || 0))); }
     sets.push('updated_at = ?'); args.push(now());
     await c.execute({ sql: `UPDATE projects SET ${sets.join(', ')} WHERE id = ?`, args: [...args, p.id] });
     send(res, 200, { ok: true, version: p.version });
