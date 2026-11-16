@@ -127,7 +127,7 @@ function resetBID() { BID = Math.max(1, ...BM.rooms.map(r => r.id + 1), ...(BM.s
 let H3P = false, userBM = null; // H3P: House 3 (the Campana plan) is showing in place of your design
 function usePreset(on) { if (on === H3P) return false; if (on) { userBM = BM; BM = campanaPlan(); } else { BM = userBM; resetBID(); } H3P = on; return true; }
 let cloudSave = null; // set by cloud.js: Studio projects and customer links save to the server instead of this browser
-function saveBM() { if (H3P) return; if (cloudSave) return cloudSave(); const d = DS.list.find(x => x.id === DS.cur); if (d) d.bm = BM; try { localStorage.setItem('walkthru-designs-v1', JSON.stringify(DS)); } catch (e) { } }
+function saveBM() { if (H3P) return; if (cloudSave) return cloudSave(); const d = DS.list.find(x => x.id === DS.cur); if (d) d.bm = BM; try { localStorage.setItem('walkthru-designs-v1', JSON.stringify(DS)); } catch (e) { } designSynced(); }
 const curDesign = () => DS.list.find(x => x.id === DS.cur);
 resetBID(); normalizeStairs(BM);
 const rname = r => r.name || RT[r.type]?.name || r.type;

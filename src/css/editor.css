@@ -46,6 +46,9 @@ body.editing #clHead{display:none!important}
 .st-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none}.st-brand b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
+.st-user{margin-left:auto;margin-right:12px;font-size:13px;color:var(--ink-2)}
+.st-keyform details{display:grid;gap:8px}.st-keyform summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin-bottom:8px}.st-keyform .btn{text-decoration:none}
+.cl-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cl-check{display:flex!important;align-items:center;gap:8px;grid-template-columns:none!important}.cl-check input{width:auto}
 .st-primary{background:var(--primary)!important;color:var(--primary-ink)!important;border:1px solid var(--primary)!important;border-radius:var(--r-sm)!important;font-weight:500!important;padding:8px 14px!important}
 .st-primary:hover{opacity:.9}
 .st-ghost{border:1px solid var(--rule-2)!important;border-radius:var(--r-sm)!important;padding:8px 12px!important;background:var(--paper)!important}

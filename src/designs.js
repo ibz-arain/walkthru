@@ -34,7 +34,7 @@ let delArm = 0;
 document.getElementById('designDel').onclick = e => { // two clicks: confirm inside the menu (no browser dialogs here)
   const b = e.currentTarget; if (DS.list.length < 2) return;
   if (Date.now() - delArm > 2500) { delArm = Date.now(); b.textContent = 'Click again to delete'; setTimeout(() => b.textContent = 'Delete', 2500); return; }
-  delArm = 0; b.textContent = 'Delete'; const i = DS.list.findIndex(x => x.id === DS.cur); DS.list.splice(i, 1); openDesign(DS.list[Math.max(0, i - 1)].id);
+  delArm = 0; b.textContent = 'Delete'; const i = DS.list.findIndex(x => x.id === DS.cur); forgetCloudDesign(DS.list[i]); DS.list.splice(i, 1); openDesign(DS.list[Math.max(0, i - 1)].id);
 };
 designLabel();
 // On House 3 the edit button copies the plan into your designs first, so House 3 itself never changes.

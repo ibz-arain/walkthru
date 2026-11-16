@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Account · Walkthru</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Cpath d='M9 15.5 16 9l7 6.5V23H9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
+<script src="/track.js" defer></script>
+<style>
+:root{--bg:#f7f7f8;--paper:#fff;--paper-2:#f3f3f5;--ink:#111114;--ink-2:#6b6b76;--ink-3:#9e9ea8;--rule:#e6e6ea;--rule-2:#d6d6dc;--primary:#111114;--primary-ink:#fff;--accent:#3b5bfd;--accent-soft:rgba(59,91,253,.12);--danger:#dc2626;--ok:#15803d;
+  --f-ui:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;--f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--paper:#151518;--paper-2:#1d1d21;--ink:#ececf0;--ink-2:#8e8e99;--ink-3:#5e5e68;--rule:#26262b;--rule-2:#34343a;--primary:#ececf0;--primary-ink:#151518;--accent:#7088ff;--accent-soft:rgba(112,136,255,.15);--danger:#f87171;--ok:#4ade80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--paper:#151518;--paper-2:#1d1d21;--ink:#ececf0;--ink-2:#8e8e99;--ink-3:#5e5e68;--rule:#26262b;--rule-2:#34343a;--primary:#ececf0;--primary-ink:#151518;--accent:#7088ff;--accent-soft:rgba(112,136,255,.15);--danger:#f87171;--ok:#4ade80;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01"}
+[hidden]{display:none!important}
+a{color:inherit}
+.top{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 24px;border-bottom:1px solid var(--rule);background:var(--paper)}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;font-weight:600}
+.logo{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--primary);color:var(--primary-ink)}
+.logo svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
+.top nav{display:flex;gap:6px;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 13.5px/1 var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--rule-2);border-radius:8px;padding:9px 14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--paper-2)}
+.btn-primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}.btn-primary:hover{background:var(--primary);opacity:.88}
+.btn-sm{padding:6px 10px;font-size:12.5px}
+.btn.danger{color:var(--danger)}
+.link{background:none;border:0;padding:0;color:var(--ink-2);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.link:hover{color:var(--ink)}
+button:disabled{opacity:.5;cursor:default}
+/* auth card */
+.auth{max-width:380px;margin:72px auto 40px;padding:0 20px}
+.auth h1{font-size:24px;letter-spacing:-.02em;font-weight:600;margin:0 0 6px}
+.auth .sub{color:var(--ink-2);margin:0 0 24px}
+.card{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:22px}
+form{display:grid;gap:14px}
+label{display:grid;gap:6px;font:500 12.5px var(--f-ui);color:var(--ink-2)}
+input,select{font:14px var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--rule-2);border-radius:8px;padding:9px 11px;width:100%}
+input:focus,select:focus{outline:none;border-color:var(--ink-3);box-shadow:0 0 0 3px var(--accent-soft)}
+.err{color:var(--danger);font-size:13px;min-height:1px;margin:0}
+.ok{color:var(--ok);font-size:13px;margin:0}
+.alt{margin-top:18px;text-align:center;color:var(--ink-2);font-size:13.5px}
+/* settings */
+.wrap{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+.wrap > h1{font-size:24px;letter-spacing:-.02em;font-weight:600;margin:0 0 4px}
+.wrap > .sub{color:var(--ink-2);margin:0 0 28px}
+section{background:var(--paper);border:1px solid var(--rule);border-radius:14px;margin-bottom:16px}
+section > header{padding:16px 20px;border-bottom:1px solid var(--rule)}
+section > header h2{margin:0;font-size:15px;font-weight:600}
+section > header p{margin:2px 0 0;color:var(--ink-2);font-size:13px}
+.body{padding:18px 20px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl td{padding:10px 0;border-bottom:1px solid var(--rule);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td:last-child{text-align:right;white-space:nowrap}
+.tbl small{display:block;color:var(--ink-3);font-size:12px}
+.tbl select{width:auto;padding:5px 8px;font-size:13px}
+.pill{display:inline-block;font:500 11.5px var(--f-ui);background:var(--paper-2);color:var(--ink-2);border-radius:99px;padding:2px 8px;margin-left:6px}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;font:14px var(--f-ui);color:var(--ink)}
+.switch input{width:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.stat{background:var(--paper-2);border-radius:10px;padding:10px 12px}.stat b{display:block;font-size:18px;font-weight:600}.stat span{font-size:12px;color:var(--ink-2)}
+.mono{font-family:var(--f-mono);font-size:12px}
+@media (max-width:600px){.row2{grid-template-columns:1fr}.auth{margin-top:40px}}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z"/></svg></span>Walkthru</a>
+  <nav><a class="btn btn-sm" href="/playground">Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Studio</a></nav>
+</header>
+
+<main id="view"></main>
+
+<script type="module">
+const $ = s => document.querySelector(s), view = $('#view');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+async function api(method, path, data) {
+  const r = await fetch('/api/' + path, { method, headers: { 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
+  let j = {}; try { j = await r.json(); } catch (e) { }
+  if (!r.ok) throw Object.assign(new Error(j.error || `Request failed (${r.status})`), { status: r.status });
+  return j;
+}
+const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
+const nextUrl = () => { const n = params().get('next'); return n && n.startsWith('/') && !n.startsWith('//') ? n : '/playground'; };
+const track = (name, detail) => window.wtTrack?.(name, detail);
+let ME = { user: null };
+
+function authCard(title, sub, inner, alt = '') { view.innerHTML = `<div class="auth"><h1>${title}</h1><p class="sub">${sub}</p><div class="card">${inner}</div>${alt ? `<p class="alt">${alt}</p>` : ''}</div>`; }
+function bindForm(sel, fn) {
+  const f = $(sel); f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('[type=submit]'), err = f.querySelector('.err'); err.textContent = ''; btn.disabled = true;
+    try { await fn(Object.fromEntries(new FormData(f))); } catch (x) { err.textContent = x.message; } finally { btn.disabled = false; } };
+}
+
+function login() {
+  const n = encodeURIComponent(nextUrl());
+  authCard('Sign in', 'Welcome back. Your designs and projects are waiting.', `<form id="f">
+    <label>Email <input name="email" type="email" autocomplete="email" required autofocus></label>
+    <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+    <p class="err"></p><button class="btn btn-primary" type="submit">Sign in</button>
+    <button class="link" type="button" id="forgot">Forgot your password?</button></form>`,
+    `New to Walkthru? <a href="#signup?next=${n}">Create an account</a>`);
+  bindForm('#f', async v => { await api('POST', 'auth?action=login', v); track('login'); location.href = nextUrl(); });
+  $('#forgot').onclick = () => { location.hash = `#forgot?next=${n}`; };
+}
+function signup(invite) {
+  const n = encodeURIComponent(nextUrl());
+  authCard(invite ? 'Join your team' : 'Create your account', invite ? 'Make an account to accept the invite.' : 'Free while we’re in early access. No card needed.', `<form id="f">
+    <label>Your name <input name="name" autocomplete="name" required autofocus maxlength="80"></label>
+    <label>Work email <input name="email" type="email" autocomplete="email" required></label>
+    <label>Password <input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label>
+    ${invite ? '' : '<label>Company or workspace name <input name="workspace" maxlength="80" placeholder="e.g. Lakeview Homes"></label>'}
+    <p class="err"></p><button class="btn btn-primary" type="submit">${invite ? 'Create account and join' : 'Create account'}</button>
+    <p class="sub" style="margin:0;font-size:12px">By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy policy</a>.</p></form>`,
+    `Already have an account? <a href="#login${invite ? `?next=${encodeURIComponent('/account#invite/' + invite)}` : `?next=${n}`}">Sign in</a>`);
+  bindForm('#f', async v => { await api('POST', 'auth?action=signup', { ...v, invite }); track('signup', { invite: !!invite }); location.href = invite ? '/playground#admin' : nextUrl(); });
+}
+function forgot() {
+  authCard('Reset your password', 'We’ll email you a link to choose a new one.', `<form id="f">
+    <label>Email <input name="email" type="email" autocomplete="email" required autofocus></label>
+    <p class="err"></p><button class="btn btn-primary" type="submit">Send reset link</button></form>`, `<a href="#login">Back to sign in</a>`);
+  bindForm('#f', async v => { await api('POST', 'auth?action=forgot', v); $('#f').innerHTML = '<p class="ok">If there’s an account for that email, a reset link is on its way. It works for one hour.</p>'; });
+}
+function reset(token) {
+  authCard('Choose a new password', 'This signs you out everywhere else.', `<form id="f">
+    <label>New password <input name="password" type="password" autocomplete="new-password" minlength="8" required autofocus></label>
+    <p class="err"></p><button class="btn btn-primary" type="submit">Save and sign in</button></form>`);
+  bindForm('#f', async v => { await api('POST', 'auth?action=reset', { token, password: v.password }); location.href = '/playground'; });
+}
+async function invite(token) {
+  if (!ME.user) return signup(token);
+  authCard('Join the workspace', `You’re signed in as ${esc(ME.user.email)}.`, `<form id="f"><p class="err"></p><button class="btn btn-primary" type="submit">Accept invite</button></form>`, `<a href="#">Not now</a>`);
+  bindForm('#f', async () => { await api('POST', 'auth?action=accept', { invite: token }); location.href = '/playground#admin'; });
+}
+
+// ---------- signed in: settings ----------
+const ROLE_HELP = { owner: 'Everything, including billing and ownership', admin: 'Manage people and every project', editor: 'Create, edit and share projects', viewer: 'Look and comment only' };
+async function settings() {
+  const T = ME.org ? await api('GET', 'team') : null, manage = ['owner', 'admin'].includes(ME.role);
+  const L = manage ? await api('GET', 'log?days=30').catch(() => null) : null;
+  view.innerHTML = `<div class="wrap"><h1>Account</h1><p class="sub">${esc(ME.user.email)}${ME.org ? ` · ${esc(ME.org.name)} <span class="pill">${esc(ME.role)}</span>` : ''}</p>
+  <section><header><h2>Profile</h2></header><div class="body"><form id="pf"><div class="row2"><label>Name <input name="name" value="${esc(ME.user.name)}" maxlength="80"></label><label>Email <input value="${esc(ME.user.email)}" disabled></label></div>
+    <label class="switch">Email me when customers comment or send changes <input type="checkbox" name="notify" ${ME.user.notify ? 'checked' : ''}></label>
+    <p class="err"></p><div class="actions"><button class="btn btn-primary" type="submit">Save profile</button><span class="ok" id="pfOk"></span></div></form></div></section>
+
+  ${ME.org ? `<section><header><h2>Workspace</h2><p>Projects, customer links and comments belong to the workspace.</p></header><div class="body">
+    <form id="wf"><div class="row2"><label>Name <input name="workspace" value="${esc(ME.org.name)}" ${manage ? '' : 'disabled'} maxlength="80"></label>
+    <label>Switch workspace <select id="orgSel">${ME.orgs.map(o => `<option value="${esc(o.id)}" ${o.id === ME.org.id ? 'selected' : ''}>${esc(o.name)} (${esc(o.role)})</option>`).join('')}</select></label></div>
+    <p class="err"></p><div class="actions">${manage ? '<button class="btn btn-primary" type="submit">Rename</button>' : ''}<button class="btn" type="button" id="newOrg">New workspace</button></div></form></div></section>
+
+  <section><header><h2>Team</h2><p>${manage ? 'Invite people by email. They’ll get a link to join.' : 'People in this workspace.'}</p></header><div class="body">
+    ${manage ? `<form id="inv" style="margin-bottom:14px"><div class="row2" style="grid-template-columns:2fr 1fr auto;align-items:end"><label>Email <input name="email" type="email" required placeholder="name@company.com"></label>
+      <label>Role <select name="role"><option value="editor">Editor</option><option value="admin">Admin</option><option value="viewer">Viewer</option></select></label><button class="btn btn-primary" type="submit">Invite</button></div><p class="err"></p></form>` : ''}
+    <table class="tbl">${T.members.map(m => `<tr><td>${esc(m.name || m.email)}${m.id === T.me ? ' <span class="pill">you</span>' : ''}<small>${esc(m.email)}</small></td><td>
+      ${manage && m.id !== T.me ? `<select data-role="${esc(m.id)}">${['owner', 'admin', 'editor', 'viewer'].map(r => `<option ${r === m.role ? 'selected' : ''} value="${r}">${r[0].toUpperCase() + r.slice(1)}</option>`).join('')}</select> <button class="btn btn-sm danger" data-rm="${esc(m.id)}">Remove</button>` : `<span class="pill" title="${esc(ROLE_HELP[m.role])}">${esc(m.role)}</span>${m.id === T.me && T.members.length > 1 ? ` <button class="btn btn-sm" data-rm="${esc(m.id)}">Leave</button>` : ''}`}</td></tr>`).join('')}
+    ${T.invites.map(i => `<tr><td>${esc(i.email)} <span class="pill">invited</span><small>${esc(i.role)} · ${new Date(i.created_at).toLocaleDateString()}</small></td><td><button class="btn btn-sm" data-copy="${esc(i.token)}">Copy link</button> <button class="btn btn-sm danger" data-uninv="${esc(i.token)}">Withdraw</button></td></tr>`).join('')}</table>
+    <p class="sub" style="margin:12px 0 0;font-size:12.5px;color:var(--ink-3)">${Object.entries(ROLE_HELP).map(([r, h]) => `<b>${r[0].toUpperCase() + r.slice(1)}</b>: ${h}`).join(' · ')}</p>
+  </div></section>` : ''}
+
+  ${L ? `<section><header><h2>Usage, last 30 days</h2><p>Product events and errors collected from this site.</p></header><div class="body">
+    <div class="stats">${L.events.slice(0, 8).map(e => `<div class="stat"><b>${e.n}</b><span>${esc(e.name.replace(/_/g, ' '))}</span></div>`).join('') || '<p class="sub">No events yet.</p>'}</div>
+    ${L.errors.length ? `<table class="tbl" style="margin-top:12px">${L.errors.slice(0, 8).map(e => `<tr><td><span class="mono">${esc(e.name)}</span><small>${esc(e.path)}</small></td><td>${e.n}×</td></tr>`).join('')}</table>` : '<p class="sub" style="margin:12px 0 0">No errors reported.</p>'}
+  </div></section>` : ''}
+
+  <section><header><h2>Password</h2></header><div class="body"><form id="pw"><div class="row2"><label>Current password <input name="current" type="password" autocomplete="current-password" required></label>
+    <label>New password <input name="password" type="password" autocomplete="new-password" minlength="8" required></label></div><p class="err"></p><div class="actions"><button class="btn btn-primary" type="submit">Change password</button><span class="ok" id="pwOk"></span></div></form></div></section>
+
+  <div class="actions"><button class="btn" id="out">Sign out</button></div></div>`;
+
+  bindForm('#pf', async v => { ME = await api('PATCH', 'auth', { name: v.name, notify: !!v.notify }); $('#pfOk').textContent = 'Saved'; });
+  bindForm('#pw', async v => { await api('PATCH', 'auth', v); $('#pw').reset(); $('#pwOk').textContent = 'Password changed. Other devices were signed out.'; });
+  $('#out').onclick = async () => { await api('POST', 'auth?action=logout'); location.href = '/'; };
+  if (!ME.org) return;
+  bindForm('#wf', async v => { ME = await api('PATCH', 'auth', { workspace: v.workspace }); settings(); });
+  $('#orgSel').onchange = async e => { ME = await api('POST', 'auth?action=switch', { orgId: e.target.value }); settings(); };
+  $('#newOrg').onclick = async () => { const name = prompt('Name for the new workspace'); if (!name) return; ME = await api('POST', 'auth?action=workspace', { name }); settings(); };
+  if ($('#inv')) bindForm('#inv', async v => { const j = await api('POST', 'team', v); track('invite_sent'); await navigator.clipboard?.writeText(`${location.origin}/account#invite/${j.token}`).catch(() => { }); settings(); });
+  view.querySelectorAll('[data-role]').forEach(s => s.onchange = async () => { try { await api('PATCH', 'team', { userId: s.dataset.role, role: s.value }); } catch (e) { alert(e.message); } settings(); });
+  view.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { if (!confirm(b.dataset.rm === T.me ? 'Leave this workspace?' : 'Remove this person from the workspace?')) return; try { await api('DELETE', `team?user=${encodeURIComponent(b.dataset.rm)}`); } catch (e) { return alert(e.message); } b.dataset.rm === T.me ? (ME = await api('GET', 'auth'), settings()) : settings(); });
+  view.querySelectorAll('[data-uninv]').forEach(b => b.onclick = async () => { await api('DELETE', `team?invite=${encodeURIComponent(b.dataset.uninv)}`); settings(); });
+  view.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { await navigator.clipboard?.writeText(`${location.origin}/account#invite/${b.dataset.copy}`).catch(() => { }); b.textContent = 'Copied'; });
+}
+
+async function route() {
+  const h = location.hash.slice(1).split('?')[0];
+  try { ME = await api('GET', 'auth'); } catch (e) { view.innerHTML = '<div class="auth"><h1>Accounts need the online version</h1><p class="sub">Run the site with its API (npm run dev) to sign in.</p></div>'; return; }
+  $('#topStudio').hidden = !ME.user;
+  if (h.startsWith('reset/')) return reset(h.slice(6));
+  if (h.startsWith('invite/')) return invite(h.slice(7));
+  if (ME.user) { if (h === 'login' || h === 'signup') return void (location.href = nextUrl()); return settings(); }
+  if (h === 'signup') return signup(); if (h === 'forgot') return forgot();
+  return login();
+}
+addEventListener('hashchange', route); route();
+</script>
+</body>
+</html>

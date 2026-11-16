@@ -40,6 +40,8 @@
     <symbol id="i-studio" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
     <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.6 1.6A3.3 3.3 0 0 0 7 18.5z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </defs>
 </svg>
@@ -100,6 +102,7 @@
   </div>
   <span class="tb-sep"></span>
   <div class="tb-g">
+    <button class="tb-b" id="acctBtn" type="button" data-pop="acctPop" hidden data-tip="Account"><svg class="ic"><use href="#i-user"/></svg></button>
     <button class="tb-b" id="dockBtn" type="button" data-pop="dockPop" data-tip="Layout and theme"><svg class="ic"><use href="#i-layout"/></svg></button>
     <button class="tb-primary" id="editBtn" type="button" aria-pressed="false" hidden data-tip="Edit floor plan (E)"><svg class="ic"><use href="#i-pencil"/></svg><span class="tb-t" id="editLabel">Edit plan</span></button>
     <button class="tb-primary ed-only" id="peDone" type="button" data-tip="Back to 3D (E)"><svg class="ic"><use href="#i-check"/></svg><span class="tb-t">Done</span></button>
@@ -114,7 +117,19 @@
   <div class="menu" id="designList"></div>
   <label class="fld">Name <input id="designName" type="text" maxlength="40"></label>
   <div class="dm-row"><button class="btn" id="designDup" type="button">Duplicate</button><button class="btn" id="designDel" type="button">Delete</button><button class="btn" id="designImport" type="button">Import…</button></div>
+  <p class="pop-note sync-note"><svg class="ic"><use href="#i-cloud"/></svg><span id="syncState">Designs are saved in this browser only.</span></p>
   <div class="dm-row dm-new"><span>New from</span><button class="btn" id="designNewPermit" type="button">Sample plan</button><button class="btn" id="designNewBlank" type="button">Blank page</button></div>
+</div>
+<div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
+  <div id="accIn" hidden>
+    <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
+    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Studio projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
+  </div>
+  <div id="accOut">
+    <h6>Save your work</h6>
+    <p class="pop-note" style="margin-top:0">Sign in to keep your designs on every device, share them with buyers and work with your team.</p>
+    <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
+  </div>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -281,12 +296,14 @@
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
     <a class="st-brand" href="/"><span class="logo st-logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b id="stBrand">Walkthru</b><span class="st-tag">Studio</span></a>
+    <span class="st-user" id="stUser" hidden></span>
     <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
-      <h2>Studio sign-in</h2><p>Enter the studio key to manage projects.</p>
-      <input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-primary" id="stKeyGo" type="submit">Continue</button><p class="st-err" id="stKeyErr"></p>
+      <h2>Sign in to the Studio</h2><p>Projects, customer links and comments live in your team’s workspace.</p>
+      <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
+      <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>

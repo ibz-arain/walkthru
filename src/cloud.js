@@ -11,11 +11,13 @@ const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s
 const ACCESS_NAME = { view: 'View & comment', finishes: 'Finishes', edit: 'Floor plan changes' };
 const STATUS_NAME = { draft: 'Draft', shared: 'Shared', sent: 'Sent', opened: 'Opened', editing: 'Editing', submitted: 'Changes sent', accepted: 'Accepted' };
 const studioKey = () => { try { return localStorage.getItem('studio-key') || ''; } catch (e) { return ''; } };
+const sharePass = () => { try { return sessionStorage.getItem('share-pass-' + (CL.route?.token || '')) || ''; } catch (e) { return ''; } };
 
 async function cloudApi(method, path, data) {
-  const r = await fetch('/api/' + path, { method, headers: { 'content-type': 'application/json', 'x-admin-key': studioKey() }, body: data === undefined ? undefined : JSON.stringify(data) });
+  const h = { 'content-type': 'application/json' }; if (studioKey()) h['x-admin-key'] = studioKey(); if (sharePass()) h['x-share-pass'] = sharePass();
+  const r = await fetch('/api/' + path, { method, headers: h, body: data === undefined ? undefined : JSON.stringify(data) });
   let j = {}; try { j = await r.json(); } catch (e) { }
-  if (!r.ok) { const err = new Error(j.error || `Request failed (${r.status})`); err.status = r.status; throw err; }
+  if (!r.ok) { const err = new Error(j.error || `Request failed (${r.status})`); err.status = r.status; err.needPass = !!j.needPass; throw err; }
   return j;
 }
 
@@ -92,9 +94,10 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 // ---------- Studio dashboard ----------
 let stProjects = [];
 async function studioHome() {
-  $c('stBrand').textContent = CL.brand.name; document.title = `${CL.brand.name} · Studio`;
+  $c('stBrand').textContent = ACC.org?.name || CL.brand.name; document.title = `${ACC.org?.name || CL.brand.name} · Studio`;
+  $c('stUser').textContent = ACC.user ? (ACC.user.name || ACC.user.email) : ''; $c('stUser').hidden = !ACC.user; $c('stNew').hidden = ACC.role === 'viewer';
   try { const j = await cloudApi('GET', 'projects'); stProjects = j.projects; $c('stKey').hidden = true; $c('stHead').hidden = false; renderStudio(); }
-  catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyIn').focus(); } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
+  catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyAlt').hidden = !CL.locked; $c('stSignIn').href = `/account#login?next=${encodeURIComponent('/playground#admin')}`; $c('stSignUp').href = `/account#signup?next=${encodeURIComponent('/playground#admin')}`; } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
 }
 function renderStudio() {
   const q = $c('stSearch').value.trim().toLowerCase(), list = stProjects.filter(p => !q || `${p.name} ${p.client || ''} ${p.address || ''}`.toLowerCase().includes(q));
@@ -274,20 +277,27 @@ function renderProjectSide() {
       <label>Email (optional) <input id="shEmail" type="email" maxlength="120" placeholder="jane@example.com"></label>
       <label>What they can do <select id="shAccess"><option value="view">Look around and comment</option><option value="finishes">Also choose finishes</option><option value="edit" selected>Also change the floor plan</option></select></label>
       <label>Message (optional) <textarea id="shMsg" rows="2" placeholder="Here’s the first draft of your home. Have a look around and tell us what you think!"></textarea></label>
+      <div class="cl-2"><label>Link expires <select id="shExp"><option value="0">Never</option><option value="7">In 7 days</option><option value="30" selected>In 30 days</option><option value="90">In 90 days</option></select></label><label>Password (optional) <input id="shPass" type="text" autocomplete="off" maxlength="60" placeholder="None"></label></div>
+      <label class="cl-check"><input type="checkbox" id="shMail" checked> Email the link to the customer</label>
       <button class="btn st-primary" type="submit" id="shGo">Create customer link</button></form>
       <div class="cl-sec">Customer links</div>` + (P.shares.length ? P.shares.map(s => `<div class="cl-item${s.revoked ? ' res' : ''}" data-tok="${clEsc(s.token)}">
         <h4><span>${clEsc(s.customer)}</span><span class="chip ${s.revoked ? '' : clEsc(s.status)}">${s.revoked ? 'Turned off' : clEsc(STATUS_NAME[s.status] || s.status)}</span></h4>
         <small>${clEsc(ACCESS_NAME[s.access])} · ${s.opened_at ? 'opened ' + clAgo(s.opened_at) : 'not opened yet'}${s.updated_at ? ' · active ' + clAgo(s.updated_at) : ''}</small>
+        <small>${s.expires_at ? (s.expires_at < Date.now() ? '<b class="st-danger">Expired</b>' : 'Expires ' + new Date(s.expires_at).toLocaleDateString()) : 'Never expires'}${s.has_pass ? ' · password protected' : ''}${s.email ? ' · ' + clEsc(s.email) : ''}</small>
         ${s.submit_note && s.status === 'submitted' ? `<p>“${clEsc(s.submit_note)}”</p>` : ''}
         <div class="cl-link"><input readonly value="${clEsc(shareURL(s.token))}" aria-label="Customer link"><button class="btn" type="button" data-act="copy">Copy</button></div>
         <div class="cl-acts">${s.has_copy ? `<button class="btn" type="button" data-act="view">View their version</button><button class="btn" type="button" data-act="accept">Accept changes</button>` : ''}
           <a class="btn" href="${clEsc(shareURL(s.token))}" target="_blank" rel="noopener">Open as customer</a>
           <select data-act="access" aria-label="Access">${Object.entries(ACCESS_NAME).map(([k, n]) => `<option value="${k}"${k === s.access ? ' selected' : ''}>${n}</option>`).join('')}</select>
+          <select data-act="exp" aria-label="Expiry"><option value="">Change expiry…</option><option value="0">Never expires</option><option value="7">7 more days</option><option value="30">30 more days</option><option value="90">90 more days</option></select>
+          <button class="btn" type="button" data-act="pass">${s.has_pass ? 'Change password' : 'Add password'}</button>
           <button class="btn${s.revoked ? '' : ' st-danger'}" type="button" data-act="revoke">${s.revoked ? 'Turn back on' : 'Turn off'}</button></div></div>`).join('') : '<p class="cl-sub">No customer links yet.</p>');
     $c('shForm').onsubmit = async () => {
       const customer = $c('shName').value.trim(); if (!customer) return $c('shName').focus();
-      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim() });
-        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave('Link created and copied'); } catch (e) { setSave('Link created'); }
+      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim(), expiresDays: +$c('shExp').value, password: $c('shPass').value.trim(), sendEmail: $c('shMail').checked });
+        window.wtTrack?.('share_created', { access: $c('shAccess').value });
+        const mailed = j.mailed === 'sent' ? ' and emailed' : j.mailed === 'queued' ? ' (email queued: no mail provider set up)' : '';
+        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave(`Link created${mailed}, copied`); } catch (e) { setSave(`Link created${mailed}`); }
         await refreshProject(); renderSide(); } catch (e) { setSave(e.message); }
     };
     B.querySelectorAll('[data-tok]').forEach(el => { const tok = el.dataset.tok, s = P.shares.find(x => x.token === tok);
@@ -295,6 +305,8 @@ function renderProjectSide() {
       el.querySelector('[data-act="view"]')?.addEventListener('click', () => viewCustomerVersion(tok));
       el.querySelector('[data-act="accept"]')?.addEventListener('click', () => acceptShare(tok));
       el.querySelector('[data-act="access"]').onchange = async e => { await cloudApi('PATCH', `share?token=${tok}`, { access: e.target.value }); s.access = e.target.value; setSave('Access updated'); };
+      el.querySelector('[data-act="exp"]').onchange = async e => { if (e.target.value === '') return; await cloudApi('PATCH', `share?token=${tok}`, { expiresDays: +e.target.value }); setSave('Expiry updated'); await refreshProject(); renderSide(); };
+      el.querySelector('[data-act="pass"]').onclick = async () => { const pw = prompt(s.has_pass ? 'New password for this link (leave empty to remove it)' : 'Password for this link'); if (pw === null) return; await cloudApi('PATCH', `share?token=${tok}`, { password: pw.trim() }); setSave(pw.trim() ? 'Password set. Share it with the customer separately.' : 'Password removed'); await refreshProject(); renderSide(); };
       el.querySelector('[data-act="revoke"]').onclick = async () => { await cloudApi('PATCH', `share?token=${tok}`, { revoked: !s.revoked }); await refreshProject(); renderSide(); };
     });
   } else if (CL.tab === 'comments') {
@@ -313,7 +325,7 @@ function renderProjectSide() {
 // ---------- Customer link ----------
 async function openShare(token) {
   let j; try { j = await cloudApi('GET', `share?token=${encodeURIComponent(token)}`); }
-  catch (e) { showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
+  catch (e) { if (e.needPass) return askSharePass(token, !!sharePass()); showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
   CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
@@ -369,6 +381,12 @@ function welcome() {
     <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around, walk inside, ${s.access === 'edit' ? 'try changes to the layout and finishes, ' : s.access === 'finishes' ? 'try different finishes, ' : ''}and pin comments anywhere. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
     <div class="st-row"><button class="btn st-primary" type="button" id="wcGo">Start exploring</button></div>`;
   w.hidden = false; $c('wcGo').onclick = () => { w.hidden = true; try { localStorage.setItem('welcomed-' + CL.route.token, '1'); } catch (e) { } };
+}
+function askSharePass(token, wrong) {
+  const w = $c('clWelcome');
+  w.innerHTML = `<h2>This home is password protected</h2><p>Enter the password your builder gave you.</p><form class="cl-form" id="spForm" onsubmit="return false"><input id="spIn" type="password" autocomplete="off" aria-label="Password" placeholder="Password"><p class="st-err">${wrong ? 'That password didn’t work.' : ''}</p><div class="st-row"><button class="btn st-primary" type="submit">Open</button></div></form>`;
+  w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; $c('spIn').focus();
+  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; $c('clSideBtn').hidden = false; openShare(token); };
 }
 function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; }
 

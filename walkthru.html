@@ -4,6 +4,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<script src="/track.js" defer></script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Playground shell: one toolbar docked to an edge, popovers off its buttons, one side panel at a time. */
@@ -83,6 +84,10 @@ body.ui-hidden .tb{display:none}
 .tb-primary{height:32px;padding:0 12px;border-radius:var(--r-sm);display:inline-flex;align-items:center;gap:7px;background:var(--primary);color:var(--primary-ink);border:0;font:500 12.5px/1 var(--f-ui);cursor:pointer;flex:none;margin-left:4px}
 .tb-primary:hover{opacity:.88}
 .tb-primary .ic{width:15px;height:15px}
+.avatar{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font:600 10.5px/1 var(--f-ui);letter-spacing:.02em}
+.acc-head{display:flex;flex-direction:column;gap:1px;padding:6px 8px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+.acc-head b{font-weight:600;font-size:13.5px}.acc-head span{font-size:12px;color:var(--ink-2)}.acc-org{margin-top:4px;color:var(--ink-3)!important}
+.sync-note{display:flex;gap:6px;align-items:flex-start;line-height:1.45}.sync-note .ic{width:14px;height:14px;margin-top:1px;color:var(--ink-3)}
 #clSideCount:empty{display:none}
 #clSideCount{position:absolute;top:2px;right:1px;background:var(--accent);color:var(--accent-ink);border-radius:99px;font:600 9.5px/1 var(--f-ui);padding:2px 4px;min-width:8px;text-align:center}
 .ed-only{display:none!important}
@@ -294,6 +299,9 @@ body.editing #clHead{display:none!important}
 .st-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none}.st-brand b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
+.st-user{margin-left:auto;margin-right:12px;font-size:13px;color:var(--ink-2)}
+.st-keyform details{display:grid;gap:8px}.st-keyform summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin-bottom:8px}.st-keyform .btn{text-decoration:none}
+.cl-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cl-check{display:flex!important;align-items:center;gap:8px;grid-template-columns:none!important}.cl-check input{width:auto}
 .st-primary{background:var(--primary)!important;color:var(--primary-ink)!important;border:1px solid var(--primary)!important;border-radius:var(--r-sm)!important;font-weight:500!important;padding:8px 14px!important}
 .st-primary:hover{opacity:.9}
 .st-ghost{border:1px solid var(--rule-2)!important;border-radius:var(--r-sm)!important;padding:8px 12px!important;background:var(--paper)!important}
@@ -416,6 +424,8 @@ body.cl-pinning #stage{cursor:crosshair}
     <symbol id="i-studio" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.2"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.2"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.2"/></symbol>
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
     <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4L19.5 8.5l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.6 4.1-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .4-8 6 6 0 0 0-11.6 1.6A3.3 3.3 0 0 0 7 18.5z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </defs>
 </svg>
@@ -476,6 +486,7 @@ body.cl-pinning #stage{cursor:crosshair}
   </div>
   <span class="tb-sep"></span>
   <div class="tb-g">
+    <button class="tb-b" id="acctBtn" type="button" data-pop="acctPop" hidden data-tip="Account"><svg class="ic"><use href="#i-user"/></svg></button>
     <button class="tb-b" id="dockBtn" type="button" data-pop="dockPop" data-tip="Layout and theme"><svg class="ic"><use href="#i-layout"/></svg></button>
     <button class="tb-primary" id="editBtn" type="button" aria-pressed="false" hidden data-tip="Edit floor plan (E)"><svg class="ic"><use href="#i-pencil"/></svg><span class="tb-t" id="editLabel">Edit plan</span></button>
     <button class="tb-primary ed-only" id="peDone" type="button" data-tip="Back to 3D (E)"><svg class="ic"><use href="#i-check"/></svg><span class="tb-t">Done</span></button>
@@ -490,7 +501,19 @@ body.cl-pinning #stage{cursor:crosshair}
   <div class="menu" id="designList"></div>
   <label class="fld">Name <input id="designName" type="text" maxlength="40"></label>
   <div class="dm-row"><button class="btn" id="designDup" type="button">Duplicate</button><button class="btn" id="designDel" type="button">Delete</button><button class="btn" id="designImport" type="button">Import…</button></div>
+  <p class="pop-note sync-note"><svg class="ic"><use href="#i-cloud"/></svg><span id="syncState">Designs are saved in this browser only.</span></p>
   <div class="dm-row dm-new"><span>New from</span><button class="btn" id="designNewPermit" type="button">Sample plan</button><button class="btn" id="designNewBlank" type="button">Blank page</button></div>
+</div>
+<div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
+  <div id="accIn" hidden>
+    <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
+    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Studio projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
+  </div>
+  <div id="accOut">
+    <h6>Save your work</h6>
+    <p class="pop-note" style="margin-top:0">Sign in to keep your designs on every device, share them with buyers and work with your team.</p>
+    <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
+  </div>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -657,12 +680,14 @@ body.cl-pinning #stage{cursor:crosshair}
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
     <a class="st-brand" href="/"><span class="logo st-logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b id="stBrand">Walkthru</b><span class="st-tag">Studio</span></a>
+    <span class="st-user" id="stUser" hidden></span>
     <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
-      <h2>Studio sign-in</h2><p>Enter the studio key to manage projects.</p>
-      <input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-primary" id="stKeyGo" type="submit">Continue</button><p class="st-err" id="stKeyErr"></p>
+      <h2>Sign in to the Studio</h2><p>Projects, customer links and comments live in your team’s workspace.</p>
+      <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
+      <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>
@@ -2055,7 +2080,7 @@ function resetBID() { BID = Math.max(1, ...BM.rooms.map(r => r.id + 1), ...(BM.s
 let H3P = false, userBM = null; // H3P: House 3 (the Campana plan) is showing in place of your design
 function usePreset(on) { if (on === H3P) return false; if (on) { userBM = BM; BM = campanaPlan(); } else { BM = userBM; resetBID(); } H3P = on; return true; }
 let cloudSave = null; // set by cloud.js: Studio projects and customer links save to the server instead of this browser
-function saveBM() { if (H3P) return; if (cloudSave) return cloudSave(); const d = DS.list.find(x => x.id === DS.cur); if (d) d.bm = BM; try { localStorage.setItem('walkthru-designs-v1', JSON.stringify(DS)); } catch (e) { } }
+function saveBM() { if (H3P) return; if (cloudSave) return cloudSave(); const d = DS.list.find(x => x.id === DS.cur); if (d) d.bm = BM; try { localStorage.setItem('walkthru-designs-v1', JSON.stringify(DS)); } catch (e) { } designSynced(); }
 const curDesign = () => DS.list.find(x => x.id === DS.cur);
 resetBID(); normalizeStairs(BM);
 const rname = r => r.name || RT[r.type]?.name || r.type;
@@ -3708,11 +3733,88 @@ let delArm = 0;
 document.getElementById('designDel').onclick = e => { // two clicks: confirm inside the menu (no browser dialogs here)
   const b = e.currentTarget; if (DS.list.length < 2) return;
   if (Date.now() - delArm > 2500) { delArm = Date.now(); b.textContent = 'Click again to delete'; setTimeout(() => b.textContent = 'Delete', 2500); return; }
-  delArm = 0; b.textContent = 'Delete'; const i = DS.list.findIndex(x => x.id === DS.cur); DS.list.splice(i, 1); openDesign(DS.list[Math.max(0, i - 1)].id);
+  delArm = 0; b.textContent = 'Delete'; const i = DS.list.findIndex(x => x.id === DS.cur); forgetCloudDesign(DS.list[i]); DS.list.splice(i, 1); openDesign(DS.list[Math.max(0, i - 1)].id);
 };
 designLabel();
 // On House 3 the edit button copies the plan into your designs first, so House 3 itself never changes.
 document.getElementById('editBtn').addEventListener('click', e => { if (!H3P) return; e.stopImmediatePropagation(); newDesign('campana'); openEditor(true); }, true);
+
+// =====================================================================
+//  ACCOUNT — who is signed in, the toolbar account menu, and syncing "My designs" to the account.
+//  Signed out (or without the API) everything stays in this browser exactly as before.
+// =====================================================================
+var ACC = { user: null, org: null, role: null, sync: 'local' }; // sync: local | saving | saved | error
+const accEl = id => document.getElementById(id);
+async function accApi(method, path, data) {
+  const r = await fetch('/api/' + path, { method, headers: { 'content-type': 'application/json' }, body: data === undefined ? undefined : JSON.stringify(data) });
+  let j = {}; try { j = await r.json(); } catch (e) { }
+  if (!r.ok) throw Object.assign(new Error(j.error || `Request failed (${r.status})`), { status: r.status });
+  return j;
+}
+const signInUrl = (mode = 'login') => `/account#${mode}?next=${encodeURIComponent(location.pathname + location.hash)}`;
+function writeDS() { try { localStorage.setItem('walkthru-designs-v1', JSON.stringify(DS)); } catch (e) { } }
+
+// ---------- sync ----------
+let syncT = 0, syncing = null;
+// builder.js calls this after every local save of a design.
+function designSynced() {
+  if (!ACC) return; // called during start-up, before this file has run
+  const d = typeof curDesign === 'function' && curDesign(); if (!d || H3P || cloudSave) return;
+  d.t = Date.now(); if (!ACC.user) return;
+  ACC.sync = 'saving'; accRender(); clearTimeout(syncT); syncT = setTimeout(() => pushDesign(d), 1200);
+}
+async function pushDesign(d) {
+  if (!ACC.user || !d) return;
+  try {
+    if (d.cid) await accApi('PUT', `designs?id=${encodeURIComponent(d.cid)}`, { name: d.name, bm: d.bm });
+    else { const j = await accApi('POST', 'designs', { name: d.name, bm: d.bm }); d.cid = j.id; writeDS(); }
+    d.st = Date.now(); writeDS(); ACC.sync = 'saved';
+  } catch (e) { ACC.sync = e.status === 404 ? (delete d.cid, writeDS(), 'error') : 'error'; }
+  accRender();
+}
+function forgetCloudDesign(d) { if (ACC.user && d?.cid) accApi('DELETE', `designs?id=${encodeURIComponent(d.cid)}`).catch(() => { }); }
+// After sign-in: bring down designs saved from other devices, upload ones that only live here.
+async function pullDesigns() {
+  if (!ACC.user || syncing) return syncing; ACC.sync = 'saving'; accRender();
+  syncing = (async () => {
+    const { designs } = await accApi('GET', 'designs'); let changed = false;
+    for (const r of designs) {
+      const local = DS.list.find(d => d.cid === r.id);
+      if (local && (local.t || 0) >= r.updated_at) continue;
+      const { design } = await accApi('GET', `designs?id=${encodeURIComponent(r.id)}`);
+      if (local) { local.bm = design.bm; local.name = design.name; local.t = r.updated_at; }
+      else DS.list.push({ id: Math.max(0, ...DS.list.map(x => x.id)) + 1, cid: r.id, name: design.name, bm: design.bm, t: r.updated_at });
+      changed = true;
+    }
+    for (const d of DS.list) if (!d.cid || !designs.some(r => r.id === d.cid)) { delete d.cid; await pushDesign(d); }
+    writeDS(); ACC.sync = 'saved';
+    if (changed && !H3P && !cloudSave) { const cur = curDesign(); if (cur) { BM = cur.bm; resetBID(); normalizeStairs(BM); rebuildHouse3(); } designLabel(); }
+  })().catch(() => { ACC.sync = 'error'; }).finally(() => { syncing = null; accRender(); });
+  return syncing;
+}
+
+// ---------- toolbar menu ----------
+function accRender() {
+  const b = accEl('acctBtn'); if (!b) return;
+  const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('') : '';
+  b.innerHTML = u ? `<span class="avatar">${initials}</span>` : '<svg class="ic"><use href="#i-user"/></svg>';
+  b.dataset.tip = u ? `${u.name || u.email}` : 'Sign in to save your designs';
+  const st = accEl('syncState'); if (st) st.textContent = !u ? 'Designs are saved in this browser only.' : { saving: 'Saving to your account…', saved: 'All designs saved to your account.', error: 'Couldn’t reach the server. Changes are kept here and will retry.', local: 'Saved in this browser.' }[ACC.sync];
+  const p = accEl('acctPop'); if (!p) return;
+  p.querySelector('#accIn').hidden = !u; p.querySelector('#accOut').hidden = !!u;
+  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : 'No workspace'; }
+}
+accEl('accSignIn').onclick = () => { location.href = signInUrl('login'); };
+accEl('accSignUp').onclick = () => { location.href = signInUrl('signup'); };
+accEl('accSettings').onclick = () => { location.href = '/account'; };
+accEl('accStudio').onclick = () => { closePops(); location.hash = '#admin'; };
+accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.reload(); };
+
+(async () => {
+  try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }
+  catch (e) { return; } // no API (e.g. the single-file build): stay local, hide the menu
+  accRender(); if (ACC.user) pullDesigns();
+})();
 
 // =====================================================================
 //  CLOUD — Studio (admin) and customer links, backed by the /api functions (Turso + object storage).
@@ -3726,11 +3828,13 @@ const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s
 const ACCESS_NAME = { view: 'View & comment', finishes: 'Finishes', edit: 'Floor plan changes' };
 const STATUS_NAME = { draft: 'Draft', shared: 'Shared', sent: 'Sent', opened: 'Opened', editing: 'Editing', submitted: 'Changes sent', accepted: 'Accepted' };
 const studioKey = () => { try { return localStorage.getItem('studio-key') || ''; } catch (e) { return ''; } };
+const sharePass = () => { try { return sessionStorage.getItem('share-pass-' + (CL.route?.token || '')) || ''; } catch (e) { return ''; } };
 
 async function cloudApi(method, path, data) {
-  const r = await fetch('/api/' + path, { method, headers: { 'content-type': 'application/json', 'x-admin-key': studioKey() }, body: data === undefined ? undefined : JSON.stringify(data) });
+  const h = { 'content-type': 'application/json' }; if (studioKey()) h['x-admin-key'] = studioKey(); if (sharePass()) h['x-share-pass'] = sharePass();
+  const r = await fetch('/api/' + path, { method, headers: h, body: data === undefined ? undefined : JSON.stringify(data) });
   let j = {}; try { j = await r.json(); } catch (e) { }
-  if (!r.ok) { const err = new Error(j.error || `Request failed (${r.status})`); err.status = r.status; throw err; }
+  if (!r.ok) { const err = new Error(j.error || `Request failed (${r.status})`); err.status = r.status; err.needPass = !!j.needPass; throw err; }
   return j;
 }
 
@@ -3807,9 +3911,10 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 // ---------- Studio dashboard ----------
 let stProjects = [];
 async function studioHome() {
-  $c('stBrand').textContent = CL.brand.name; document.title = `${CL.brand.name} · Studio`;
+  $c('stBrand').textContent = ACC.org?.name || CL.brand.name; document.title = `${ACC.org?.name || CL.brand.name} · Studio`;
+  $c('stUser').textContent = ACC.user ? (ACC.user.name || ACC.user.email) : ''; $c('stUser').hidden = !ACC.user; $c('stNew').hidden = ACC.role === 'viewer';
   try { const j = await cloudApi('GET', 'projects'); stProjects = j.projects; $c('stKey').hidden = true; $c('stHead').hidden = false; renderStudio(); }
-  catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyIn').focus(); } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
+  catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyAlt').hidden = !CL.locked; $c('stSignIn').href = `/account#login?next=${encodeURIComponent('/playground#admin')}`; $c('stSignUp').href = `/account#signup?next=${encodeURIComponent('/playground#admin')}`; } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
 }
 function renderStudio() {
   const q = $c('stSearch').value.trim().toLowerCase(), list = stProjects.filter(p => !q || `${p.name} ${p.client || ''} ${p.address || ''}`.toLowerCase().includes(q));
@@ -3989,20 +4094,27 @@ function renderProjectSide() {
       <label>Email (optional) <input id="shEmail" type="email" maxlength="120" placeholder="jane@example.com"></label>
       <label>What they can do <select id="shAccess"><option value="view">Look around and comment</option><option value="finishes">Also choose finishes</option><option value="edit" selected>Also change the floor plan</option></select></label>
       <label>Message (optional) <textarea id="shMsg" rows="2" placeholder="Here’s the first draft of your home. Have a look around and tell us what you think!"></textarea></label>
+      <div class="cl-2"><label>Link expires <select id="shExp"><option value="0">Never</option><option value="7">In 7 days</option><option value="30" selected>In 30 days</option><option value="90">In 90 days</option></select></label><label>Password (optional) <input id="shPass" type="text" autocomplete="off" maxlength="60" placeholder="None"></label></div>
+      <label class="cl-check"><input type="checkbox" id="shMail" checked> Email the link to the customer</label>
       <button class="btn st-primary" type="submit" id="shGo">Create customer link</button></form>
       <div class="cl-sec">Customer links</div>` + (P.shares.length ? P.shares.map(s => `<div class="cl-item${s.revoked ? ' res' : ''}" data-tok="${clEsc(s.token)}">
         <h4><span>${clEsc(s.customer)}</span><span class="chip ${s.revoked ? '' : clEsc(s.status)}">${s.revoked ? 'Turned off' : clEsc(STATUS_NAME[s.status] || s.status)}</span></h4>
         <small>${clEsc(ACCESS_NAME[s.access])} · ${s.opened_at ? 'opened ' + clAgo(s.opened_at) : 'not opened yet'}${s.updated_at ? ' · active ' + clAgo(s.updated_at) : ''}</small>
+        <small>${s.expires_at ? (s.expires_at < Date.now() ? '<b class="st-danger">Expired</b>' : 'Expires ' + new Date(s.expires_at).toLocaleDateString()) : 'Never expires'}${s.has_pass ? ' · password protected' : ''}${s.email ? ' · ' + clEsc(s.email) : ''}</small>
         ${s.submit_note && s.status === 'submitted' ? `<p>“${clEsc(s.submit_note)}”</p>` : ''}
         <div class="cl-link"><input readonly value="${clEsc(shareURL(s.token))}" aria-label="Customer link"><button class="btn" type="button" data-act="copy">Copy</button></div>
         <div class="cl-acts">${s.has_copy ? `<button class="btn" type="button" data-act="view">View their version</button><button class="btn" type="button" data-act="accept">Accept changes</button>` : ''}
           <a class="btn" href="${clEsc(shareURL(s.token))}" target="_blank" rel="noopener">Open as customer</a>
           <select data-act="access" aria-label="Access">${Object.entries(ACCESS_NAME).map(([k, n]) => `<option value="${k}"${k === s.access ? ' selected' : ''}>${n}</option>`).join('')}</select>
+          <select data-act="exp" aria-label="Expiry"><option value="">Change expiry…</option><option value="0">Never expires</option><option value="7">7 more days</option><option value="30">30 more days</option><option value="90">90 more days</option></select>
+          <button class="btn" type="button" data-act="pass">${s.has_pass ? 'Change password' : 'Add password'}</button>
           <button class="btn${s.revoked ? '' : ' st-danger'}" type="button" data-act="revoke">${s.revoked ? 'Turn back on' : 'Turn off'}</button></div></div>`).join('') : '<p class="cl-sub">No customer links yet.</p>');
     $c('shForm').onsubmit = async () => {
       const customer = $c('shName').value.trim(); if (!customer) return $c('shName').focus();
-      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim() });
-        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave('Link created and copied'); } catch (e) { setSave('Link created'); }
+      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim(), expiresDays: +$c('shExp').value, password: $c('shPass').value.trim(), sendEmail: $c('shMail').checked });
+        window.wtTrack?.('share_created', { access: $c('shAccess').value });
+        const mailed = j.mailed === 'sent' ? ' and emailed' : j.mailed === 'queued' ? ' (email queued: no mail provider set up)' : '';
+        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave(`Link created${mailed}, copied`); } catch (e) { setSave(`Link created${mailed}`); }
         await refreshProject(); renderSide(); } catch (e) { setSave(e.message); }
     };
     B.querySelectorAll('[data-tok]').forEach(el => { const tok = el.dataset.tok, s = P.shares.find(x => x.token === tok);
@@ -4010,6 +4122,8 @@ function renderProjectSide() {
       el.querySelector('[data-act="view"]')?.addEventListener('click', () => viewCustomerVersion(tok));
       el.querySelector('[data-act="accept"]')?.addEventListener('click', () => acceptShare(tok));
       el.querySelector('[data-act="access"]').onchange = async e => { await cloudApi('PATCH', `share?token=${tok}`, { access: e.target.value }); s.access = e.target.value; setSave('Access updated'); };
+      el.querySelector('[data-act="exp"]').onchange = async e => { if (e.target.value === '') return; await cloudApi('PATCH', `share?token=${tok}`, { expiresDays: +e.target.value }); setSave('Expiry updated'); await refreshProject(); renderSide(); };
+      el.querySelector('[data-act="pass"]').onclick = async () => { const pw = prompt(s.has_pass ? 'New password for this link (leave empty to remove it)' : 'Password for this link'); if (pw === null) return; await cloudApi('PATCH', `share?token=${tok}`, { password: pw.trim() }); setSave(pw.trim() ? 'Password set. Share it with the customer separately.' : 'Password removed'); await refreshProject(); renderSide(); };
       el.querySelector('[data-act="revoke"]').onclick = async () => { await cloudApi('PATCH', `share?token=${tok}`, { revoked: !s.revoked }); await refreshProject(); renderSide(); };
     });
   } else if (CL.tab === 'comments') {
@@ -4028,7 +4142,7 @@ function renderProjectSide() {
 // ---------- Customer link ----------
 async function openShare(token) {
   let j; try { j = await cloudApi('GET', `share?token=${encodeURIComponent(token)}`); }
-  catch (e) { showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
+  catch (e) { if (e.needPass) return askSharePass(token, !!sharePass()); showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
   CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
@@ -4084,6 +4198,12 @@ function welcome() {
     <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around, walk inside, ${s.access === 'edit' ? 'try changes to the layout and finishes, ' : s.access === 'finishes' ? 'try different finishes, ' : ''}and pin comments anywhere. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
     <div class="st-row"><button class="btn st-primary" type="button" id="wcGo">Start exploring</button></div>`;
   w.hidden = false; $c('wcGo').onclick = () => { w.hidden = true; try { localStorage.setItem('welcomed-' + CL.route.token, '1'); } catch (e) { } };
+}
+function askSharePass(token, wrong) {
+  const w = $c('clWelcome');
+  w.innerHTML = `<h2>This home is password protected</h2><p>Enter the password your builder gave you.</p><form class="cl-form" id="spForm" onsubmit="return false"><input id="spIn" type="password" autocomplete="off" aria-label="Password" placeholder="Password"><p class="st-err">${wrong ? 'That password didn’t work.' : ''}</p><div class="st-row"><button class="btn st-primary" type="submit">Open</button></div></form>`;
+  w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; $c('spIn').focus();
+  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; $c('clSideBtn').hidden = false; openShare(token); };
 }
 function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; }
 
