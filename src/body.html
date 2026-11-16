@@ -95,6 +95,7 @@
     <button class="tb-b" id="measureBtn" type="button" data-tip="Measure (M)" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg></button>
     <button class="tb-b" id="roofBtn" type="button" data-tip="Hide roof (H)" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg></button>
     <button class="tb-b" id="shotBtn" type="button" data-tip="Save a screenshot (P)"><svg class="ic"><use href="#i-shot"/></svg></button>
+    <button class="tb-b" id="recBtn" type="button" data-tip="Record a video" aria-pressed="false"><svg class="ic"><use href="#i-rec"/></svg></button>
     <button class="tb-b" id="fullBtn" type="button" data-tip="Full screen"><svg class="ic"><use href="#i-full"/></svg></button>
   </div>
   <span class="tb-fill"></span>
@@ -272,6 +273,10 @@
       <div class="menu big">
         <button type="button" id="exShot"><svg class="ic"><use href="#i-shot"/></svg><span>Screenshot<small>PNG at screen size</small></span></button>
         <button type="button" id="exShot2"><svg class="ic"><use href="#i-shot"/></svg><span>High-res render<small>PNG at 2× resolution</small></span></button>
+        <button type="button" id="exPdf"><svg class="ic"><use href="#i-pdf"/></svg><span>Plan sheet (PDF)<small>Every floor with a title block, ready to print</small></span></button>
+        <button type="button" id="exPano"><svg class="ic"><use href="#i-globe"/></svg><span>360° panorama<small>From where the camera is, for 360 viewers</small></span></button>
+        <button type="button" id="exFly"><svg class="ic"><use href="#i-rec"/></svg><span>Fly-around video<small>12 seconds circling the house</small></span></button>
+        <button type="button" id="exVideo"><svg class="ic"><use href="#i-rec"/></svg><span>Record a walkthrough<small>Records until you stop it</small></span></button>
         <button type="button" id="exPlan"><svg class="ic"><use href="#i-lib"/></svg><span>Floor plan image<small>PNG of the plan editor</small></span></button>
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule<small>CSV with every room and area</small></span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file<small>JSON you can import later</small></span></button>

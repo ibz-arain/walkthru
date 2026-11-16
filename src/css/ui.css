@@ -183,6 +183,12 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .sw button:hover{border-color:var(--ink-3)}
 .sw button i{width:18px;height:18px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);display:block}
 .sw button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 .5px var(--ink)}
+.sw-custom{position:relative;display:flex;align-items:center;gap:6px;font:12px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px dashed var(--rule-2);border-radius:7px;padding:3px 9px 3px 3px;cursor:pointer}
+.sw-custom i{width:18px;height:18px;border-radius:5px;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);display:block}
+.sw-custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.sw-custom[aria-pressed="true"]{border-style:solid;border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 .5px var(--ink)}
+.tex-row{display:grid;grid-template-columns:1fr auto;gap:6px;margin:4px 6px}
+.tex-row select{font:13px var(--f-ui);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper);color:var(--ink)}
 /* navigate */
 #navList h4{margin:14px 6px 4px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 #navList button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:7px 8px;cursor:pointer;text-align:left}
@@ -229,6 +235,9 @@ body.hint-off #hint{display:none}
 #measureBar{left:50%;transform:translateX(-50%);top:calc(var(--it) + 12px);padding:5px 5px 5px 12px;display:flex;align-items:center;gap:9px;font-size:12.5px;z-index:8}
 body.measuring #stage{cursor:crosshair}
 .mlbl{font:600 11.5px var(--f-mono);background:var(--primary);color:var(--primary-ink);padding:3px 7px;border-radius:5px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+body.recording #recBtn{color:#dc2626;background:rgba(220,38,38,.12)}
+body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.3}}
 #showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;backdrop-filter:blur(12px);box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
 #showUI:hover{opacity:1}
 body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}

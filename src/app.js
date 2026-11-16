@@ -420,11 +420,16 @@ for (const [sec, items] of FIN) {
   for (const [key, label, opts, apply] of items) {
     const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3 style="text-transform:none;letter-spacing:0;color:var(--ink)">${label}</h3>`;
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
-    const pick = (i) => { i = Math.min(i, opts.length - 1); apply(opts[i][1]); sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(i === j)));
+    // A custom colour (any hex) is stored as the string itself; the presets as their index.
+    const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Pick any colour'; custom.innerHTML = '<i></i>Custom<input type="color">';
+    const pick = (i) => { const hex = typeof i === 'string' && /^#[0-9a-f]{6}$/i.test(i) ? i : null; if (!hex) i = Math.min(+i || 0, opts.length - 1);
+      apply(hex || opts[i][1]); sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(!hex && i === j)));
+      custom.setAttribute('aria-pressed', String(!!hex)); if (hex) { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
       if (finishHook) { if (!finishMute) finishHook(key, i); return; } saved[key] = i; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
     opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i>${n}`; b.onclick = () => pick(i); sw.appendChild(b); });
-    pick(Math.min(saved[key] ?? 0, opts.length - 1));
+    sw.appendChild(custom); custom.querySelector('input').oninput = e => pick(e.target.value);
+    pick(saved[key] ?? 0);
   }
 }
 
@@ -460,7 +465,7 @@ function setHouse(n, fromHash) {
   curHouse = n;
   document.querySelectorAll('[data-house]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.house === tab)));
   document.querySelector('#brand h1').textContent = tab === 4 ? '1196 Campana Cres' : n === 3 ? 'My design' : `Sample house ${n}`;
-  const eb = document.getElementById('editBtn'); eb.hidden = n !== 3; setEditLabel(tab === 4 ? 'Edit a copy' : 'Edit plan'); eb.title = tab === 4 ? 'Copy House 3 into your designs and edit it' : '';
+  const eb = document.getElementById('editBtn'); eb.hidden = n === 2; setEditLabel(tab === 4 || n === 1 ? 'Edit a copy' : 'Edit plan'); eb.title = tab === 4 ? 'Copy House 3 into your designs and edit it' : '';
   if (n !== 3 && PE.open) openEditor(false);
   document.getElementById('houseNote').innerHTML = tab === 4 ? H3_NOTE : HOUSES[n].note;
   document.querySelector('[data-view="B"]').hidden = n === 2;

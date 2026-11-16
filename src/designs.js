@@ -39,4 +39,4 @@ document.getElementById('designDel').onclick = e => { // two clicks: confirm ins
 };
 designLabel();
 // On House 3 the edit button copies the plan into your designs first, so House 3 itself never changes.
-document.getElementById('editBtn').addEventListener('click', e => { if (!H3P) return; e.stopImmediatePropagation(); newDesign('campana'); openEditor(true); }, true);
+document.getElementById('editBtn').addEventListener('click', e => { if (curHouse === 1 && !PE.open) { e.stopImmediatePropagation(); newDesign('permit'); curDesign().name = 'Sample 1 copy'; designLabel(); saveBM(); openEditor(true); return; } if (!H3P) return; e.stopImmediatePropagation(); newDesign('campana'); openEditor(true); }, true);
