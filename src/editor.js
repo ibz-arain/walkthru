@@ -412,3 +412,21 @@ document.getElementById('peDone').onclick = () => { openEditor(false); goView('f
 addEventListener('resize', () => { if (PE.open) peSize(); });
 window.__pe = { PE, get BM() { return BM; } };
 window.__pe.planLevel = planLevel;
+
+// ---------- The selection's options float next to what you clicked (like a right-click menu), not in a side column ----------
+const peSideEl = document.getElementById('peSide'), peBodyEl = peSideEl.parentElement; let pePt = null, peSelKey = '';
+function pePlaceSide() {
+  if (!pePt || innerWidth <= 760) { peSideEl.style.left = peSideEl.style.top = ''; return; }
+  const B = peBodyEl.getBoundingClientRect(), w = peSideEl.offsetWidth, h = peSideEl.offsetHeight, g = 14;
+  let x = pePt[0] - B.left + g, y = pePt[1] - B.top - 20;
+  if (x + w > B.width - 8) x = pePt[0] - B.left - g - w;
+  peSideEl.style.left = Math.max(8, Math.min(x, B.width - w - 8)) + 'px';
+  peSideEl.style.top = Math.max(8, Math.min(y, B.height - h - 8)) + 'px';
+}
+pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peBodyEl.classList.add('pe-busy'); });
+addEventListener('pointerup', () => { if (!peBodyEl.classList.contains('pe-busy')) return; peBodyEl.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
+pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too (see pointerdown); no browser menu over the plan
+new MutationObserver(() => { // a new selection (from the canvas, a list, or a shortcut) re-anchors the menu
+  const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), document.getElementById('planEd').classList.contains('has-sel')].join('|');
+  if (k !== peSelKey) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
+}).observe(document.getElementById('planEd'), { attributes: true, attributeFilter: ['class'] });

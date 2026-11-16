@@ -1,6 +1,6 @@
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
-.pe-body{flex:1;display:flex;min-height:0}
+.pe-body{flex:1;display:flex;min-height:0;position:relative}
 #peList{width:168px;flex:none;border-right:1px solid var(--rule);overflow:auto;padding:0 8px 14px;scrollbar-width:thin;background:var(--paper)}
 #planEd.lib-off #peList{display:none}
 .pe-find{position:sticky;top:0;background:var(--paper);padding:10px 0 4px;z-index:1}
@@ -29,7 +29,9 @@
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
 #planEd:not(.has-sel) #peSide{display:none}
-#peSide{width:236px;flex:none;border-left:1px solid var(--rule);overflow:auto;padding:4px 0 16px;background:var(--paper);scrollbar-width:thin}
+#peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);scrollbar-width:thin;transition:opacity .12s}
+.pe-busy #peSide{opacity:0;pointer-events:none}
+#peSide .pe-card:last-child{border-bottom:0}
 .pe-empty{padding:18px 16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
 .pe-empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:4px}
 .pe-empty p{margin:0}
@@ -46,8 +48,8 @@
 #peResize::after{content:"";position:absolute;top:50%;left:4px;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--rule-2)}
 #peResize:hover::after,#peResize:focus-visible::after{background:var(--accent)}
 body.editing #hint{display:none}
-@media (max-width:1100px){#peSide{width:200px} #peList{width:140px}}
-@media (max-width:760px){#planEd{width:calc(100vw - var(--il) - var(--ir) - var(--gap) * 2)!important} #peList{width:112px} #peSide{display:none} #peResize{display:none}}
+@media (max-width:1100px){#peList{width:140px}}
+@media (max-width:760px){#planEd{width:calc(100vw - var(--il) - var(--ir) - var(--gap) * 2)!important} #peList{width:112px} #peSide{left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;max-height:50%} #peResize{display:none}}
 
 /* ---------- Studio dashboard ---------- */
 #studio{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;font-size:14px}
