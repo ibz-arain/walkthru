@@ -134,6 +134,9 @@ const rname = r => r.name || RT[r.type]?.name || r.type;
 
 // ---------- Plan analysis: walls (shared vs exterior), doors, windows ----------
 const EPS = .06;
+// A door's size and place along its wall: the defaults, or what was set for that wall in the plan editor (BM.ops).
+function opAt(w, key, defW, defH) { const o = BM.ops?.[key] || {}, L = w.b - w.a, ww = Math.max(2, Math.min(o.w || defW, L - .5)), h = Math.max(6, Math.min(o.h || defH, 9.5));
+  const c = o.pos == null ? (w.a + w.b) / 2 : Math.max(w.a + ww / 2 + .25, Math.min(w.b - ww / 2 - .25, w.a + o.pos * L)); return { c, w: ww, h }; }
 const openPair = (a, b) => (RT[a.type]?.open && RT[b.type]?.open && !(a.type === 'stairs' && b.type === 'stairs')) || (a.group && a.group === b.group) || (a.type === b.type && (a.type === 'hall' || a.type === 'garage'));
 function doorPair(a, b) {
   const t = [likeOf(a.type), likeOf(b.type)], has = x => t.includes(x);
@@ -192,20 +195,20 @@ function planLevel(lv) {
   // openings
   let frontDone = lv !== 'M';
   const frontCands = walls.filter(w => w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
-  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a; w.ops.push({ c: (w.a + w.b) / 2, w: L >= 7.5 ? 5.67 : 3, b: MF, h: 8, k: L >= 7.5 ? 'front' : 'extdoor' }); w.front = true; frontDone = true; }
+  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: MF, h: o.h, k: o.w >= 5 ? 'front' : 'extdoor' }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
-    if (!w.ext) { if (w.door && L >= 2.9) w.ops.push({ c: mid, w: Math.min(2.67, L - .5), b: y, h: 6.67, k: 'door', sw: 1 }); continue; }
+    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: 1 }); } continue; }
     if (w.front) continue;
     const xm = extMode(w.room, w.out);
     if (xm === 'solid') continue;
     if (xm === 'open') { w.open = true; continue; } // no wall: the room is open to the outside here
     if (w.toOut && xm === 'auto' && L >= 3.2 && !RT[w.room.type]?.garage) { const big = L >= 8; w.ops.push({ c: mid, w: big ? 6 : 3, b: y, h: big ? 7.5 : 6.67, k: big ? 'slider' : 'extdoor' }); continue; }
-    if (xm === 'door' && L >= 3.2) { w.ops.push({ c: mid, w: 3, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: 6.67, k: 'extdoor' }); continue; }
-    if (xm === 'window' && lv !== 'B' && L >= 3.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.4);
-      for (let i = 0; i < n; i++) w.ops.push({ c: w.a + L * (i + .5) / n, w: ww, b: y + 2.3, h: lv === 'M' ? 6 : 5 }); continue; }
+    if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, k: o.w >= 5.5 ? 'slider' : 'extdoor' }); continue; }
+    if (xm === 'window' && lv !== 'B' && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
+      for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh }); } continue; }
     if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
     const T = RT[w.room.type] || {};
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
@@ -523,8 +526,14 @@ function buildHouse3() {
   for (let [i, [[x0, x1, z0, z1], plate]] of roofRects.entries()) {
     plate += i * .03;
     const e = EXT / 2; x0 -= e; x1 += e; z0 -= e; z1 += e; // roof sits on the outer face of the walls
+    const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco;
     if (BM.roof === 'flat') { box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
-    else hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch: BM.style === 'batten' ? 7 / 12 : 5 / 12, ov: 1.5, slopes: { n: true, e: true, s: true, w: true } });
+    else if (BM.roof === 'gable') { // ridge along the long side, gable walls on the short ends
+      const alongX = x1 - x0 >= z1 - z0;
+      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: alongX ? { n: true, s: true } : { e: true, w: true }, wall: gw, gables: alongX ? [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }] : [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] });
+    } else if (BM.roof === 'shed') { // one slope rising toward the back
+      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch: Math.min(pitch, 4 / 12), ov: 1.5, slopes: { n: true }, wall: gw, gables: [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }, { edge: 's', at: z1 }] });
+    } else hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: { n: true, e: true, s: true, w: true } });
   }
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: 7 / 12, ov: 1.2, slopes: { e: true, w: true }, wall: M.batten,
@@ -538,7 +547,7 @@ function buildHouse3() {
     flat(G3.site, rect(-420, 420, -420, 420), [rect(bb.x, bb.x + bb.w, bb.z, bb.z + bb.d)], 0, M.grass, { walk: true });
     for (const [a0, a1, b0, b1] of rectCells([bb], .5, bsm)) flat(G3.site, rect(a0, a1, b0, b1), [], 0, M.grass, { walk: true });
   }
-  const roadZ = minZ - 48;
+  const SITE = BM.site || {}, roadZ = minZ - (SITE.setback ?? 48);
   flat(G3.site, rect(-420, 420, roadZ - 26, roadZ), [], .03, M.asphalt, { walk: true });
   flat(G3.site, rect(-420, 420, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true });
   const mw = planLevel('M'), fd = mw.find(w => w.front), gd = mw.find(w => w.garageDoor);
@@ -557,7 +566,13 @@ function buildHouse3() {
     box(G3.site, sx + 3.5, sx + 6.5, .3, 6.8, sz - .05, sz, M.trim); hipRoof(G3.site, { x0: sx, x1: sx + 10, z0: sz, z1: sz + 8, plate: 7.5, pitch: 4 / 12, ov: .6, slopes: { n: true, e: true, s: true, w: true } }); }
   if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, MF - .35, fd.c - 4, fd.c - .3, M.concrete, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, 1.0, fd.c - 5.2, fd.c - 4, M.concrete, { walk: true }); H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
-  for (const [x, z, s] of [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1]]) tree(x, z, s, G3.trees);
+  const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
+  for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
+  if (SITE.lotW && SITE.lotD) { // property line: low hedge around the lot, front edge at the sidewalk
+    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD;
+    for (const [a0, a1, b0, b1] of [[lx0, lx1, lz1 - .6, lz1], [lx0, lx0 + .6, lz0 + 3, lz1], [lx1 - .6, lx1, lz0 + 3, lz1]]) box(G3.site, a0, a1, 0, 2.2, b0, b1, M.leaf2, { solid: true });
+  }
+  placeItems();
   // HUD data
   ROOMS3 = rooms.map(r => [rname(r), r.level, [[r.x, r.x + r.w, r.z, r.z + r.d]], [r.x + r.w / 2, r.z + r.d / 2, Math.PI]]);
   OUTLINE3 = { B: rooms.filter(r => r.level === 'B').map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)), M: main.map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)), U: up.map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)) };

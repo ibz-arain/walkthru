@@ -118,6 +118,7 @@ function peDraw() {
     px.fillText(PE.lv === 'B' ? 'The dashed outline is your main floor. Click Trace main floor to dig under it, or add rooms from the list.' : 'Pick a room type from the list to start this floor.', W / 2, H / 2 + 10); }
   // scale bar
   px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const bar = 10 * s; px.fillRect(14, H - 58, bar, 3); px.fillText("10'", 18 + bar, H - 56);
+  peDrawExtras(s);
   peStatus();
 }
 const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
@@ -162,6 +163,7 @@ function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) pe
 pc.addEventListener('pointerdown', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   try { pc.setPointerCapture(e.pointerId); } catch (er) { }
+  if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
   PE.selWall = null;
   const se = e.button === 0 ? stairEdgeAt(wx, wz, 6 / PE.s) : null;
@@ -171,11 +173,17 @@ pc.addEventListener('pointerdown', e => {
   PE.selStair = null;
   if (w) { PE.drag = { ...w, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: w.members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
   const q = e.button === 0 ? roomAt(wx, wz) : null;
-  if (q) { PE.sel = q.id; PE.selStair = null; PE.drag = { kind: 'move', q, dx: wx - q.x, dz: wz - q.z, before: snapshot() }; peInspector(); peDraw(); return; }
-  PE.sel = null; peInspector(); PE.drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: PE.ox, oy: PE.oy }; peDraw();
+  if (q && e.shiftKey) { // shift-click builds a multi-selection
+    if (!PE.multi.size && PE.sel) PE.multi.add(PE.sel); if (PE.multi.has(q.id)) PE.multi.delete(q.id); else PE.multi.add(q.id);
+    PE.sel = PE.multi.size === 1 ? [...PE.multi][0] : null; if (PE.multi.size === 1) PE.multi.clear(); PE.selStair = null; PE.drag = null; peInspector(); peDraw(); return; }
+  if (q) { if (!PE.multi.has(q.id)) PE.multi.clear();
+    const group = BM.rooms.filter(o => PE.multi.has(o.id) && o !== q).map(o => ({ r: o, x: o.x, z: o.z }));
+    PE.sel = PE.multi.size ? null : q.id; PE.selStair = null; PE.drag = { kind: 'move', q, dx: wx - q.x, dz: wz - q.z, x0: q.x, z0: q.z, group, before: snapshot() }; peInspector(); peDraw(); return; }
+  PE.sel = null; PE.multi.clear(); peInspector(); PE.drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: PE.ox, oy: PE.oy }; peDraw();
 });
 pc.addEventListener('pointermove', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
+  if (peToolMove(e, wx, wz)) return;
   if (!D) { const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
     PE.hover = wallAt(wx, wz, 7 / PE.s); pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
   if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
@@ -208,13 +216,17 @@ pc.addEventListener('pointermove', e => {
     for (const o of lvRooms()) { if (o === q) continue;
       for (const [mine, theirs] of [[nx, o.x], [nx, o.x + o.w], [nx + q.w, o.x], [nx + q.w, o.x + o.w]]) { const dd = theirs - mine; if (Math.abs(dd) < tol && (bx === null || Math.abs(dd) < Math.abs(bx))) bx = dd; }
       for (const [mine, theirs] of [[nz, o.z], [nz, o.z + o.d], [nz + q.d, o.z], [nz + q.d, o.z + o.d]]) { const dd = theirs - mine; if (Math.abs(dd) < tol && (bz === null || Math.abs(dd) < Math.abs(bz))) bz = dd; } }
-    q.x = +(nx + (bx || 0)).toFixed(2); q.z = +(nz + (bz || 0)).toFixed(2); peDraw(); peInspector();
+    if (D.group?.length) { bx = bz = 0; } // a group moves on the grid only, so the rooms keep their spacing
+    q.x = +(nx + (bx || 0)).toFixed(2); q.z = +(nz + (bz || 0)).toFixed(2);
+    for (const g of D.group || []) { g.r.x = +(g.x + q.x - D.x0).toFixed(2); g.r.z = +(g.z + q.z - D.z0).toFixed(2); }
+    peDraw(); peInspector();
   }
 });
 pc.addEventListener('pointerup', () => {
+  if (peToolUp()) return;
   const D = PE.drag; PE.drag = null;
   if (D && D.before && D.before !== snapshot()) {
-    const moved = D.kind === 'move' ? [D.q.id] : D.kind === 'wall' ? D.base.map(b => b.q.id) : null;
+    const moved = D.kind === 'move' ? (D.group?.length ? null : [D.q.id]) : D.kind === 'wall' ? D.base.map(b => b.q.id) : null;
     if (moved) closeGaps(moved);
     PE.hist.push(D.before); PE.redo = []; planChanged(); return;
   }
@@ -298,9 +310,9 @@ function peAddStair(at) {
   BM.stairs = BM.stairs || []; BM.stairs.push(S); PE.selStair = S.id; PE.sel = null; planChanged();
 }
 function peInspector() {
-  peWallPanel(); peStairPanel();
+  peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
-  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall); if (!q) return;
+  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra); if (!q) return;
   document.getElementById('peArea').textContent = `${Math.round(q.w * q.d).toLocaleString()} sf`;
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', q.w); set('peD', q.d);

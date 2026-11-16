@@ -39,7 +39,7 @@ let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(),
   dockPop: () => { press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
-  pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; },
+  pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
 function openPop(id, btn) {
   if (popOpen === id) return closePops();
@@ -255,7 +255,7 @@ function uiEditing(on) {
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peFind').oninput = e => {
   const q = e.target.value.trim().toLowerCase();
-  $u('pePalette').querySelectorAll('[data-add]').forEach(b => b.hidden = !!q && !b.textContent.toLowerCase().includes(q));
+  $u('pePalette').querySelectorAll('[data-add],[data-item]').forEach(b => b.hidden = !!q && !b.textContent.toLowerCase().includes(q));
   $u('pePalette').querySelectorAll('h3').forEach(h => { let n = h.nextElementSibling, any = false; while (n && n.tagName !== 'H3') { if (!n.hidden) any = true; n = n.nextElementSibling; } h.hidden = !any; });
 };
 $u('peGridT').onchange = e => { PE.grid = e.target.checked; peDraw(); };

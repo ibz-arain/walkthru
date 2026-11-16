@@ -4,7 +4,7 @@
 #   site/index.html        -> landing page (/)
 #   site/playground.html   -> the 3D player / editor / studio (/playground)
 cd "$(dirname "$0")"
-{ cat src/head.html; echo '<style>'; cat src/css/ui.css src/css/editor.css; echo '</style>'; cat src/body.html; echo '<script type="module">'; cat src/core.js src/walls.js src/build.js src/furniture.js src/house2.js src/car.js src/builder.js src/furnish3.js src/editor.js src/app.js src/designs.js src/account.js src/cloud.js src/ui.js; echo '</script>'; } > walkthru.html
+{ cat src/head.html; echo '<style>'; cat src/css/ui.css src/css/editor.css; echo '</style>'; cat src/body.html; echo '<script type="module">'; cat src/core.js src/walls.js src/build.js src/furniture.js src/house2.js src/car.js src/builder.js src/furnish3.js src/editor.js src/designer.js src/app.js src/designs.js src/account.js src/cloud.js src/ui.js; echo '</script>'; } > walkthru.html
 mkdir -p site
 cp src/landing.html site/index.html
 cp src/account.html site/account.html
