@@ -386,3 +386,56 @@ function snapToWall(it, reach = 1.6) {
   if (!best) return;
   it.rot = best.rot; if (best.horiz) it.z = +best.want.toFixed(2); else it.x = +best.want.toFixed(2);
 }
+
+// ---------- code checks (common US residential rules, IRC-style). Each issue can point at a room or staircase. ----------
+const BEDROOMS = new Set(['bedroom', 'primary', 'guest', 'nursery']), LVN = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+function codeChecks() {
+  const out = [], add = (sev, text, at) => out.push({ sev, text, at });
+  const walls = { B: planLevel('B'), M: planLevel('M'), U: planLevel('U') };
+  for (const r of BM.rooms) {
+    const T = RT[r.type] || {}, nm = `${rname(r)} (${LVN[r.level]})`;
+    if (BEDROOMS.has(r.type)) {
+      const ext = walls[r.level].filter(w => w.ext && w.room === r), opens = ext.flatMap(w => w.ops);
+      const egress = opens.some(o => o.k === 'extdoor' || o.k === 'slider' || o.k === 'front' || (!o.k && o.w * o.h >= 5.7 && o.w >= 1.67 && o.h >= 2));
+      if (!opens.length) add('error', `${nm} has no window or outside door. Bedrooms need an emergency exit (egress).`, { room: r.id });
+      else if (!egress) add('warn', `${nm}: windows look too small for egress (5.7 sq ft opening, 20" wide, 24" high).`, { room: r.id });
+      if (r.w * r.d < 70 || Math.min(r.w, r.d) < 7) add('warn', `${nm} is ${fmtArea(r.w * r.d)}, ${ftin(Math.min(r.w, r.d))} wide. Bedrooms need 70 sq ft and 7' in each direction.`, { room: r.id });
+    }
+    if (likeOf(r.type) === 'hall' && Math.min(r.w, r.d) < 3) add('warn', `${nm} is ${ftin(Math.min(r.w, r.d))} wide. Hallways need 36".`, { room: r.id });
+    if ((r.type === 'bath' || r.type === 'ensuite') && Math.min(r.w, r.d) < 5) add('info', `${nm} is narrow (${ftin(Math.min(r.w, r.d))}). A full bath usually needs 5' for a tub.`, { room: r.id });
+  }
+  for (const S of BM.stairs || []) {
+    const st = stairStatus(S), nm = `Stairs (${LVN[S.level]})`;
+    if (!st.ok) { add('error', `${nm}: ${st.msg}`, { stair: S.id }); continue; }
+    const rise = (st.up === 'U' ? UF - MF : MF - BF), risers = Math.ceil(rise * 12 / 7.75), need = (risers - 1) * 10 / 12;
+    if (S.W < 3) add('error', `${nm} are ${ftin(S.W)} wide. Stairs need 36".`, { stair: S.id });
+    if (!turns(S) && S.L < need - .05) add('error', `${nm}: ${risers} risers of ${(rise * 12 / risers).toFixed(1)}" need ${ftin(need)} of run with 10" treads; this flight has ${ftin(S.L)}.`, { stair: S.id });
+  }
+  for (const lv of ['B', 'M', 'U']) for (const w of walls[lv]) for (const o of w.ops) {
+    if (o.k === 'door' && o.style !== 'cased' && o.w < 2.67) add('warn', `A door on the ${LVN[lv].toLowerCase()} is ${ftin(o.w)}. 34" doors give the 32" clear opening needed for wheelchairs.`, { wall: { lv, c: w.c, a: o.c } });
+    if ((o.k === 'extdoor' || o.k === 'front') && w.front && o.w < 3) add('error', `The front door is ${ftin(o.w)}. The main exit needs a 36" door.`, {});
+  }
+  for (const it of (BM.items || []).filter(i => i.kind === 'island')) {
+    const [w, d] = itemDims(it), box = [it.x - w / 2, it.x + w / 2, it.z - d / 2, it.z + d / 2];
+    const others = (BM.items || []).filter(o => o !== it && o.level === it.level && WALL_ITEMS.has(o.kind) && !['upper', 'hood', 'microwave'].includes(o.kind));
+    for (const o of others) { const [ow, od] = itemDims(o), gx = Math.max(o.x - ow / 2 - box[1], box[0] - (o.x + ow / 2)), gz = Math.max(o.z - od / 2 - box[3], box[2] - (o.z + od / 2)), gap = Math.max(gx, gz);
+      if (gap >= 0 && gap < 3.5) { add('warn', `Only ${ftin(gap)} between the island and the ${CATALOG[o.kind][0].toLowerCase()}. Leave 42" (48" for two cooks).`, { item: it.id }); break; } }
+  }
+  const S = BM.site || {}, main = BM.rooms.filter(r => r.level === 'M');
+  if (S.lotW && S.lotD && main.length) { const foot = main.filter(r => !RT[r.type]?.outdoor || RT[r.type]?.covered).reduce((a, r) => a + r.w * r.d, 0), cov = foot / (S.lotW * S.lotD);
+    if (cov > .4) add('warn', `Lot coverage is ${Math.round(cov * 100)}%. Many zones cap it near 35–40%.`, {}); }
+  if ((S.setback ?? 48) < 20) add('warn', `The house is ${ftin(S.setback)} from the street. Front setbacks are usually 20–25' or more.`, {});
+  return out;
+}
+function renderChecks() {
+  const list = codeChecks(), n = list.filter(i => i.sev !== 'info').length, badge = document.getElementById('checkCount');
+  if (badge) { badge.textContent = n || ''; badge.className = list.some(i => i.sev === 'error') ? 'err' : ''; }
+  const box = document.getElementById('checkList'); if (!box || document.getElementById('side').hidden) return;
+  box.innerHTML = list.length ? list.map((c, i) => `<button type="button" class="chk ${c.sev}" data-chk="${i}"><i></i><span>${c.text}</span></button>`).join('') : '<p class="sp-note">No issues found.</p>';
+  box.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => { const a = list[+b.dataset.chk].at; if (!PE.open) openEditor(true);
+    if (a.room) { const r = BM.rooms.find(q => q.id === a.room); PE.lv = r.level; PE.sel = r.id; PE.selStair = PE.selX = null; }
+    else if (a.stair) { const S = BM.stairs.find(q => q.id === a.stair); PE.lv = S.level; PE.selStair = S.id; PE.sel = PE.selX = null; }
+    else if (a.item) { const it = BM.items.find(q => q.id === a.item); PE.lv = it.level; selectX({ kind: 'item', id: it.id }); }
+    else if (a.wall) PE.lv = a.wall.lv;
+    peLvlButtons(); peInspector(); peDraw(); });
+}

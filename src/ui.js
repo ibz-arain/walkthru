@@ -87,7 +87,7 @@ addEventListener('pointerdown', hideTip, true);
 
 // ---------- side panels ----------
 let panel = null;
-const PANEL_OPEN = { nav: () => renderNav(), info: () => renderInfo() };
+const PANEL_OPEN = { nav: () => renderNav(), info: () => renderInfo(), checks: () => renderChecks() };
 function openPanel(name) {
   if (panel === name) return closePanel();
   if (!$u('clSide').hidden) toggleSide(false);
@@ -272,6 +272,7 @@ function uiEditing(on) {
   closePops(); if (on && MEAS.on) setMeasure(false); if (on) window.wtTrack?.('editor_opened');
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
+  if (on) renderChecks();
 }
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peFind').oninput = e => {

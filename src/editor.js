@@ -155,7 +155,7 @@ function roomAt(wx, wz) { const rs = lvRooms(); for (let i = rs.length - 1; i >=
 const snapshot = () => JSON.stringify(BM);
 function pushHist() { PE.redo = []; PE.hist.push(snapshot()); if (PE.hist.length > 80) PE.hist.shift(); }
 let peTimer = 0;
-function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => rebuildHouse3(), 260); }
+function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); renderChecks(); }, 260); }
 
 pc.addEventListener('pointerdown', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
