@@ -104,7 +104,7 @@ function peToolUp() {
   if (D.before !== snapshot()) { PE.hist.push(D.before); PE.redo = []; planChanged(); } else peDraw();
   return true;
 }
-function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; if (t) toast(t === 'note' ? 'Click the plan where the note goes' : 'Drag along a wall or across a room'); }
+function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; if (t) toast(t === 'note' ? 'Click to place' : 'Drag to measure'); }
 document.getElementById('peNoteBtn').onclick = () => setTool(PE.tool === 'note' ? null : 'note');
 document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? null : 'dim');
 
@@ -147,7 +147,7 @@ function peExtraInspector() {
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
-    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${sf.toLocaleString()} sf</span></h3><p class="pe-note" style="margin-top:0">Shift-click to add or remove rooms. Drag any of them to move them together.</p>
+    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${sf.toLocaleString()} sf</span></h3>
       <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3)">Align</h3><div class="seg full pe-wm al"><button data-al="l" title="Left edges">Left</button><button data-al="cx" title="Centres, left to right">Centre</button><button data-al="r" title="Right edges">Right</button></div>
       <div class="seg full pe-wm al"><button data-al="t" title="Front edges">Front</button><button data-al="cz" title="Centres, front to back">Middle</button><button data-al="b" title="Back edges">Back</button></div>
       <div class="pe-row"><button class="btn" data-al="w">Same width</button><button class="btn" data-al="d">Same depth</button></div>
@@ -159,7 +159,7 @@ function peExtraInspector() {
   if (it) {
     const c = CATALOG[it.kind], [w, d] = itemDims(it); el.hidden = false;
     el.innerHTML = `<h3>${c[0]} <span class="pe-area">${ftin(w)} × ${ftin(d)}</span></h3><label class="fld">Swap for <select id="ixKind">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}" ${k === it.kind ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-      <div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div><p class="pe-note">Drag to move. The dark edge is the front.</p>`;
+      <div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
     el.querySelector('#ixKind').onchange = e => { pushHist(); it.kind = e.target.value; planChanged(); };
     el.querySelector('#ixRot').onclick = () => { pushHist(); it.rot = ((it.rot || 0) + 1) % 4; planChanged(); };
     el.querySelector('#ixDup').onclick = () => { pushHist(); const c2 = { ...it, id: BID++, x: it.x + 2, z: it.z + 2 }; BM.items.push(c2); selectX({ kind: 'item', id: c2.id }); planChanged(); };
@@ -234,7 +234,7 @@ function peOpPanel() {
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
     <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto') : ''}${num('opW', 'Width (ft)', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height (ft)', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill (ft)', o.sill, 0, 6, .5, '2.3') : ''}</div>
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
-    <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>${kind === 'door' && L >= 6 ? '<p class="pe-note">Wider than 5\'-6" on an outside wall becomes a sliding door.</p>' : ''}`;
+    <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
   for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : +i.value); }
   const p = el.querySelector('#opP'); if (p) { p.oninput = () => { BM.ops = BM.ops || {}; BM.ops[opKey()] = { ...(BM.ops[opKey()] || {}), pos: +p.value / 100 }; peDraw(); clearTimeout(p.t); p.t = setTimeout(() => planChanged(false), 200); }; p.onpointerdown = () => pushHist(); }

@@ -119,7 +119,7 @@ function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = A.above * rate + A.base * rate * bf;
-  $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Ballpark only: excludes land, permits and site work.`;
+  $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Rough estimate.`;
   const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
@@ -208,7 +208,7 @@ $u('measureDone').onclick = () => setMeasure(false);
 const savedList = () => { try { return JSON.parse(ST.get('walkthru-views', '[]')); } catch (e) { return []; } };
 function renderSaved() {
   const L = savedList();
-  $u('savedViews').innerHTML = L.length ? L.map((v, i) => `<div class="row"><button type="button" data-saved="${i}">${v.name.replace(/</g, '&lt;')}<small>${v.house}</small></button><button type="button" class="del" data-del="${i}" aria-label="Delete view"><svg class="ic"><use href="#i-x"/></svg></button></div>`).join('') : '<p class="pop-note">Frame a shot you like, then save it here.</p>';
+  $u('savedViews').innerHTML = L.length ? L.map((v, i) => `<div class="row"><button type="button" data-saved="${i}">${v.name.replace(/</g, '&lt;')}<small>${v.house}</small></button><button type="button" class="del" data-del="${i}" aria-label="Delete view"><svg class="ic"><use href="#i-x"/></svg></button></div>`).join('') : '<p class="pop-note">No saved views.</p>';
   $u('savedViews').querySelectorAll('[data-saved]').forEach(b => b.onclick = () => flyTo(L[+b.dataset.saved]));
   $u('savedViews').querySelectorAll('[data-del]').forEach(b => b.onclick = e => { e.stopPropagation(); L.splice(+b.dataset.del, 1); ST.set('walkthru-views', JSON.stringify(L)); renderSaved(); });
 }

@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
 // ---------- Levels (feet, grade = 0) from wall section A-2.01 ----------
 const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;

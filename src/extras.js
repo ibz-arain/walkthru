@@ -14,7 +14,7 @@ function applyTex(key, url, tileFt = 4) {
 }
 const texKey = k => 'walkthru-tex-' + k;
 document.getElementById('finishBody').insertAdjacentHTML('beforeend', `<div class="grp"><h3>Your own texture</h3>
-  <p class="sp-note" style="margin:0 6px 8px">Upload a photo of a product (tile, stone, flooring…) to see it on the house. Kept in this browser.</p>
+  
   <div class="tex-row"><select id="texFor">${Object.entries(TEX_MAT).filter(([, v]) => v[1]).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select><button class="btn" id="texUp" type="button">Upload…</button></div>
   <div class="tex-row"><label class="fld" style="margin:0">Pattern size (ft) <input id="texFt" type="number" min=".5" max="20" step=".5" value="4"></label><button class="btn" id="texClear" type="button" style="align-self:end">Remove</button></div>
   <input type="file" id="texFile" accept="image/*" hidden></div>`);
@@ -95,7 +95,7 @@ async function panorama() {
       const sx = d.dot(best.R) / bv, sy = d.dot(best.U) / bv, px = Math.min(N - 1, Math.max(0, ((sx + 1) / 2 * N) | 0)), py = Math.min(N - 1, Math.max(0, ((1 - sy) / 2 * N) | 0)), i = (py * N + px) * 4, o = (y * OW + x) * 4;
       D[o] = best.px[i]; D[o + 1] = best.px[i + 1]; D[o + 2] = best.px[i + 2]; D[o + 3] = 255; } }
   og.putImageData(img, 0, 0);
-  download(out.toDataURL('image/jpeg', .9), `${slug()}-360.jpg`); toast('360° panorama saved (equirectangular JPEG)'); window.wtTrack?.('panorama');
+  download(out.toDataURL('image/jpeg', .9), `${slug()}-360.jpg`); toast('Panorama saved'); window.wtTrack?.('panorama');
 }
 
 // ---------- video ----------
@@ -107,8 +107,8 @@ function startRec(seconds) {
   rec.ondataavailable = e => e.data.size && chunks.push(e.data);
   rec.onstop = () => { const b = new Blob(chunks, { type: type.split(';')[0] }), u = URL.createObjectURL(b); download(u, `${slug()}-walkthrough.${type.includes('mp4') ? 'mp4' : 'webm'}`); setTimeout(() => URL.revokeObjectURL(u), 5000); toast('Video saved'); };
   rec.start(250); REC = { rec, spin: null };
-  if (seconds) { REC.spin = controls.autoRotate; controls.autoRotate = true; controls.autoRotateSpeed = 30 / seconds; /* speed 2 = one turn in 30 s */ REC.t = setTimeout(stopRec, seconds * 1000); toast(`Recording a ${seconds}-second fly-around…`); }
-  else toast('Recording. Move around, then press the record button again to stop.');
+  if (seconds) { REC.spin = controls.autoRotate; controls.autoRotate = true; controls.autoRotateSpeed = 30 / seconds; /* speed 2 = one turn in 30 s */ REC.t = setTimeout(stopRec, seconds * 1000); toast('Recording'); }
+  else toast('Recording');
   $u('recBtn').setAttribute('aria-pressed', 'true'); document.body.classList.add('recording'); window.wtTrack?.('video', { auto: !!seconds });
 }
 function stopRec() { if (!REC) return; clearTimeout(REC.t); if (REC.spin !== null) { controls.autoRotate = REC.spin; $u('optSpin').checked = REC.spin; } REC.rec.stop(); REC = null; $u('recBtn').setAttribute('aria-pressed', 'false'); document.body.classList.remove('recording'); }

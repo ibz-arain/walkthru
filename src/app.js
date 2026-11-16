@@ -163,7 +163,7 @@ function enterWalk(spawn, third = false) {
   for (const id of ['room', 'mini', 'hintWalk']) document.getElementById(id).hidden = false;
   document.getElementById('hintOrbit').hidden = true;
   document.getElementById('pad').hidden = !matchMedia('(pointer: coarse)').matches;
-  player.vy = 0; setThird(third); const tip = document.getElementById('lockTip'); tip.textContent = third ? 'Hold left click and move to look around' : 'Click to look around with your mouse'; tip.hidden = locked;
+  player.vy = 0; setThird(third); const tip = document.getElementById('lockTip'); tip.textContent = third ? 'Hold to look around' : 'Click to look around'; tip.hidden = locked;
   applyVisibility();
 }
 function exitWalk() {
@@ -192,43 +192,31 @@ const rig = new THREE.Group(); avatar.add(rig);
 const ME = { body: 'm', h: 5.75 }; // h in feet
 try { Object.assign(ME, JSON.parse(localStorage.getItem('walkthru-me') || '{}')); } catch (e) { }
 const eyeH = () => ME.h - .37; // eyes sit about 4½" below the top of the head
-const FIG_MAT = { skin: std({ color: '#d6c2ae', roughness: .65 }), shoe: std({ color: '#2b2724', roughness: .55 }),
-  m: { top: std({ color: '#4a5a70', roughness: .9 }), legs: std({ color: '#33363b', roughness: .9 }), hair: std({ color: '#3b3029', roughness: 1 }) },
-  f: { top: std({ color: '#4f6f6a', roughness: .9 }), legs: std({ color: '#3b3f47', roughness: .9 }), hair: std({ color: '#5c4135', roughness: 1 }) } };
-// Built for a 5'-9" person standing on y = 0, facing −z (feet, ft), from real body measurements, then scaled to the chosen height.
+const FIG_MAT = { skin: std({ color: '#e0c3a5', roughness: .6 }), shoe: std({ color: '#26262a', roughness: .6 }),
+  m: { top: std({ color: '#2f6fd0', roughness: .75 }), legs: std({ color: '#2c3138', roughness: .8 }), hair: std({ color: '#3a2a20', roughness: .9 }) },
+  f: { top: std({ color: '#e0566d', roughness: .75 }), legs: std({ color: '#33384a', roughness: .8 }), hair: std({ color: '#6b3f26', roughness: .9 }) } };
+// A blocky, rounded avatar (no face). Built for 5'-9" standing on y = 0, facing −z, then scaled to the chosen height.
 function buildFigure() {
   for (const c of [...rig.children]) { rig.remove(c); c.traverse(o => o.geometry?.dispose()); }
   const F = ME.body === 'f', C = FIG_MAT[F ? 'f' : 'm'], sk = FIG_MAT.skin;
-  const add = (g, m, x, y, z, par = rig) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
-  const ball = (r, m, x, y, z, par, sx = 1, sy = 1, sz = 1) => { const o = add(new THREE.SphereGeometry(r, 28, 18), m, x, y, z, par); o.scale.set(sx, sy, sz); return o; };
-  const tube = (r0, r1, len, m, x, y, z, par) => add(new THREE.CylinderGeometry(r0, r1, len, 24), m, x, y - len / 2, z, par); // hangs down from y
-  const turned = (prof, m, depth) => { const o = add(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 40), m, 0, 0, 0); o.scale.z = depth; return o; };
-  // Torso turned on a lathe: [radius, height]. Pants from the crotch to the belt, top from the belt to the neck.
-  const hipsP = F ? [[0, 2.9], [.42, 2.92], [.5, 3.08], [.52, 3.26], [.47, 3.46], [.43, 3.62]] : [[0, 2.92], [.4, 2.94], [.47, 3.1], [.49, 3.3], [.48, 3.48], [.48, 3.62]];
-  const topP = F ? [[.43, 3.6], [.4, 3.82], [.45, 4.02], [.5, 4.18], [.47, 4.36], [.46, 4.5], [.36, 4.66], [.18, 4.74], [0, 4.76]]
-                 : [[.48, 3.6], [.48, 3.82], [.53, 4.05], [.59, 4.25], [.61, 4.45], [.5, 4.62], [.22, 4.74], [0, 4.76]];
-  turned(hipsP, C.legs, F ? .66 : .62); turned(topP, C.top, F ? .62 : .6);
-  const sh = F ? .5 : .64; // shoulder joint, out from the centre
-  for (const sx of [-1, 1]) ball(F ? .15 : .175, C.top, sx * (sh - .03), 4.44, 0, rig, 1, .85, .9); // deltoids, tucked into the shoulder line
-  tube(F ? .15 : .175, F ? .16 : .19, .42, sk, 0, 5.1, 0); // neck
-  const head = ball(.33, sk, 0, 5.3, -.01, rig, .8, 1.1, .94); AV.head = head; // no face
-  if (F) { // shoulder-length hair: a cap and a fall at the back
-    const cap = add(new THREE.SphereGeometry(.36, 28, 16, 0, Math.PI * 2, 0, Math.PI * .58), C.hair, 0, 5.34, .02); cap.scale.set(.84, 1.06, .97); cap.rotation.x = .22;
-    ball(.32, C.hair, 0, 5.06, .13, rig, .88, 1.15, .6);
-  } else { const cap = add(new THREE.SphereGeometry(.355, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5), C.hair, 0, 5.35, .02); cap.scale.set(.82, .95, .95); cap.rotation.x = .3; }
-  // arms and legs hang from pivots so walking can swing them
+  const blk = (w, h, d, m, x, y, z, par = rig, r = .07) => { const o = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - .01, h / 2 - .01, d / 2 - .01)), m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
+  const TW = F ? 1.0 : 1.12, LEG = 2.35, TOR = 2.05, LW = TW / 2 - .01, AW = F ? .44 : .5;
+  blk(TW, TOR, .58, C.top, 0, LEG + TOR / 2, 0);                         // torso
+  blk(TW - .02, .34, .6, C.legs, 0, LEG + .16, 0);                         // belt / hips
+  AV.head = blk(.86, .9, .82, sk, 0, LEG + TOR + .06 + .45, 0, rig, .24);  // head, well rounded
+  const top = LEG + TOR + .06 + .9;
+  blk(.9, .2, .86, C.hair, 0, top - .02, .01, rig, .1);                      // hair on top
+  blk(.9, F ? .95 : .55, .2, C.hair, 0, top - (F ? .5 : .3), .36, rig, .08); // hair at the back (long for her)
+  if (F) for (const sx of [-1, 1]) blk(.12, .7, .5, C.hair, sx * .45, top - .4, .12, rig, .05);
   const pivot = (x, y) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
   for (const sx of [-1, 1]) {
-    const arm = pivot(sx * (sh + (F ? .04 : .05)), 4.42);
-    tube(F ? .12 : .145, F ? .1 : .12, 1.12, C.top, 0, 0, 0, arm); ball(F ? .1 : .12, C.top, 0, -1.12, 0, arm);
-    tube(F ? .1 : .12, F ? .075 : .088, 1.0, sk, 0, -1.12, 0, arm); ball(F ? .085 : .1, sk, 0, -2.2, -.01, arm, .62, 1.35, .9); // forearm, hand
-    const leg = pivot(sx * (F ? .27 : .26), 3.02);
-    tube(F ? .28 : .29, F ? .18 : .19, 1.45, C.legs, 0, 0, 0, leg); ball(F ? .18 : .19, C.legs, 0, -1.45, 0, leg); // thigh, knee
-    tube(F ? .18 : .19, F ? .11 : .12, 1.33, C.legs, 0, -1.45, 0, leg); // shin
-    ball(F ? .12 : .135, FIG_MAT.shoe, 0, -2.9, -.13, leg, .95, .6, 2); // shoe
+    const arm = pivot(sx * (TW / 2 + AW / 2 + .02), LEG + TOR - .12);
+    blk(AW, 1.0, .54, C.top, 0, -.38, 0, arm); blk(AW - .02, 1.05, .52, sk, 0, -1.4, 0, arm); // sleeve, arm and hand
+    const leg = pivot(sx * LW / 2, LEG);
+    blk(LW, LEG - .2, .56, C.legs, 0, -(LEG - .2) / 2, 0, leg); blk(LW + .02, .24, .66, FIG_MAT.shoe, 0, -LEG + .12, -.04, leg); // leg, shoe
     if (sx < 0) { AV.armL = arm; AV.legL = leg; } else { AV.armR = arm; AV.legR = leg; }
   }
-  avatar.scale.setScalar(ME.h / 5.75); if (AV.blob) AV.blob.scale.setScalar(.95 * ME.h / 5.75);
+  const k = ME.h / (top + .08); avatar.scale.setScalar(k); if (AV.blob) AV.blob.scale.setScalar(1.05 * k); // top of the hair = chosen height
 }
 function setMe(patch) { Object.assign(ME, patch); try { localStorage.setItem('walkthru-me', JSON.stringify(ME)); } catch (e) { } buildFigure(); }
 AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .22, depthWrite: false }));
@@ -256,8 +244,8 @@ function setThird(on) {
   syncModes();
   camera.fov = on ? 60 : 72; camera.updateProjectionMatrix();
   document.getElementById('hintWalk').innerHTML = on
-    ? '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> run · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint<br>Hold left click to turn the camera · scroll to zoom<br><kbd>Esc</kbd> or <b>Drone</b> to leave'
-    : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> walk · <kbd>Space</kbd> jump · <kbd>Shift</kbd> hurry<br>Click to look with the mouse<br><kbd>Esc</kbd> frees the mouse, again to leave';
+    ? '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Esc</kbd> exit'
+    : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Esc</kbd> exit';
 }
 function stepWalk(dt) {
   let f = 0, s = 0;
@@ -295,7 +283,7 @@ function stepWalk(dt) {
     const tgt = air ? { lL: .45, lR: -.3, aL: -.9, aR: -.9 } : { lL: sw, lR: -sw, aL: -sw * .8 + Math.sin(AV.t * 1.6) * .03, aR: sw * .8 - Math.sin(AV.t * 1.6) * .03 };
     AV.legL.rotation.x += (tgt.lL - AV.legL.rotation.x) * ease; AV.legR.rotation.x += (tgt.lR - AV.legR.rotation.x) * ease;
     AV.armL.rotation.x += (tgt.aL - AV.armL.rotation.x) * ease; AV.armR.rotation.x += (tgt.aR - AV.armR.rotation.x) * ease;
-    AV.armL.rotation.z = -.07; AV.armR.rotation.z = .07; // arms hang just clear of the hips
+    AV.armL.rotation.z = -.03; AV.armR.rotation.z = .03;
     rig.position.y = Math.abs(Math.sin(AV.phase)) * .18 * AV.amp + (moving ? 0 : Math.sin(AV.t * 2) * .03);
     rig.rotation.x = -.12 * AV.amp;
     avatar.position.set(player.x, player.feet, player.z); avatar.rotation.y = AV.yaw;
