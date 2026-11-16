@@ -52,6 +52,7 @@
   </defs>
 </svg>
 
+<div id="gateCover" aria-hidden="true"></div>
 <div id="stage"></div>
 <div id="labels"></div>
 <div id="loading">Loading playground…</div>
@@ -59,7 +60,7 @@
 <!-- ===== Toolbar (docks to any edge) ===== -->
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
-    <a id="homeLink" class="tb-b" href="/" data-tip="Walkthru home"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-home"/></svg></span></a>
+    <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
     <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Designs"><svg class="ic"><use href="#i-house"/></svg><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <span class="tb-sep" id="tbViewSep"></span>
@@ -267,7 +268,7 @@
   <section class="sp" data-panel="info" hidden>
     <header class="sp-h"><h2>Areas</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
-      <div id="brand"><h1>Walkthru</h1><p id="houseNote"></p></div>
+      <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
       <h3>Estimate</h3>
       <div class="est"><label class="fld">Cost per sq ft <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
@@ -316,7 +317,7 @@
 <!-- ===== Studio (admin) dashboard ===== -->
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
-    <a class="st-brand" href="/"><span class="logo st-logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b id="stBrand">Walkthru</b><span class="st-tag">Studio</span></a>
+    <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
     <span class="st-user" id="stUser" hidden></span>
     <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
@@ -325,7 +326,6 @@
       <h2>Sign in</h2>
       <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
       <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
-      <button class="link-btn" id="stTry" type="button">Try without an account</button>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>

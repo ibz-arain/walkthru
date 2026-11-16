@@ -35,7 +35,7 @@ const shellBody = body.replace(/<script type="importmap">[\s\S]*?<\/script>/, ''
 writeFileSync('site/playground.html', `<!doctype html>
 <html lang="en">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Walkthru playground: design a floor plan and explore it in 3D.">
+<meta name="description" content="Demo playground: design a floor plan and explore it in 3D.">
 ${head}<link rel="modulepreload" href="/assets/${jsName}">
 <link rel="stylesheet" href="/assets/${cssName}">
 ${shellBody}<script type="module" src="/assets/${jsName}"></script>

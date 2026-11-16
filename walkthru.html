@@ -1,10 +1,11 @@
 <meta charset="utf-8">
-<title>Playground · Walkthru</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Cpath d='M9 15.5 16 9l7 6.5V23H9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<title>Playground · Demo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Ctext x='16' y='22.5' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='18' fill='%23fff'%3ED%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="/track.js" defer></script>
+<script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Playground shell: one toolbar docked to an edge, popovers off its buttons, one side panel at a time. */
@@ -77,7 +78,8 @@ body.ui-hidden .tb{display:none}
 .tb-b .chev{width:12px;height:12px;margin-left:-2px;color:var(--ink-3)}
 .tb-wide{color:var(--ink)}
 .tb-t{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#homeLink{padding:0 4px}
+#homeLink.wordmark{font:600 14.5px/1 var(--f-ui);letter-spacing:-.01em;color:var(--ink);padding:0 10px}
+body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:10.5px;padding:0}
 .tb-seg button{height:28px;padding:0 9px}
 .tb-seg button .ic{width:16px;height:16px}
 .tb-seg .s{display:none}
@@ -257,6 +259,10 @@ body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden 
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
 .lbl{font:500 11px var(--f-ui);color:#111114;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap}
 .lbl small{display:block;font:400 9.5px var(--f-mono);color:#6b6b76}
+html.gate body > :not(#gateCover){visibility:hidden}
+#gateCover{display:none}
+html.gate #gateCover{display:grid;position:fixed;inset:0;place-items:center;background:var(--bg);z-index:200}
+html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite}
 #loading{position:fixed;inset:0;display:grid;place-items:center;align-content:center;gap:14px;background:var(--bg);z-index:100;font:500 12.5px var(--f-ui);color:var(--ink-2)}
 #loading::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -456,6 +462,7 @@ body.cl-pinning #stage{cursor:crosshair}
   </defs>
 </svg>
 
+<div id="gateCover" aria-hidden="true"></div>
 <div id="stage"></div>
 <div id="labels"></div>
 <div id="loading">Loading playground…</div>
@@ -463,7 +470,7 @@ body.cl-pinning #stage{cursor:crosshair}
 <!-- ===== Toolbar (docks to any edge) ===== -->
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
-    <a id="homeLink" class="tb-b" href="/" data-tip="Walkthru home"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#i-home"/></svg></span></a>
+    <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
     <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Designs"><svg class="ic"><use href="#i-house"/></svg><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <span class="tb-sep" id="tbViewSep"></span>
@@ -671,7 +678,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <section class="sp" data-panel="info" hidden>
     <header class="sp-h"><h2>Areas</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
-      <div id="brand"><h1>Walkthru</h1><p id="houseNote"></p></div>
+      <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
       <h3>Estimate</h3>
       <div class="est"><label class="fld">Cost per sq ft <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
@@ -720,7 +727,7 @@ body.cl-pinning #stage{cursor:crosshair}
 <!-- ===== Studio (admin) dashboard ===== -->
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
-    <a class="st-brand" href="/"><span class="logo st-logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span><b id="stBrand">Walkthru</b><span class="st-tag">Studio</span></a>
+    <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
     <span class="st-user" id="stUser" hidden></span>
     <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
@@ -729,7 +736,6 @@ body.cl-pinning #stage{cursor:crosshair}
       <h2>Sign in</h2>
       <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
       <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
-      <button class="link-btn" id="stTry" type="button">Try without an account</button>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>
@@ -4158,7 +4164,11 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
 
 (async () => {
   try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }
-  catch (e) { return; } // no API (e.g. the single-file build): stay local, hide the menu
+  catch (e) { document.documentElement.classList.remove('gate'); return; } // no API (the single-file build): stays a local demo
+  // Only signed-in people use the app. Customer links (#c/…) are for buyers and stay open.
+  if (!ACC.user && !/^#c\//.test(location.hash)) { location.replace(signInUrl('login')); return; }
+  document.documentElement.classList.remove('gate');
+  addEventListener('hashchange', () => { if (!ACC.user && !/^#c\//.test(location.hash)) location.replace(signInUrl('login')); });
   accRender(); if (ACC.user) pullDesigns();
   // Signed-in people start on their Projects page; the bare playground is one click away from there.
   let sandbox = false; try { sandbox = sessionStorage.getItem('wt-sandbox') === '1'; } catch (e) { }
@@ -4171,7 +4181,7 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Walkthru' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -4282,7 +4292,7 @@ $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
 // The playground on its own (no project). Remembered for this tab, so signed-in people aren't sent back to Projects.
 const toSandbox = () => { try { sessionStorage.setItem('wt-sandbox', '1'); } catch (e) { } location.hash = ''; };
-$c('stDemo').onclick = toSandbox; $c('stTry').onclick = toSandbox;
+$c('stDemo').onclick = toSandbox;
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
   $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');
@@ -4824,7 +4834,7 @@ $u('importFile').onchange = async e => {
   try {
     const j = JSON.parse(await f.text()), bm = j.bm || j; if (!Array.isArray(bm.rooms)) throw new Error();
     const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
-  } catch (err) { toast('That file is not a Walkthru design'); }
+  } catch (err) { toast('That file is not a Demo design'); }
 };
 $u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Link copied'); } catch (e) { toast(location.href); } };
 
@@ -4962,7 +4972,7 @@ function planSheet() {
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), bar = 10 * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${sf.toLocaleString()} sf</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>10'</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
-      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Walkthru.</p></section>`; }).join('');
+      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
     .sheet img{display:block;width:100%} footer{display:grid;grid-template-columns:2fr repeat(5,1fr);border-top:1.5px solid #111;margin-top:6px} footer div{padding:6px 8px;border-left:1px solid #111;display:flex;flex-direction:column} footer div:first-child{border-left:0}

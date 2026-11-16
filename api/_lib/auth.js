@@ -3,6 +3,8 @@ import { scryptSync, randomBytes, timingSafeEqual, createHash } from 'node:crypt
 import { db, now } from './db.js';
 
 export const ROLES = ['owner', 'admin', 'editor', 'viewer'];
+// ALLOW_SIGNUPS=false closes public sign-up. Invited people can still join, and the very first account can always be made.
+export const signupsOpen = () => !/^(0|false|no|off)$/i.test(String(process.env.ALLOW_SIGNUPS ?? 'true').trim());
 const COOKIE = 'wt_session', DAYS = 30;
 
 export function hashPass(pw) { const salt = randomBytes(16); return `s1$${salt.toString('base64url')}$${scryptSync(String(pw), salt, 32).toString('base64url')}`; }

@@ -68,7 +68,8 @@ body.ui-hidden .tb{display:none}
 .tb-b .chev{width:12px;height:12px;margin-left:-2px;color:var(--ink-3)}
 .tb-wide{color:var(--ink)}
 .tb-t{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#homeLink{padding:0 4px}
+#homeLink.wordmark{font:600 14.5px/1 var(--f-ui);letter-spacing:-.01em;color:var(--ink);padding:0 10px}
+body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:10.5px;padding:0}
 .tb-seg button{height:28px;padding:0 9px}
 .tb-seg button .ic{width:16px;height:16px}
 .tb-seg .s{display:none}
@@ -248,6 +249,10 @@ body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden 
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
 .lbl{font:500 11px var(--f-ui);color:#111114;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap}
 .lbl small{display:block;font:400 9.5px var(--f-mono);color:#6b6b76}
+html.gate body > :not(#gateCover){visibility:hidden}
+#gateCover{display:none}
+html.gate #gateCover{display:grid;position:fixed;inset:0;place-items:center;background:var(--bg);z-index:200}
+html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite}
 #loading{position:fixed;inset:0;display:grid;place-items:center;align-content:center;gap:14px;background:var(--bg);z-index:100;font:500 12.5px var(--f-ui);color:var(--ink-2)}
 #loading::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}

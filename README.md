@@ -29,6 +29,9 @@ Old links on the root URL (`/#admin`, `/#c/<token>`) redirect to the playground.
 - **Email** (`api/_lib/mail.js`): customer link emails, comment / submission notifications to the team, studio replies to the customer, invites and password resets. Set `RESEND_API_KEY` and `MAIL_FROM` to send for real; without them every email is stored in the `outbox` table and printed in the dev server log.
 - **Telemetry** (`src/track.js` → `api/log.js`): page views, a few product events and uncaught errors, first-party only. Owners and admins see a 30-day summary on `/account`.
 - The old shared `ADMIN_KEY` still works as a studio key (it sees every project), so existing setups keep running.
+- **Sign-in required**: the playground and Studio only open for signed-in people; signed-out visits go to `/account#login`. Customer links (`/playground#c/<token>`) stay open for buyers.
+- **`ALLOW_SIGNUPS`** (default `true`): set to `false` to close public sign-up. Invited people can still join, and the very first account on a fresh install can always be created.
+- Visible branding is "Demo" (`BRAND_NAME`, default `Demo`).
 
 ## Run locally
 

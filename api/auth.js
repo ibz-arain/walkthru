@@ -9,13 +9,13 @@
 // PATCH /api/auth                      {name?, notify?, current?, password?, workspace?}
 import { route, send, fail, body } from './_lib/http.js';
 import { db, now } from './_lib/db.js';
-import { who, hashPass, checkPass, startSession, endSession, createWorkspace, validEmail, token, sha, canManage, ROLES } from './_lib/auth.js';
+import { who, hashPass, checkPass, startSession, endSession, createWorkspace, validEmail, token, sha, canManage, ROLES, signupsOpen } from './_lib/auth.js';
 import { sendMail, layout, appUrl } from './_lib/mail.js';
 
 async function me(c, w) {
-  if (!w?.user) return { user: null };
+  if (!w?.user) return { user: null, signups: signupsOpen() };
   const orgs = await c.execute({ sql: 'SELECT o.id, o.name, m.role FROM members m JOIN orgs o ON o.id = m.org_id WHERE m.user_id = ? ORDER BY o.name', args: [w.user.id] });
-  return { user: { ...w.user, notify: !!w.user.notify }, org: w.org, role: w.role, orgs: orgs.rows };
+  return { user: { ...w.user, notify: !!w.user.notify }, org: w.org, role: w.role, orgs: orgs.rows, signups: signupsOpen() };
 }
 async function joinInvite(c, inviteToken, user) {
   const inv = (await c.execute({ sql: 'SELECT * FROM invites WHERE token = ? AND accepted_at IS NULL', args: [inviteToken] })).rows[0];
@@ -39,6 +39,11 @@ export default route({
       if (!validEmail(email)) return fail(res, 400, 'Enter a valid email address');
       if (tooShort(b.password)) return fail(res, 400, 'Use at least 8 characters for your password');
       if ((await c.execute({ sql: 'SELECT 1 FROM users WHERE email = ?', args: [email] })).rows.length) return fail(res, 409, 'There is already an account with that email. Sign in instead.');
+      if (!signupsOpen()) {
+        const invited = b.invite && (await c.execute({ sql: 'SELECT email FROM invites WHERE token = ? AND accepted_at IS NULL', args: [b.invite] })).rows[0];
+        const first = (await c.execute('SELECT COUNT(*) AS n FROM users')).rows[0].n === 0;
+        if (!first && (!invited || invited.email.toLowerCase() !== email)) return fail(res, 403, 'Sign-ups are closed. Ask your team for an invite.');
+      }
       const id = token(9), name = String(b.name || '').trim().slice(0, 80) || email.split('@')[0];
       await c.execute({ sql: 'INSERT INTO users (id, email, name, pass_hash, created_at) VALUES (?, ?, ?, ?, ?)', args: [id, email, name, hashPass(b.password), now()] });
       const user = { id, email };
@@ -63,7 +68,7 @@ export default route({
       const u = (await c.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [String(b.email || '').trim().toLowerCase()] })).rows[0];
       if (u) { // same answer either way, so the form can't be used to find out who has an account
         const raw = token(24); await c.execute({ sql: 'INSERT INTO resets (id, user_id, expires_at) VALUES (?, ?, ?)', args: [sha(raw), u.id, now() + 3600e3] });
-        await sendMail(u.email, 'Reset your Walkthru password', layout({ heading: 'Reset your password', lines: ['Someone asked to reset the password for this account. The link works for one hour.'], cta: 'Choose a new password', url: `${appUrl(req)}/account#reset/${raw}`, foot: 'If this wasn’t you, ignore this email: your password stays the same.' }));
+        await sendMail(u.email, 'Reset your Demo password', layout({ heading: 'Reset your password', lines: ['Someone asked to reset the password for this account. The link works for one hour.'], cta: 'Choose a new password', url: `${appUrl(req)}/account#reset/${raw}`, foot: 'If this wasn’t you, ignore this email: your password stays the same.' }));
       }
       return send(res, 200, { ok: true });
     }

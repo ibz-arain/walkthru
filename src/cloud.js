@@ -4,7 +4,7 @@
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Walkthru' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -115,7 +115,7 @@ $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
 // The playground on its own (no project). Remembered for this tab, so signed-in people aren't sent back to Projects.
 const toSandbox = () => { try { sessionStorage.setItem('wt-sandbox', '1'); } catch (e) { } location.hash = ''; };
-$c('stDemo').onclick = toSandbox; $c('stTry').onclick = toSandbox;
+$c('stDemo').onclick = toSandbox;
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
   $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');

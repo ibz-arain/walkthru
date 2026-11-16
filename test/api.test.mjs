@@ -104,4 +104,18 @@ test('password reset', async () => {
   assert.equal((await client()('auth', 'POST', { action: 'login' }, { email: 'r@example.com', password: 'newpassword1' })).code, 200);
 });
 
+test('ALLOW_SIGNUPS=false closes sign-up except for invites', async () => {
+  const own = client();
+  await own('auth', 'POST', { action: 'signup' }, { email: 'boss@example.com', password: 'longpassword', workspace: 'Closed Co' });
+  const inv = (await own('team', 'POST', {}, { email: 'invited@example.com', role: 'editor' })).body.token;
+  process.env.ALLOW_SIGNUPS = 'false';
+  try {
+    assert.equal((await client()('auth')).body.signups, false);
+    assert.equal((await client()('auth', 'POST', { action: 'signup' }, { email: 'stranger@example.com', password: 'longpassword' })).code, 403);
+    assert.equal((await client()('auth', 'POST', { action: 'signup' }, { email: 'other@example.com', password: 'longpassword', invite: inv })).code, 403, 'invite is for someone else');
+    const r = await client()('auth', 'POST', { action: 'signup' }, { email: 'invited@example.com', password: 'longpassword', invite: inv });
+    assert.equal(r.code, 201); assert.equal(r.body.org.name, 'Closed Co');
+  } finally { delete process.env.ALLOW_SIGNUPS; }
+});
+
 test.after(() => { try { rmSync(file); } catch (e) { } });

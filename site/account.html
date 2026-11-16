@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Account · Walkthru</title>
+<title>Account · Demo</title>
 <meta name="robots" content="noindex">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Cpath d='M9 15.5 16 9l7 6.5V23H9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Ctext x='16' y='22.5' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='18' fill='%23fff'%3ED%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -72,8 +72,8 @@ section > header p{margin:2px 0 0;color:var(--ink-2);font-size:13px}
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="/"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z"/></svg></span>Walkthru</a>
-  <nav><a class="btn btn-sm" href="/playground">Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Projects</a></nav>
+  <a class="brand" href="/">Demo</a>
+  <nav><a class="btn btn-sm" href="/playground" id="topPlay" hidden>Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Projects</a></nav>
 </header>
 
 <main id="view"></main>
@@ -92,7 +92,7 @@ const nextUrl = () => { const n = params().get('next'); return n && n.startsWith
 const track = (name, detail) => window.wtTrack?.(name, detail);
 let ME = { user: null };
 
-function authCard(title, sub, inner, alt = '') { view.innerHTML = `<div class="auth"><h1>${title}</h1><p class="sub">${sub}</p><div class="card">${inner}</div>${alt ? `<p class="alt">${alt}</p>` : ''}</div>`; }
+function authCard(title, sub, inner, alt = '') { view.innerHTML = `<div class="auth"><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : '<div style="height:20px"></div>'}<div class="card">${inner}</div>${alt ? `<p class="alt">${alt}</p>` : ''}</div>`; }
 function bindForm(sel, fn) {
   const f = $(sel); f.onsubmit = async e => { e.preventDefault(); const btn = f.querySelector('[type=submit]'), err = f.querySelector('.err'); err.textContent = ''; btn.disabled = true;
     try { await fn(Object.fromEntries(new FormData(f))); } catch (x) { err.textContent = x.message; } finally { btn.disabled = false; } };
@@ -100,18 +100,19 @@ function bindForm(sel, fn) {
 
 function login() {
   const n = encodeURIComponent(nextUrl());
-  authCard('Sign in', 'Welcome back. Your designs and projects are waiting.', `<form id="f">
+  authCard('Sign in', '', `<form id="f">
     <label>Email <input name="email" type="email" autocomplete="email" required autofocus></label>
     <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
     <p class="err"></p><button class="btn btn-primary" type="submit">Sign in</button>
     <button class="link" type="button" id="forgot">Forgot your password?</button></form>`,
-    `New to Walkthru? <a href="#signup?next=${n}">Create an account</a>`);
+    ME.signups ? `New here? <a href="#signup?next=${n}">Create an account</a>` : '');
   bindForm('#f', async v => { await api('POST', 'auth?action=login', v); track('login'); location.href = nextUrl(); });
   $('#forgot').onclick = () => { location.hash = `#forgot?next=${n}`; };
 }
 function signup(invite) {
+  if (!invite && !ME.signups) return authCard('Sign-ups are closed', 'Ask your team for an invite.', '<a class="btn btn-primary" href="#login" style="width:100%">Sign in</a>');
   const n = encodeURIComponent(nextUrl());
-  authCard(invite ? 'Join your team' : 'Create your account', invite ? 'Make an account to accept the invite.' : 'Free while we’re in early access. No card needed.', `<form id="f">
+  authCard(invite ? 'Join your team' : 'Create your account', invite ? 'Make an account to accept the invite.' : '', `<form id="f">
     <label>Your name <input name="name" autocomplete="name" required autofocus maxlength="80"></label>
     <label>Work email <input name="email" type="email" autocomplete="email" required></label>
     <label>Password <input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label>
@@ -190,7 +191,7 @@ async function settings() {
 async function route() {
   const h = location.hash.slice(1).split('?')[0];
   try { ME = await api('GET', 'auth'); } catch (e) { view.innerHTML = '<div class="auth"><h1>Accounts need the online version</h1><p class="sub">Run the site with its API (npm run dev) to sign in.</p></div>'; return; }
-  $('#topStudio').hidden = !ME.user;
+  $('#topStudio').hidden = !ME.user; $('#topPlay').hidden = !ME.user;
   if (h.startsWith('reset/')) return reset(h.slice(6));
   if (h.startsWith('invite/')) return invite(h.slice(7));
   if (ME.user) { if (h === 'login' || h === 'signup') return void (location.href = nextUrl()); return settings(); }

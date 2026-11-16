@@ -66,7 +66,7 @@ function planSheet() {
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), bar = 10 * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${sf.toLocaleString()} sf</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>10'</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
-      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Walkthru.</p></section>`; }).join('');
+      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
     .sheet img{display:block;width:100%} footer{display:grid;grid-template-columns:2fr repeat(5,1fr);border-top:1.5px solid #111;margin-top:6px} footer div{padding:6px 8px;border-left:1px solid #111;display:flex;flex-direction:column} footer div:first-child{border-left:0}
