@@ -16,9 +16,9 @@ const VIEW_NAME = { front: 'Front', rear: 'Rear', aerial: 'Aerial', left: 'Left'
 function setEditLabel(t) { const el = document.getElementById('editLabel'); if (el) el.textContent = t; const b = document.getElementById('editBtn'); if (b) b.dataset.tip = `${t} (E)`; }
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
-  const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 46, W = hidden ? 0 : 50;
+  const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
   const side = !document.getElementById('side')?.hidden || !document.getElementById('clSide')?.hidden;
-  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 308 : 0 };
+  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 318 : 0 };
 }
 
 // ---------- dock + theme ----------

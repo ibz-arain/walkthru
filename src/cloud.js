@@ -222,7 +222,7 @@ async function openProject(id, keepView) {
   const first = !CL.project || CL.project.project.id !== id;
   CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
-  $c('clBack').hidden = false; $c('clBrand').textContent = `${CL.brand.name} · Studio`;
+  $c('clBack').hidden = false; $c('clBrand').textContent = '';
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; document.title = `${j.project.name} · ${CL.brand.name}`;
   $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ');
   setSave(`Saved · version ${j.project.version}`); banner(''); chrome(); renderPins();
