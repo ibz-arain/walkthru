@@ -3356,6 +3356,7 @@ function boomLength(from, dir, max) { // pull the camera in front of any wall be
 function syncModes() {
   const m = mode !== 'walk' ? 'drone' : AV.third ? 'char' : 'walk';
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  uiSync();
 }
 let groundMode = 'char';
 function setThird(on) {
