@@ -230,7 +230,7 @@ function planLevel(lv) {
 const HOUSE3 = new THREE.Group(); scene.add(HOUSE3); HOUSE3.visible = false;
 const G3 = {};
 for (const k of ['basement', 'main', 'mainCeil', 'upper', 'upperCeil', 'roof', 'furnB', 'furnM', 'furnU', 'site', 'trees']) { G3[k] = new THREE.Group(); HOUSE3.add(G3[k]); }
-let ROOMS3 = [], OUTLINE3 = { B: [], M: [], U: [] }, H3_WALK = [], H3_FRONT = [15, -20, Math.PI, 1], H3_DRIVE = [45, -30, Math.PI, 1];
+let H3_LOT = null, ROOMS3 = [], OUTLINE3 = { B: [], M: [], U: [] }, H3_WALK = [], H3_FRONT = [15, -20, Math.PI, 1], H3_DRIVE = [45, -30, Math.PI, 1];
 const flatRoofMat = std({ color: '#5f6266', roughness: .9 });
 const ovl = (a, b) => a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05;
 function laneOf(S, half) { const dir = stairDirOf(S), r = stairRect(S, dir), alongX = dir[1] === 'x';
@@ -536,20 +536,20 @@ function buildHouse3() {
   const up = rooms.filter(r => r.level === 'U' && !isOut(r)), main = rooms.filter(r => r.level === 'M' && (!isOut(r) || RT[r.type].covered));
   const balc = rooms.filter(r => r.level === 'U' && r.type === 'balcony');
   const upLike = up.concat(main.filter(isTall));
-  const roofRects = [...rectCells(upLike).map(q => [q, UC])];
-  const mainOnly = rectCells(main, .5, upLike.concat(balc)); // parts of the main floor not under the 2nd floor or a balcony
-  roofRects.push(...mainOnly.map(q => [q, MC]));
-  for (let [i, [[x0, x1, z0, z1], plate]] of roofRects.entries()) {
-    plate += i * .03;
-    const e = EXT / 2; x0 -= e; x1 += e; z0 -= e; z1 += e; // roof sits on the outer face of the walls
-    const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco;
-    if (BM.roof === 'flat') { box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
-    else if (BM.roof === 'gable') { // ridge along the long side, gable walls on the short ends
-      const alongX = x1 - x0 >= z1 - z0;
-      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: alongX ? { n: true, s: true } : { e: true, w: true }, wall: gw, gables: alongX ? [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }] : [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] });
-    } else if (BM.roof === 'shed') { // one slope rising toward the back
-      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch: Math.min(pitch, 4 / 12), ov: 1.5, slopes: { n: true }, wall: gw, gables: [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }, { edge: 's', at: z1 }] });
-    } else hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: { n: true, e: true, s: true, w: true } });
+  // one roof per level over its whole footprint (see roof.js): the 2nd floor's, then the main floor's where nothing sits on it
+  ROOF3 = [];
+  const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco, e = EXT / 2;
+  const outer = rs => rs.map(([x0, x1, z0, z1]) => [x0 - e, x1 + e, z0 - e, z1 + e]), ov = BM.ov ?? 1.5;
+  const upR = outer(rectCells(upLike)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc))), balcR = outer(rectCells(balc));
+  if (BM.roof === 'flat') {
+    for (const [[x0, x1, z0, z1], plate] of [...upR.map(q => [q, UC]), ...mainOnly.map(q => [q, MC])]) {
+      box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
+    ROOF3.push(...[[upR, UC, '2nd floor roof'], [mainOnly, MC, 'Main floor roof']].filter(q => q[0].length).map(([, plate, name]) => ({ name, plate, pitch: 0, asked: 0, eaveH: plate + .9, maxH: plate + 1.05, style: 'flat', heightAt: () => null })));
+  } else {
+    const style = BM.roof === 'gable' || BM.roof === 'shed' ? BM.roof : 'hip', P = style === 'shed' ? Math.min(pitch, 4 / 12) : pitch;
+    if (upR.length) roofLevel(G3.roof, { name: '2nd floor roof', eaves: upR, plate: UC, pitch: P, ov, style, wallMat: gw });
+    // a lower roof that meets the storey above slopes away from it, and is kept below the 2nd-floor windows
+    if (mainOnly.length) roofLevel(G3.roof, { name: 'Main floor roof', eaves: mainOnly, inner: mainR, solid: upR.concat(balcR), plate: MC + .03, pitch: P, ov, style, wallMat: gw, cap: upR.length ? UC - .5 : null, windows: upR.length ? planLevel('U').filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
   }
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: 7 / 12, ov: 1.2, slopes: { e: true, w: true }, wall: M.batten,
@@ -584,8 +584,9 @@ function buildHouse3() {
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
   for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
+  H3_LOT = null;
   if (SITE.lotW && SITE.lotD) { // property line: low hedge around the lot, front edge at the sidewalk
-    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD;
+    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1];
     for (const [a0, a1, b0, b1] of [[lx0, lx1, lz1 - .6, lz1], [lx0, lx0 + .6, lz0 + 3, lz1], [lx1 - .6, lx1, lz0 + 3, lz1]]) box(G3.site, a0, a1, 0, 2.2, b0, b1, M.leaf2, { solid: true });
   }
   placeItems();

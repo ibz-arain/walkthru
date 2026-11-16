@@ -2215,6 +2215,165 @@ parkSedan(G2.site, 41.5, -34, -Math.PI / 2);
 
 
 // =====================================================================
+//  ROOFS: one roof per level, built from the whole footprint
+// ---------------------------------------------------------------------
+//  Every point of an equal-pitch hip roof sits at  pitch × (distance to the nearest eave), measured the way
+//  the roof planes meet. For square-cornered plans that distance is the "chessboard" distance (the largest
+//  square centred on the point that still fits inside the eave outline), so a distance transform over a fine
+//  grid gives the exact straight-skeleton roof: ridges, hips and valleys all fall out of it and every slope
+//  drains to an eave. No pockets, no flat troughs between wings.
+//  Gable ends are made by letting the outline run on past a wing's short end (the slope there never turns
+//  the corner), and the triangle under it is filled with wall.
+// =====================================================================
+const RG = 1 / 8; // grid step, feet (1½")
+let ROOF3 = []; // what was built, per roof: { name, plate, pitch, eaveH, maxH, heightAt(x, z) }
+
+function roofLevel(parent, o) {
+  // o: { name, eaves: [[x0,x1,z0,z1]…] outer wall faces of the part that gets this roof,
+  //      solid: rects that count as roof for drainage but are not drawn (the storey above, balconies),
+  //      inner: rects that count as roof for drainage too (the rest of this storey under the storey above),
+  //      plate, pitch, ov, style ('hip' | 'gable' | 'shed'), cap (highest the roof may reach), wallMat }
+  const ov = o.ov, style = o.style, ex = r => [r[0] - ov, r[1] + ov, r[2] - ov, r[3] + ov];
+  const drawn = o.eaves.map(ex), field = drawn.concat(o.inner || [], (o.inner || []).map(ex), o.solid || []);
+  if (!drawn.length) return null;
+  const all = field.concat(drawn), M0 = 2;
+  const X0 = Math.floor(Math.min(...all.map(r => r[0])) / RG) * RG - M0 * RG, Z0 = Math.floor(Math.min(...all.map(r => r[2])) / RG) * RG - M0 * RG;
+  const NX = Math.ceil((Math.max(...all.map(r => r[1])) - X0) / RG) + M0, NZ = Math.ceil((Math.max(...all.map(r => r[3])) - Z0) / RG) + M0;
+  const C = (NX) * (NZ), occ = new Uint8Array(C), draw = new Uint8Array(C), wall = new Uint8Array(C), hole = new Uint8Array(C);
+  const fill = (arr, r, v = 1) => { const i0 = Math.max(0, Math.round((r[0] - X0) / RG)), i1 = Math.min(NX, Math.round((r[1] - X0) / RG)), j0 = Math.max(0, Math.round((r[2] - Z0) / RG)), j1 = Math.min(NZ, Math.round((r[3] - Z0) / RG));
+    for (let j = j0; j < j1; j++) arr.fill(v, j * NX + i0, j * NX + i1); };
+  for (const r of field) fill(occ, r);
+  for (const r of drawn) fill(draw, r);
+  for (const r of o.eaves) fill(wall, r);
+  for (const r of o.solid || []) { fill(draw, r, 0); fill(hole, r); }
+  for (const r of o.inner || []) fill(wall, r); // walls of this storey that carry the storey above: no gable fill there
+
+  // gable ends: a wing's short end that is open to the outside keeps going (for the distance only)
+  const gableEnds = [];
+  if (style === 'gable') {
+    const cellOcc = (x, z) => { const i = Math.floor((x - X0) / RG), j = Math.floor((z - Z0) / RG); return i >= 0 && j >= 0 && i < NX && j < NZ && occ[j * NX + i]; };
+    const openRun = (pts) => pts.filter(([x, z]) => !cellOcc(x, z)).length >= pts.length * .5; // at least half the end is open to the outside
+    for (const r of drawn) {
+      const w = r[1] - r[0], d = r[3] - r[2], alongX = w >= d, ext = 60;
+      const ends = alongX ? [['w', r[0]], ['e', r[1]]] : [['n', r[2]], ['s', r[3]]];
+      for (const [side, at] of ends) {
+        const pts = []; for (let t = (alongX ? r[2] : r[0]) + RG / 2; t < (alongX ? r[3] : r[1]); t += RG) pts.push(alongX ? [side === 'w' ? at - RG / 2 : at + RG / 2, t] : [t, side === 'n' ? at - RG / 2 : at + RG / 2]);
+        if (!openRun(pts)) continue;
+        gableEnds.push(alongX ? [side === 'w' ? at - ext : at, side === 'w' ? at : at + ext, r[2], r[3]] : [r[0], r[1], side === 'n' ? at - ext : at, side === 'n' ? at : at + ext]);
+      }
+    }
+  }
+  // distance (in cells) from each grid node to the eave line
+  const NXn = NX + 1, NZn = NZ + 1, dist = new Float32Array(NXn * NZn);
+  const ocv = (i, j) => i >= 0 && j >= 0 && i < NX && j < NZ && occ[j * NX + i];
+  // cells past a gable end count as inside for the distance
+  const ext = new Uint8Array(C); if (gableEnds.length) { for (const r of gableEnds) fill(ext, r); }
+  const inF = (i, j) => ocv(i, j) || (i >= 0 && j >= 0 && i < NX && j < NZ && ext[j * NX + i]);
+  for (let j = 0; j < NZn; j++) for (let i = 0; i < NXn; i++) dist[j * NXn + i] = inF(i - 1, j - 1) && inF(i, j - 1) && inF(i - 1, j) && inF(i, j) ? 1e9 : 0;
+  for (let j = 0; j < NZn; j++) for (let i = 0; i < NXn; i++) { const k = j * NXn + i; let v = dist[k]; if (!v) continue;
+    if (i) v = Math.min(v, dist[k - 1] + 1); if (j) { v = Math.min(v, dist[k - NXn] + 1); if (i) v = Math.min(v, dist[k - NXn - 1] + 1); if (i < NXn - 1) v = Math.min(v, dist[k - NXn + 1] + 1); } dist[k] = v; }
+  for (let j = NZn - 1; j >= 0; j--) for (let i = NXn - 1; i >= 0; i--) { const k = j * NXn + i; let v = dist[k]; if (!v) continue;
+    if (i < NXn - 1) v = Math.min(v, dist[k + 1] + 1); if (j < NZn - 1) { v = Math.min(v, dist[k + NXn] + 1); if (i < NXn - 1) v = Math.min(v, dist[k + NXn + 1] + 1); if (i) v = Math.min(v, dist[k + NXn - 1] + 1); } dist[k] = v; }
+
+  // heights at the nodes. A lower roof that would climb past `cap` (where it meets the storey above) gets a flatter
+  // pitch, worked out separately for each separate piece of roof so one deep piece doesn't flatten the others.
+  const shedZ0 = Math.min(...drawn.map(r => r[2]));
+  const rise = (i, j) => style === 'shed' ? Math.max(0, Z0 + j * RG - shedZ0) : dist[j * NXn + i] * RG;
+  // how high a lower roof may reach against the storey above: under any window there (sill less 3"), else `cap`
+  const capAt = (x, z) => { let lim = o.cap; for (const w of o.windows || []) if (w.axis === 'x' ? Math.abs(z - w.c) < 1.2 && x > w.a0 - .4 && x < w.a1 + .4 : Math.abs(x - w.c) < 1.2 && z > w.a0 - .4 && z < w.a1 + .4) lim = Math.min(lim, w.sill - .25); return lim; };
+  const comp = new Int32Array(C).fill(-1), compP = []; let nc = 0;
+  for (let s0 = 0; s0 < C; s0++) { if (!draw[s0] || comp[s0] >= 0) continue; const st = [s0]; comp[s0] = nc; let maxP = o.pitch;
+    while (st.length) { const c = st.pop(), i = c % NX, j = (c / NX) | 0;
+      if (o.cap != null && ((i > 0 && hole[c - 1]) || (i < NX - 1 && hole[c + 1]) || (j > 0 && hole[c - NX]) || (j < NZ - 1 && hole[c + NX]))) { // where it meets the storey above
+        const run = Math.max(rise(i, j), rise(i + 1, j), rise(i, j + 1), rise(i + 1, j + 1)), lim = capAt(X0 + (i + .5) * RG, Z0 + (j + .5) * RG);
+        if (run > ov) maxP = Math.min(maxP, Math.max(1 / 12, (lim - o.plate) / (run - ov))); }
+      for (const n of [i > 0 ? c - 1 : -1, i < NX - 1 ? c + 1 : -1, j > 0 ? c - NX : -1, j < NZ - 1 ? c + NX : -1]) if (n >= 0 && draw[n] && comp[n] < 0) { comp[n] = nc; st.push(n); } }
+    compP.push(Math.min(o.pitch, maxP)); nc++; }
+  const P = compP.length ? Math.min(...compP) : o.pitch, eaveH = o.plate - o.pitch * ov;
+  const H = new Float32Array(NXn * NZn); let maxH = -1e9;
+  for (let j = 0; j < NZn; j++) for (let i = 0; i < NXn; i++) { let c = -1;
+    for (const [di, dj] of [[0, 0], [-1, 0], [0, -1], [-1, -1]]) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < NX && jj < NZ && comp[jj * NX + ii] >= 0) { c = comp[jj * NX + ii]; break; } }
+    const p = c >= 0 ? compP[c] : o.pitch; H[j * NXn + i] = o.plate - p * ov + p * rise(i, j); }
+  const hAt = (i, j) => H[j * NXn + i], X = i => X0 + i * RG, Z = j => Z0 + j * RG;
+
+  // ---------- roof surface ----------
+  const pos = [], uv = [], under = [], k = Math.sqrt(1 + o.pitch * o.pitch);
+  const tri = (a, b, c, soffit) => { // a, b, c: [x, y, z]; UVs run along the slope so shingle courses stay level
+    const ux = b[0] - a[0], uz = b[2] - a[2], vx = c[0] - a[0], vz = c[2] - a[2], uy = b[1] - a[1], vy = c[1] - a[1], det = ux * vz - uz * vx;
+    const gx = det ? (uy * vz - uz * vy) / det : 0, gz = det ? (ux * vy - uy * vx) / det : 0;
+    for (const p of [a, b, c]) { pos.push(p[0], p[1], p[2]); maxH = Math.max(maxH, p[1]);
+      if (Math.abs(gx) > Math.abs(gz) + 1e-4) uv.push(p[2], Math.sign(gx) * p[0] * k); else if (Math.abs(gz) > 1e-4) uv.push(p[0], Math.sign(gz) * p[2] * k); else uv.push(p[0], p[2]); }
+    if (soffit) for (const p of [a, c, b]) under.push(p[0], p[1] - .32, p[2]);
+  };
+  const gradOK = (a, b, c) => { const ux = b[0] - a[0], uz = b[2] - a[2], vx = c[0] - a[0], vz = c[2] - a[2], uy = b[1] - a[1], vy = c[1] - a[1], det = ux * vz - uz * vx; if (!det) return false;
+    const gx = (uy * vz - uz * vy) / det, gz = (ux * vy - uy * vx) / det; return Math.min(Math.abs(gx), Math.abs(gz)) < 1e-3 * (1 + o.pitch); };
+  for (let j = 0; j < NZ; j++) {
+    let run = null; // a stretch of flat-plane cells in this row, drawn as one quad
+    const flush = () => { if (!run) return; const { i0, i1, sof } = run, p00 = [X(i0), hAt(i0, j), Z(j)], p10 = [X(i1), hAt(i1, j), Z(j)], p01 = [X(i0), hAt(i0, j + 1), Z(j + 1)], p11 = [X(i1), hAt(i1, j + 1), Z(j + 1)];
+      tri(p00, p01, p10, sof); tri(p10, p01, p11, sof); run = null; };
+    for (let i = 0; i <= NX; i++) {
+      const c = j * NX + i, on = i < NX && draw[c];
+      if (!on) { flush(); continue; }
+      const a = hAt(i, j), b = hAt(i + 1, j), cc = hAt(i, j + 1), d = hAt(i + 1, j + 1), sof = !wall[c] && !hole[c];
+      if (Math.abs(a + d - b - cc) < 1e-5) { const gx = Math.round((b - a) * 1e4), gz = Math.round((cc - a) * 1e4);
+        if (run && run.gx === gx && run.gz === gz && run.sof === sof) { run.i1 = i + 1; continue; } flush(); run = { i0: i, i1: i + 1, gx, gz, sof }; continue; }
+      flush();
+      const p00 = [X(i), a, Z(j)], p10 = [X(i + 1), b, Z(j)], p01 = [X(i), cc, Z(j + 1)], p11 = [X(i + 1), d, Z(j + 1)];
+      const A = gradOK(p00, p01, p11) && gradOK(p00, p11, p10), B = gradOK(p00, p01, p10) && gradOK(p10, p01, p11);
+      if (A && !B || (!B && a + d >= b + cc)) { tri(p00, p01, p11, sof); tri(p00, p11, p10, sof); } else { tri(p00, p01, p10, sof); tri(p10, p01, p11, sof); }
+    }
+  }
+  const mesh = (arr, mat, uvs) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); if (uvs) g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); else g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(arr.length / 3 * 2).fill(0), 2)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
+  mesh(pos, M.roof, uv); if (under.length) mesh(under, M.soffit);
+
+  // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
+  const fas = [], FT = .22, FB = .75;
+  const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => { // outer face + top + bottom of a board along an edge, pushed out by (nx, nz)
+    const o0 = [x0 + nx * FT, z0 + nz * FT], o1 = [x1 + nx * FT, z1 + nz * FT];
+    const q = (a, b, c, d) => fas.push(...a, ...b, ...c, ...a, ...c, ...d);
+    q([o0[0], h0 - FB, o0[1]], [o1[0], h1 - FB, o1[1]], [o1[0], h1 + .1, o1[1]], [o0[0], h0 + .1, o0[1]]);
+    q([x0, h0 + .1, z0], [o0[0], h0 + .1, o0[1]], [o1[0], h1 + .1, o1[1]], [x1, h1 + .1, z1]);
+    q([x0, h0 - FB, z0], [x1, h1 - FB, z1], [o1[0], h1 - FB, o1[1]], [o0[0], h0 - FB, o0[1]]);
+  };
+  const outside = (i, j) => !(i >= 0 && j >= 0 && i < NX && j < NZ) || (!draw[j * NX + i] && !hole[j * NX + i]);
+  // horizontal edges (along x) at node row j, and vertical edges (along z) at node column i; merged while the slope stays the same
+  for (let j = 0; j <= NZ; j++) for (const side of [-1, 1]) {
+    let s = null; const end = (i) => { if (s) { ribbon(X(s.i0), Z(j), X(i), Z(j), hAt(s.i0, j), hAt(i, j), 0, side); s = null; } };
+    for (let i = 0; i <= NX; i++) { const inside = i < NX && (side < 0 ? j < NZ && draw[j * NX + i] && outside(i, j - 1) : j > 0 && draw[(j - 1) * NX + i] && outside(i, j));
+      if (!inside) { end(i); continue; } const sl = Math.round((hAt(i + 1, j) - hAt(i, j)) * 1e4); if (s && s.sl !== sl) end(i); if (!s) s = { i0: i, sl }; }
+  }
+  for (let i = 0; i <= NX; i++) for (const side of [-1, 1]) {
+    let s = null; const end = (j) => { if (s) { ribbon(X(i), Z(s.j0), X(i), Z(j), hAt(i, s.j0), hAt(i, j), side, 0); s = null; } };
+    for (let j = 0; j <= NZ; j++) { const inside = j < NZ && (side < 0 ? i < NX && draw[j * NX + i] && outside(i - 1, j) : i > 0 && draw[j * NX + i - 1] && outside(i, j));
+      if (!inside) { end(j); continue; } const sl = Math.round((hAt(i, j + 1) - hAt(i, j)) * 1e4); if (s && s.sl !== sl) end(j); if (!s) s = { j0: j, sl }; }
+  }
+  if (fas.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(fas, 3)); g.computeVertexNormals(); const m = new THREE.Mesh(g, M.trim); m.castShadow = true; parent.add(m); }
+
+  // ---------- wall under gables and shed sides: from the plate up to the roof ----------
+  const gw = [], gu = [];
+  const tallEdges = [];
+  const wallOut = (i, j) => !(i >= 0 && j >= 0 && i < NX && j < NZ) || (!wall[j * NX + i] && !hole[j * NX + i]);
+  for (let j = 0; j <= NZ; j++) for (let i = 0; i < NX; i++) { const a = j < NZ && wall[j * NX + i], b = j > 0 && wall[(j - 1) * NX + i];
+    if (a && !b && wallOut(i, j - 1) || b && !a && wallOut(i, j)) { const h0 = hAt(i, j), h1 = hAt(i + 1, j); if (Math.max(h0, h1) > o.plate + .05) tallEdges.push([X(i), Z(j), X(i + 1), Z(j), h0, h1]); } }
+  for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) { const a = i < NX && wall[j * NX + i], b = i > 0 && wall[j * NX + i - 1];
+    if (a && !b && wallOut(i - 1, j) || b && !a && wallOut(i, j)) { const h0 = hAt(i, j), h1 = hAt(i, j + 1); if (Math.max(h0, h1) > o.plate + .05) tallEdges.push([X(i), Z(j), X(i), Z(j + 1), h0, h1]); } }
+  for (const [x0, z0, x1, z1, h0, h1] of tallEdges) { const b = o.plate - .2, t0 = Math.max(b, h0 - .05), t1 = Math.max(b, h1 - .05);
+    for (const v of [[x0, b, z0], [x1, b, z1], [x1, t1, z1], [x0, b, z0], [x1, t1, z1], [x0, t0, z0], [x1, b, z1], [x0, b, z0], [x0, t0, z0], [x1, b, z1], [x0, t0, z0], [x1, t1, z1]]) gw.push(...v);
+    const a0 = x0 === x1 ? z0 : x0, a1 = x0 === x1 ? z1 : x1; // walls run along x or z: u is the distance along them
+    for (const v of [[a0, b], [a1, b], [a1, t1], [a0, b], [a1, t1], [a0, t0], [a1, b], [a0, b], [a0, t0], [a1, b], [a0, t0], [a1, t1]]) gu.push(v[0], v[1]); }
+  if (gw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gw, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, o.wallMat || M.stucco); m.castShadow = true; m.receiveShadow = true; parent.add(m); }
+
+  const info = { name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
+    heightAt: (x, z) => { const fi = (x - X0) / RG, fj = (z - Z0) / RG, i = Math.floor(fi), j = Math.floor(fj); if (i < 0 || j < 0 || i >= NX || j >= NZ || !occ[j * NX + i]) return null;
+      const u = fi - i, v = fj - j; return (hAt(i, j) * (1 - u) + hAt(i + 1, j) * u) * (1 - v) + (hAt(i, j + 1) * (1 - u) + hAt(i + 1, j + 1) * u) * v; } };
+  ROOF3.push(info); return info;
+}
+window.wtRoofs = () => ROOF3.map(r => ({ name: r.name, style: r.style, pitch: +(r.pitch * 12).toFixed(2), asked: +(r.asked * 12).toFixed(2), eave: +r.eaveH.toFixed(2), top: +r.maxH.toFixed(2) })); // for checking roofs from the console
+
+
+// =====================================================================
 //  BUILDER — "My Design": an editable house made of rooms.
 //  A room is an axis-aligned rectangle on a level (B / M / U). Shared room edges are the walls,
 //  so dragging a wall resizes the rooms on both sides. The 3D house (walls, doors, windows,
@@ -2445,7 +2604,7 @@ function planLevel(lv) {
 const HOUSE3 = new THREE.Group(); scene.add(HOUSE3); HOUSE3.visible = false;
 const G3 = {};
 for (const k of ['basement', 'main', 'mainCeil', 'upper', 'upperCeil', 'roof', 'furnB', 'furnM', 'furnU', 'site', 'trees']) { G3[k] = new THREE.Group(); HOUSE3.add(G3[k]); }
-let ROOMS3 = [], OUTLINE3 = { B: [], M: [], U: [] }, H3_WALK = [], H3_FRONT = [15, -20, Math.PI, 1], H3_DRIVE = [45, -30, Math.PI, 1];
+let H3_LOT = null, ROOMS3 = [], OUTLINE3 = { B: [], M: [], U: [] }, H3_WALK = [], H3_FRONT = [15, -20, Math.PI, 1], H3_DRIVE = [45, -30, Math.PI, 1];
 const flatRoofMat = std({ color: '#5f6266', roughness: .9 });
 const ovl = (a, b) => a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05;
 function laneOf(S, half) { const dir = stairDirOf(S), r = stairRect(S, dir), alongX = dir[1] === 'x';
@@ -2751,20 +2910,20 @@ function buildHouse3() {
   const up = rooms.filter(r => r.level === 'U' && !isOut(r)), main = rooms.filter(r => r.level === 'M' && (!isOut(r) || RT[r.type].covered));
   const balc = rooms.filter(r => r.level === 'U' && r.type === 'balcony');
   const upLike = up.concat(main.filter(isTall));
-  const roofRects = [...rectCells(upLike).map(q => [q, UC])];
-  const mainOnly = rectCells(main, .5, upLike.concat(balc)); // parts of the main floor not under the 2nd floor or a balcony
-  roofRects.push(...mainOnly.map(q => [q, MC]));
-  for (let [i, [[x0, x1, z0, z1], plate]] of roofRects.entries()) {
-    plate += i * .03;
-    const e = EXT / 2; x0 -= e; x1 += e; z0 -= e; z1 += e; // roof sits on the outer face of the walls
-    const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco;
-    if (BM.roof === 'flat') { box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
-    else if (BM.roof === 'gable') { // ridge along the long side, gable walls on the short ends
-      const alongX = x1 - x0 >= z1 - z0;
-      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: alongX ? { n: true, s: true } : { e: true, w: true }, wall: gw, gables: alongX ? [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }] : [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] });
-    } else if (BM.roof === 'shed') { // one slope rising toward the back
-      hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch: Math.min(pitch, 4 / 12), ov: 1.5, slopes: { n: true }, wall: gw, gables: [{ edge: 'w', at: x0 }, { edge: 'e', at: x1 }, { edge: 's', at: z1 }] });
-    } else hipRoof(G3.roof, { x0, x1, z0, z1, plate, pitch, ov: 1.5, slopes: { n: true, e: true, s: true, w: true } });
+  // one roof per level over its whole footprint (see roof.js): the 2nd floor's, then the main floor's where nothing sits on it
+  ROOF3 = [];
+  const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco, e = EXT / 2;
+  const outer = rs => rs.map(([x0, x1, z0, z1]) => [x0 - e, x1 + e, z0 - e, z1 + e]), ov = BM.ov ?? 1.5;
+  const upR = outer(rectCells(upLike)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc))), balcR = outer(rectCells(balc));
+  if (BM.roof === 'flat') {
+    for (const [[x0, x1, z0, z1], plate] of [...upR.map(q => [q, UC]), ...mainOnly.map(q => [q, MC])]) {
+      box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
+    ROOF3.push(...[[upR, UC, '2nd floor roof'], [mainOnly, MC, 'Main floor roof']].filter(q => q[0].length).map(([, plate, name]) => ({ name, plate, pitch: 0, asked: 0, eaveH: plate + .9, maxH: plate + 1.05, style: 'flat', heightAt: () => null })));
+  } else {
+    const style = BM.roof === 'gable' || BM.roof === 'shed' ? BM.roof : 'hip', P = style === 'shed' ? Math.min(pitch, 4 / 12) : pitch;
+    if (upR.length) roofLevel(G3.roof, { name: '2nd floor roof', eaves: upR, plate: UC, pitch: P, ov, style, wallMat: gw });
+    // a lower roof that meets the storey above slopes away from it, and is kept below the 2nd-floor windows
+    if (mainOnly.length) roofLevel(G3.roof, { name: 'Main floor roof', eaves: mainOnly, inner: mainR, solid: upR.concat(balcR), plate: MC + .03, pitch: P, ov, style, wallMat: gw, cap: upR.length ? UC - .5 : null, windows: upR.length ? planLevel('U').filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
   }
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: 7 / 12, ov: 1.2, slopes: { e: true, w: true }, wall: M.batten,
@@ -2799,8 +2958,9 @@ function buildHouse3() {
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
   for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
+  H3_LOT = null;
   if (SITE.lotW && SITE.lotD) { // property line: low hedge around the lot, front edge at the sidewalk
-    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD;
+    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1];
     for (const [a0, a1, b0, b1] of [[lx0, lx1, lz1 - .6, lz1], [lx0, lx0 + .6, lz0 + 3, lz1], [lx1 - .6, lx1, lz0 + 3, lz1]]) box(G3.site, a0, a1, 0, 2.2, b0, b1, M.leaf2, { solid: true });
   }
   placeItems();
@@ -3739,21 +3899,25 @@ function peOpPanel() {
 
 // ---------- roof style, pitch, site ----------
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
-  <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
+  <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="2" max="12" step="1" class="pop-range">
+  <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
   <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
-roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
+roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
 roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); syncPlanPop(); planChanged(); });
 function syncPlanPop() {
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
+  const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
   const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 document.getElementById('pitchR').onpointerdown = () => pushHist();
+document.getElementById('ovR').onpointerdown = () => pushHist();
+document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
@@ -3895,7 +4059,28 @@ function codeChecks() {
   if (S.lotW && S.lotD && main.length) { const foot = main.filter(r => !RT[r.type]?.outdoor || RT[r.type]?.covered).reduce((a, r) => a + r.w * r.d, 0), cov = foot / (S.lotW * S.lotD);
     if (cov > .4) add('warn', `Lot coverage is ${Math.round(cov * 100)}%. Many zones cap it near 35–40%.`, {}); }
   if ((S.setback ?? 48) < 20) add('warn', `The house is ${ftin(S.setback)} from the street. Front setbacks are usually 20–25' or more.`, {});
+  roofChecks(add);
   return out;
+}
+// ---------- roof checks (minimum slopes are the usual code minimums, e.g. IRC R905) ----------
+const ROOF_MIN = { shingle: [2, 4, 'Asphalt shingles'], clay: [2.5, 4, 'Clay tile'], slate: [4, 4, 'Slate'], cedar: [3, 3, 'Cedar shakes'], metal: [.25, .25, 'Standing seam metal'] };
+const pitchTxt = p => `${+p.toFixed(1)}:12`;
+function roofChecks(add) {
+  if (curHouse !== 3 || !ROOF3.length) return;
+  const mat = document.querySelector('#finishBody select[aria-label="Roofing material"]')?.value || 'shingle', R = ROOF_MIN[mat] || ROOF_MIN.shingle;
+  for (const r of ROOF3) {
+    if (r.style === 'flat') { add('info', `${r.name}: flat roofs need a membrane and at least ¼" per foot of slope to drains or scuppers.`, {}); continue; }
+    const p = r.pitch * 12;
+    if (r.pitch < r.asked - .004) { add(p < R[0] - .01 ? 'error' : 'warn', `${r.name}: where it meets the 2nd floor it has to flatten to ${pitchTxt(p)} to stay under the windows above${p < R[0] - .01 ? `, too flat for ${R[2].toLowerCase()} (${pitchTxt(R[0])} minimum)` : ''}. Move or raise those windows, make that part of the house shallower, or use standing seam metal there.`, {}); continue; }
+    if (p < R[0] - .01) add('error', `${r.name} is ${pitchTxt(p)}. ${R[2]} need at least ${pitchTxt(R[0])}. Steepen the roof or pick a material for low slopes (standing seam metal).`, {});
+    else if (p < R[1] - .01) add('info', `${r.name} is ${pitchTxt(p)}. ${R[2]} below ${pitchTxt(R[1])} need two layers of underlayment.`, {});
+  }
+  const top = Math.max(...ROOF3.map(r => r.maxH));
+  if (top > 35) add('warn', `The roof peaks ${ftin(top)} above the ground. Many zoning bylaws cap house height near 35' (10.7 m); check yours.`, {});
+  if (H3_LOT) { const b = ROOF3.reduce((a, r) => r.bounds ? [Math.min(a[0], r.bounds[0]), Math.max(a[1], r.bounds[1]), Math.min(a[2], r.bounds[2]), Math.max(a[3], r.bounds[3])] : a, [1e9, -1e9, 1e9, -1e9]);
+    const side = Math.min(b[0] - H3_LOT[0], H3_LOT[1] - b[1]), back = H3_LOT[3] - b[3];
+    if (side < 0 || back < 0) add('error', `The roof hangs over the lot line. Eaves must stay on your own lot.`, {});
+    else if (side < 2) add('warn', `The eaves are ${ftin(side)} from the side lot line. Most bylaws want more room than that, and roof water kept on your lot.`, {}); }
 }
 function renderChecks() {
   const list = codeChecks(), n = list.filter(i => i.sev !== 'info').length, badge = document.getElementById('checkCount');
@@ -4353,6 +4538,7 @@ for (const [sec, items] of FIN) {
       g.querySelector('.cur').textContent = `${types.length > 1 ? T0.name + ' · ' : ''}${typeof p.c === 'string' ? 'Custom colour' : T0.colors[p.c][0]}`;
       custom.setAttribute('aria-pressed', String(typeof p.c === 'string')); if (typeof p.c === 'string') { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
       const val = `${T0.id}:${p.c}`;
+      if (key === 'roof' && typeof uiReady !== 'undefined' && uiReady) renderChecks(); // roofing material sets the minimum slope
       if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
     types.forEach(T0 => ty.add(new Option(T0.name, T0.id))); ty.onchange = () => pick(`${ty.value}:0`);

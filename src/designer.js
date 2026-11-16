@@ -269,21 +269,25 @@ function peOpPanel() {
 
 // ---------- roof style, pitch, site ----------
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
-  <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
+  <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="2" max="12" step="1" class="pop-range">
+  <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
   <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
-roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
+roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
 roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); syncPlanPop(); planChanged(); });
 function syncPlanPop() {
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
+  const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
   const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 document.getElementById('pitchR').onpointerdown = () => pushHist();
+document.getElementById('ovR').onpointerdown = () => pushHist();
+document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
@@ -425,7 +429,28 @@ function codeChecks() {
   if (S.lotW && S.lotD && main.length) { const foot = main.filter(r => !RT[r.type]?.outdoor || RT[r.type]?.covered).reduce((a, r) => a + r.w * r.d, 0), cov = foot / (S.lotW * S.lotD);
     if (cov > .4) add('warn', `Lot coverage is ${Math.round(cov * 100)}%. Many zones cap it near 35–40%.`, {}); }
   if ((S.setback ?? 48) < 20) add('warn', `The house is ${ftin(S.setback)} from the street. Front setbacks are usually 20–25' or more.`, {});
+  roofChecks(add);
   return out;
+}
+// ---------- roof checks (minimum slopes are the usual code minimums, e.g. IRC R905) ----------
+const ROOF_MIN = { shingle: [2, 4, 'Asphalt shingles'], clay: [2.5, 4, 'Clay tile'], slate: [4, 4, 'Slate'], cedar: [3, 3, 'Cedar shakes'], metal: [.25, .25, 'Standing seam metal'] };
+const pitchTxt = p => `${+p.toFixed(1)}:12`;
+function roofChecks(add) {
+  if (curHouse !== 3 || !ROOF3.length) return;
+  const mat = document.querySelector('#finishBody select[aria-label="Roofing material"]')?.value || 'shingle', R = ROOF_MIN[mat] || ROOF_MIN.shingle;
+  for (const r of ROOF3) {
+    if (r.style === 'flat') { add('info', `${r.name}: flat roofs need a membrane and at least ¼" per foot of slope to drains or scuppers.`, {}); continue; }
+    const p = r.pitch * 12;
+    if (r.pitch < r.asked - .004) { add(p < R[0] - .01 ? 'error' : 'warn', `${r.name}: where it meets the 2nd floor it has to flatten to ${pitchTxt(p)} to stay under the windows above${p < R[0] - .01 ? `, too flat for ${R[2].toLowerCase()} (${pitchTxt(R[0])} minimum)` : ''}. Move or raise those windows, make that part of the house shallower, or use standing seam metal there.`, {}); continue; }
+    if (p < R[0] - .01) add('error', `${r.name} is ${pitchTxt(p)}. ${R[2]} need at least ${pitchTxt(R[0])}. Steepen the roof or pick a material for low slopes (standing seam metal).`, {});
+    else if (p < R[1] - .01) add('info', `${r.name} is ${pitchTxt(p)}. ${R[2]} below ${pitchTxt(R[1])} need two layers of underlayment.`, {});
+  }
+  const top = Math.max(...ROOF3.map(r => r.maxH));
+  if (top > 35) add('warn', `The roof peaks ${ftin(top)} above the ground. Many zoning bylaws cap house height near 35' (10.7 m); check yours.`, {});
+  if (H3_LOT) { const b = ROOF3.reduce((a, r) => r.bounds ? [Math.min(a[0], r.bounds[0]), Math.max(a[1], r.bounds[1]), Math.min(a[2], r.bounds[2]), Math.max(a[3], r.bounds[3])] : a, [1e9, -1e9, 1e9, -1e9]);
+    const side = Math.min(b[0] - H3_LOT[0], H3_LOT[1] - b[1]), back = H3_LOT[3] - b[3];
+    if (side < 0 || back < 0) add('error', `The roof hangs over the lot line. Eaves must stay on your own lot.`, {});
+    else if (side < 2) add('warn', `The eaves are ${ftin(side)} from the side lot line. Most bylaws want more room than that, and roof water kept on your lot.`, {}); }
 }
 function renderChecks() {
   const list = codeChecks(), n = list.filter(i => i.sev !== 'info').length, badge = document.getElementById('checkCount');
