@@ -136,7 +136,9 @@ const rname = r => r.name || RT[r.type]?.name || r.type;
 const EPS = .06;
 // A door's size and place along its wall: the defaults, or what was set for that wall in the plan editor (BM.ops).
 function opAt(w, key, defW, defH) { const o = BM.ops?.[key] || {}, L = w.b - w.a, ww = Math.max(2, Math.min(o.w || defW, L - .5)), h = Math.max(6, Math.min(o.h || defH, 9.5));
-  const c = o.pos == null ? (w.a + w.b) / 2 : Math.max(w.a + ww / 2 + .25, Math.min(w.b - ww / 2 - .25, w.a + o.pos * L)); return { c, w: ww, h }; }
+  const c = o.pos == null ? (w.a + w.b) / 2 : Math.max(w.a + ww / 2 + .25, Math.min(w.b - ww / 2 - .25, w.a + o.pos * L)); return { c, w: ww, h, o }; }
+// Outside doors: the style picks the kind of unit; single doors can hinge either side and swing out.
+const extDoorOp = (o, def) => { const st = o.o.style; return { k: st === 'slider' ? 'slider' : st === 'double' || st === 'french' ? 'front' : st === 'single' ? 'extdoor' : def, style: st, hinge: o.o.hinge, outSwing: !!o.o.out }; };
 const openPair = (a, b) => (RT[a.type]?.open && RT[b.type]?.open && !(a.type === 'stairs' && b.type === 'stairs')) || (a.group && a.group === b.group) || (a.type === b.type && (a.type === 'hall' || a.type === 'garage'));
 function doorPair(a, b) {
   const t = [likeOf(a.type), likeOf(b.type)], has = x => t.includes(x);
@@ -195,20 +197,20 @@ function planLevel(lv) {
   // openings
   let frontDone = lv !== 'M';
   const frontCands = walls.filter(w => w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
-  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: MF, h: o.h, k: o.w >= 5 ? 'front' : 'extdoor' }); w.front = true; frontDone = true; }
+  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: MF, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
-    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: 1 }); } continue; }
+    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style }); } continue; }
     if (w.front) continue;
     const xm = extMode(w.room, w.out);
     if (xm === 'solid') continue;
     if (xm === 'open') { w.open = true; continue; } // no wall: the room is open to the outside here
     if (w.toOut && xm === 'auto' && L >= 3.2 && !RT[w.room.type]?.garage) { const big = L >= 8; w.ops.push({ c: mid, w: big ? 6 : 3, b: y, h: big ? 7.5 : 6.67, k: big ? 'slider' : 'extdoor' }); continue; }
-    if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, k: o.w >= 5.5 ? 'slider' : 'extdoor' }); continue; }
+    if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, ...extDoorOp(o, o.w >= 5.5 ? 'slider' : 'extdoor') }); continue; }
     if (xm === 'window' && lv !== 'B' && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
-      for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh }); } continue; }
+      for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh, style: ov.style, lites: ov.style === 'grid' }); } continue; }
     if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
     const T = RT[w.room.type] || {};
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between

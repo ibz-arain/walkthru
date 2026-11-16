@@ -41,10 +41,23 @@ function fillOpening(p, horiz, c, t, os, op) {
   const nIn = os ? -os : 1; // direction pointing into the room
   if (k === 'open') { casing(p, horiz, c, t, a, b, yb, yt); return; }
   if (k === 'door') {
-    casing(p, horiz, c, t, a, b, yb, yt);
-    const sw = (op.sw ?? 1), hinge = op.hinge === 'b' ? b - .19 : a + .05;
-    const n0 = c + sw * t / 2, n1 = n0 + sw * (op.w - .1);
-    boxAN(p, horiz, hinge, hinge + .14, yb, yt - .04, n0, n1, M.white);
+    const st = op.style || 'single', sw = (op.sw ?? 1), n0 = c + sw * t / 2;
+    if (st !== 'barn') casing(p, horiz, c, t, a, b, yb, yt);
+    if (st === 'cased') return; // just a trimmed opening
+    const leaf = (h0, len, glass) => { // a leaf standing open at hinge position h0, sticking `len` into the room
+      boxAN(p, horiz, h0, h0 + .14, yb, yt - .04, n0, n0 + sw * len, M.white);
+      if (glass) boxAN(p, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass);
+    };
+    if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); return; }
+    if (st === 'bifold') { for (const h0 of [a + .05, b - .19]) leaf(h0, Math.min(1, op.w / 4), false); return; }
+    if (st === 'pocket') { const s0 = op.hinge === 'b' ? b - .4 : a - op.w + .4; boxAN(p, horiz, s0, s0 + op.w, yb, yt - .04, c - .06, c + .06, M.white); return; } // slid into the wall, the edge shows
+    if (st === 'barn') { // a slab on the face of the wall, slid to one side, hanging from a rail
+      const side = op.hinge === 'b' ? -1 : 1, s0 = side > 0 ? b - .3 : a - op.w + .3, nf = c + sw * (t / 2 + .05);
+      boxAN(p, horiz, Math.min(a, s0) - .3, Math.max(b, s0 + op.w) + .3, yt + .25, yt + .4, nf + sw * .02, nf + sw * .14, M.black);
+      boxAN(p, horiz, s0, s0 + op.w, yb + .05, yt + .3, nf + sw * .14, nf + sw * .3, M.walnut);
+      return;
+    }
+    leaf(op.hinge === 'b' ? b - .19 : a + .05, op.w - .1, false);
     return;
   }
   // exterior units: frame sits toward the outside face
@@ -57,9 +70,13 @@ function fillOpening(p, horiz, c, t, os, op) {
   boxAN(p, horiz, a - .02, b + .02, yt, yt + .02, c - t / 2, c + t / 2, M.paint);
   if (k === 'win') {
     boxAN(p, horiz, a + fw, b - fw, yb + fw, yt - fw, fc - .02, fc + .02, M.glass, { solid: true });
-    const n = op.w > 7.5 ? 2 : op.w > 5 ? 1 : 0;
+    const st = op.style || 'casement', mid = (yb + yt) / 2;
+    const n = st === 'picture' || st === 'grid' ? 0 : st === 'slider' ? 1 : op.w > 7.5 ? 2 : op.w > 5 ? 1 : 0;
     for (let i = 1; i <= n; i++) { const m = a + (op.w * i) / (n + 1); frame(m - .06, m + .06, yb, yt); }
-    if (op.h > 6 && !op.lites) frame(a, b, yb + 1.4, yb + 1.52); // lower awning rail on tall units
+    if (st === 'doublehung') { frame(a, b, mid - .07, mid + .07); boxAN(p, horiz, a + fw, b - fw, yb + fw, mid, fc - .08, fc - .03, M.glass); }
+    else if (st === 'awning') frame(a, b, yt - (yt - yb) * .38 - .06, yt - (yt - yb) * .38 + .06);
+    else if (st === 'transom') frame(a, b, yb + (yt - yb) * .74 - .06, yb + (yt - yb) * .74 + .06);
+    else if (op.h > 6 && !op.lites && st === 'casement') frame(a, b, yb + 1.4, yb + 1.52); // lower awning rail on tall units
     if (op.lites) { // divided lites with a transom on tall units
       const mb = (sa, sb, ya, yb2) => boxAN(p, horiz, sa, sb, ya, yb2, fc - .07, fc + .07, FM);
       const x0 = a + fw, iw = op.w - 2 * fw, y0 = yb + fw, ih = op.h - 2 * fw, tall = op.h > 6, ty = y0 + ih * .74;
@@ -94,11 +111,12 @@ function fillOpening(p, horiz, c, t, os, op) {
   }
   if (k === 'front' || k === 'extdoor') {
     // leaves swung open into the house so you can walk through
-    const leaves = k === 'front' ? [[a + fw, (a + b) / 2, 0], [(a + b) / 2, b - fw, 1]] : [[a + fw, b - fw, 0]];
+    const leaves = k === 'front' ? [[a + fw, (a + b) / 2, 0], [(a + b) / 2, b - fw, 1]] : [[a + fw, b - fw, op.hinge === 'b' ? 1 : 0]];
+    const dir = op.outSwing ? -nIn : nIn, glassy = op.style === 'french';
     for (const [la, lb, right] of leaves) {
-      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + nIn * t / 2, n1 = n0 + nIn * lw;
+      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw;
       boxAN(p, horiz, hx, hx + .18, yb, yt - fw, n0, n1, FM);
-      boxAN(p, horiz, hx - .01, hx + .19, yb + .5, yt - fw - .5, n0 + nIn * .3, n1 - nIn * .3, k === 'front' ? M.frost : M.glass);
+      boxAN(p, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass);
     }
     boxAN(p, horiz, a, b, yb - .02, yb + .03, c - t / 2, c + t / 2, M.walnut, { walk: true });
   }

@@ -45,9 +45,7 @@ function drawSheetPlan(lv, W, H) {
     let a = w.a; const segs = []; for (const [c0, c1] of cuts) { if (c0 > a) segs.push([a, c0]); a = Math.max(a, c1); } if (a < w.b) segs.push([a, w.b]);
     g.strokeStyle = w.rail ? '#4c7fd6' : '#111'; g.lineWidth = w.rail ? 1.2 : th; g.lineCap = 'square';
     for (const [p0, p1] of (w.open ? [] : segs)) { g.beginPath(); if (w.axis === 'x') { g.moveTo(...P(p0, w.c)); g.lineTo(...P(p1, w.c)); } else { g.moveTo(...P(w.c, p0)); g.lineTo(...P(w.c, p1)); } g.stroke(); }
-    g.lineWidth = .8; g.strokeStyle = '#111'; for (const o of w.ops || []) { if (o.k && o.k !== 'garage') { // door swing
-      const r = Math.min(o.w, 3) * s, [hx, hy] = w.axis === 'x' ? P(o.c - o.w / 2, w.c) : P(w.c, o.c - o.w / 2); g.beginPath(); if (w.axis === 'x') g.arc(hx, hy, r, 0, Math.PI / 2); else g.arc(hx, hy, r, 0, Math.PI / 2); g.stroke(); }
-      else if (!o.k) { g.beginPath(); if (w.axis === 'x') { g.moveTo(...P(o.c - o.w / 2, w.c)); g.lineTo(...P(o.c + o.w / 2, w.c)); } else { g.moveTo(...P(w.c, o.c - o.w / 2)); g.lineTo(...P(w.c, o.c + o.w / 2)); } g.stroke(); } }
+    for (const o of w.ops || []) drawOpening(g, P, w, o, s, '#111', '#111');
   }
   for (const S of (BM.stairs || []).filter(t => t.level === lv)) { const r = stairRect(S, stairDirOf(S)), [a, b] = P(r.x, r.z); g.strokeStyle = '#555'; g.lineWidth = .8; g.strokeRect(a, b, r.w * s, r.d * s); const n = 12, ax = stairDirOf(S)[1] === 'x';
     g.beginPath(); for (let i = 1; i < n; i++) { if (ax) { g.moveTo(a + r.w * s * i / n, b); g.lineTo(a + r.w * s * i / n, b + r.d * s); } else { g.moveTo(a, b + r.d * s * i / n); g.lineTo(a + r.w * s, b + r.d * s * i / n); } } g.stroke(); }

@@ -74,10 +74,7 @@ function peDraw() {
     seg(w.a - (w.ext ? EXT / 2 : 0), w.b + (w.ext ? EXT / 2 : 0), css('--ink'), th);
     for (const o of w.ops) {
       const a = o.c - o.w / 2, b = o.c + o.w / 2; seg(a, b, css('--paper'), th + 1);
-      if (o.k === 'door' || o.k === 'front' || o.k === 'extdoor') { px.strokeStyle = css('--ink'); px.lineWidth = 1; const [cx, cy] = hz ? W2S(a, w.c) : W2S(w.c, a), R = (b - a) * s;
-        px.beginPath(); if (hz) { px.moveTo(cx, cy); px.lineTo(cx, cy + R); px.arc(cx, cy, R, Math.PI / 2, 0, true); } else { px.moveTo(cx, cy); px.lineTo(cx + R, cy); px.arc(cx, cy, R, 0, Math.PI / 2); } px.stroke(); }
-      else if (o.k === 'garage') { px.setLineDash([4, 3]); seg(a, b, css('--ink'), 1.5); px.setLineDash([]); }
-      else { seg(a, b, '#4c7fd6', Math.max(1.5, th * .45)); }
+      drawOpening(px, W2S, w, o, s, '#111114', '#4c7fd6');
     }
   }
   // staircases: their own layer, drawn over the rooms

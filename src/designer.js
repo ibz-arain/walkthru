@@ -228,17 +228,26 @@ document.getElementById('peWall').insertAdjacentHTML('beforeend', '<div id="peOp
 function opKey() { const w = PE.selWall; if (!w) return null; return w.ext ? extKey(w.R, w.out) : pairKey(w.A, w.B); }
 function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
-  const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' ? 'door' : null;
+  const isFront = w.ext && planLevel(w.R.level).some(x => x.front && x.room === w.R && x.out === w.out);
+  const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' || isFront ? 'door' : null;
   if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
   const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
     <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto', false) : ''}${num('opW', 'Width', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill', o.sill, 0, 6, .5, '2.3') : ''}</div>
+    <label class="fld">Style <select id="opSt">${(kind === 'window' ? [['casement', 'Casement'], ['doublehung', 'Double-hung'], ['slider', 'Sliding'], ['picture', 'Picture'], ['awning', 'Awning'], ['grid', 'Divided lites'], ['transom', 'With transom']]
+      : w.ext ? [['', 'Auto'], ['single', 'Single'], ['double', 'Double'], ['french', 'French'], ['slider', 'Sliding']]
+      : [['single', 'Single'], ['double', 'Double'], ['french', 'French'], ['pocket', 'Pocket'], ['barn', 'Barn'], ['bifold', 'Bifold'], ['cased', 'Cased opening']]).map(([v, n]) => `<option value="${v}" ${(o.style || (kind === 'window' ? 'casement' : w.ext ? '' : 'single')) === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    ${kind === 'door' && !['double', 'french', 'bifold', 'cased', 'slider'].includes(o.style) && !(isFront && !o.style && (w.b - w.a) >= 7.5) ? `<div class="seg full pe-wm"><button type="button" data-hinge="a" aria-pressed="${o.hinge !== 'b'}">Hinge left</button><button type="button" data-hinge="b" aria-pressed="${o.hinge === 'b'}">Hinge right</button></div>` : ''}
+    ${kind === 'door' && !['pocket', 'barn', 'cased', 'slider'].includes(o.style) ? `<div class="seg full pe-wm"><button type="button" data-swing="in" aria-pressed="${w.ext ? !o.out : !o.flip}">${w.ext ? 'Swings in' : 'Swing this side'}</button><button type="button" data-swing="out" aria-pressed="${w.ext ? !!o.out : !!o.flip}">${w.ext ? 'Swings out' : 'Other side'}</button></div>` : ''}
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
     <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
   for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : k === 'n' ? +i.value : +fromDisp(+i.value).toFixed(3)); }
   const p = el.querySelector('#opP'); if (p) { p.oninput = () => { BM.ops = BM.ops || {}; BM.ops[opKey()] = { ...(BM.ops[opKey()] || {}), pos: +p.value / 100 }; peDraw(); clearTimeout(p.t); p.t = setTimeout(() => planChanged(false), 200); }; p.onpointerdown = () => pushHist(); }
+  el.querySelector('#opSt').onchange = e => set('style', e.target.value || null);
+  el.querySelectorAll('[data-hinge]').forEach(b => b.onclick = () => set('hinge', b.dataset.hinge === 'b' ? 'b' : null));
+  el.querySelectorAll('[data-swing]').forEach(b => b.onclick = () => set(w.ext ? 'out' : 'flip', b.dataset.swing === 'out' ? true : null));
   el.querySelector('#opReset').onclick = () => { pushHist(); if (BM.ops) delete BM.ops[opKey()]; planChanged(); };
 }
 
@@ -301,5 +310,30 @@ function dimChains(g, P, lv, col) {
   };
   if (xs.length > 2) run(true, xs, 18); run(true, [x0, x1], xs.length > 2 ? 40 : 18);
   if (zs.length > 2) run(false, zs, 18); run(false, [z0, z1], zs.length > 2 ? 40 : 18);
+  g.restore();
+}
+
+// ---------- plan symbols for doors and windows (editor and PDF share this) ----------
+// P maps (x, z) in feet to the screen; s is pixels per foot.
+function drawOpening(g, P, w, o, s, col, winCol) {
+  const hz = w.axis === 'x', a = o.c - o.w / 2, b = o.c + o.w / 2, at = (u, n = 0) => hz ? P(u, w.c + n) : P(w.c + n, u);
+  const inward = w.ext ? ({ '-z': 1, '+z': -1, '-x': 1, '+x': -1 })[w.out] * (o.outSwing ? -1 : 1) : (o.sw ?? 1);
+  const line = (p0, p1) => { g.beginPath(); g.moveTo(...p0); g.lineTo(...p1); g.stroke(); };
+  const swing = (hingeAt, len, toward) => { // leaf drawn open at 90°, with its arc back to the closed position
+    const h = at(hingeAt), tip = at(hingeAt, inward * len), shut = at(hingeAt + toward * len);
+    line(h, tip); g.beginPath(); g.moveTo(...tip); g.quadraticCurveTo(...at(hingeAt + toward * len, inward * len), ...shut); g.stroke();
+  };
+  g.save(); g.strokeStyle = col; g.lineWidth = 1;
+  const k = o.k, st = o.style;
+  if (k === 'door' || k === 'front' || k === 'extdoor') {
+    if (st === 'cased') { /* opening only */ }
+    else if (st === 'pocket') { g.setLineDash([3, 2]); const s0 = o.hinge === 'b' ? b : a - o.w; line(at(s0), at(s0 + o.w)); g.setLineDash([]); }
+    else if (st === 'barn') { const s0 = o.hinge === 'b' ? a - o.w : b; line(at(s0, inward * .4), at(s0 + o.w, inward * .4)); line(at(Math.min(a, s0), inward * .3), at(Math.max(b, s0 + o.w), inward * .3)); }
+    else if (st === 'bifold') { for (const [h0, d] of [[a, 1], [b, -1]]) { const q = o.w / 4; g.beginPath(); g.moveTo(...at(h0)); g.lineTo(...at(h0 + d * q / 2, inward * q * .85)); g.lineTo(...at(h0 + d * q)); g.stroke(); } }
+    else if (k === 'front' || st === 'double' || st === 'french') { swing(a, o.w / 2, 1); swing(b, o.w / 2, -1); }
+    else { const hb = o.hinge === 'b'; swing(hb ? b : a, o.w, hb ? -1 : 1); }
+  } else if (k === 'slider') { line(at(a, -.12), at(o.c + .3, -.12)); line(at(o.c - .3, .12), at(b, .12)); }
+  else if (k === 'garage') { g.setLineDash([4, 3]); line(at(a), at(b)); g.setLineDash([]); }
+  else { g.strokeStyle = winCol; for (const n of [-.18, 0, .18]) line(at(a, n), at(b, n)); }
   g.restore();
 }
