@@ -358,10 +358,10 @@
   </div>
   <form id="stNewForm" class="panel st-modal" hidden onsubmit="return false">
     <h2>New project</h2>
-    <label>Project name <input id="snName" required maxlength="80" placeholder="e.g. Lot 12 · The Campana"></label>
-    <label>Client <input id="snClient" maxlength="80" placeholder="Client name (optional)"></label>
-    <label>Address <input id="snAddr" maxlength="120" placeholder="Site address (optional)"></label>
-    <label>Start from <select id="snFrom"></select></label>
+    <label>Project name <input id="snName" required maxlength="80" autocomplete="off"></label>
+    <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
+      <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="snLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="snLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
+    </fieldset>
     <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
     <p class="st-err" id="snErr"></p>
   </form>

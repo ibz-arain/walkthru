@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.b341db168f.js">
-<link rel="stylesheet" href="/assets/playground.8ed86869f7.css">
+<link rel="modulepreload" href="/assets/playground.63fba885e0.js">
+<link rel="stylesheet" href="/assets/playground.e26cc3dc97.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -373,10 +373,10 @@
   </div>
   <form id="stNewForm" class="panel st-modal" hidden onsubmit="return false">
     <h2>New project</h2>
-    <label>Project name <input id="snName" required maxlength="80" placeholder="e.g. Lot 12 · The Campana"></label>
-    <label>Client <input id="snClient" maxlength="80" placeholder="Client name (optional)"></label>
-    <label>Address <input id="snAddr" maxlength="120" placeholder="Site address (optional)"></label>
-    <label>Start from <select id="snFrom"></select></label>
+    <label>Project name <input id="snName" required maxlength="80" autocomplete="off"></label>
+    <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
+      <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="snLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="snLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
+    </fieldset>
     <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
     <p class="st-err" id="snErr"></p>
   </form>
@@ -406,5 +406,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.b341db168f.js"></script>
+<script type="module" src="/assets/playground.63fba885e0.js"></script>
 </html>

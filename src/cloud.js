@@ -106,11 +106,11 @@ function renderStudio() {
   const tot = (k) => stProjects.reduce((a, p) => a + (p[k] || 0), 0);
   $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> project${stProjects.length === 1 ? '' : 's'}</span>`;
   $c('stEmpty').hidden = stProjects.length > 0;
-  $c('stList').innerHTML = list.map(p => { const sub = [p.client, p.address].filter(Boolean).join(' · ') || 'No client yet';
+  $c('stList').innerHTML = list.map(p => { const sub = [p.client, p.address].filter(Boolean).join(' · ');
     return `<div class="st-card" role="link" tabindex="0" data-pid="${clEsc(p.id)}" aria-label="${clEsc(p.name)}">${p.thumb ? `<img class="st-thumb" src="${p.thumb}" alt="">` : '<canvas aria-hidden="true"></canvas>'}
       <button class="st-more" type="button" aria-label="Project options" aria-haspopup="menu" data-tip="Options"><svg class="ic"><use href="#i-dots"/></svg></button>
       <div class="st-meta">
-      <h3 title="${clEsc(p.name)}">${clEsc(p.name)}</h3><p title="${clEsc(sub)}">${clEsc(sub)}</p><span class="st-spec">${clEsc(specLine(p.summary))}</span>
+      <h3 title="${clEsc(p.name)}">${clEsc(p.name)}</h3>${sub ? `<p title="${clEsc(sub)}">${clEsc(sub)}</p>` : ''}<span class="st-spec">${clEsc(specLine(p.summary))}</span>
       <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
       <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></div>`; }).join('');
   $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview);
@@ -153,15 +153,17 @@ addEventListener('keydown', e => { if (e.key === 'Escape') stMenu(false); });
 $c('stOut').onclick = async () => { await fetch('/api/auth?action=logout', { method: 'POST' }).catch(() => { }); location.href = '/'; };
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
-  $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');
-  $c('snName').value = ''; $c('snClient').value = ''; $c('snAddr').value = ''; $c('snErr').textContent = ''; $c('stNewForm').hidden = false; $c('snName').focus();
+  $c('snName').value = ''; $c('snLW').value = ''; $c('snLD').value = ''; document.querySelectorAll('#stNewForm .u-len').forEach(e => e.textContent = U_LEN()); $c('snErr').textContent = ''; $c('stNewForm').hidden = false; $c('snName').focus();
 };
 $c('snCancel').onclick = () => { $c('stNewForm').hidden = true; };
 $c('stNewForm').onsubmit = async () => {
   const name = $c('snName').value.trim(); if (!name) { $c('snErr').textContent = 'Give the project a name.'; return; }
-  const t = TEMPLATES().find(x => x[0] === $c('snFrom').value), keep = BID, bm = cloneBM(t[2]()); BID = keep;
+  // every project starts as an empty plan; a lot size, if given, draws the property line
+  const lw = parseFloat($c('snLW').value), ld = parseFloat($c('snLD').value), bm = { roof: 'hip', rooms: [], stairs: [] };
+  if ((lw > 0) !== (ld > 0)) { $c('snErr').textContent = 'Enter both the width and depth of the lot, or leave both empty.'; return; }
+  if (lw > 0) bm.site = { lotW: +fromDisp(lw).toFixed(2), lotD: +fromDisp(ld).toFixed(2) };
   $c('snGo').disabled = true;
-  try { const j = await cloudApi('POST', 'projects', { name, client: $c('snClient').value.trim(), address: $c('snAddr').value.trim(), bm, from: t[1], summary: summarize(bm), preview: previewOf(bm) }); $c('stNewForm').hidden = true; goRoute(`#admin/p/${j.id}`); }
+  try { const j = await cloudApi('POST', 'projects', { name, bm, from: 'Blank plan', summary: summarize(bm), preview: previewOf(bm) }); $c('stNewForm').hidden = true; goRoute(`#admin/p/${j.id}`); }
   catch (e) { $c('snErr').textContent = e.message; } finally { $c('snGo').disabled = false; }
 };
 
