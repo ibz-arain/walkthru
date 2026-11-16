@@ -9,4 +9,7 @@ mkdir -p site
 cp src/landing.html site/index.html
 cp src/account.html site/account.html
 cp src/track.js site/track.js
+cp src/pages/terms.html site/terms.html
+cp src/pages/privacy.html site/privacy.html
+cp src/assets/og.png site/og.png
 { printf '<!doctype html>\n<html lang="en">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="description" content="Walkthru playground: design a floor plan and explore it in 3D.">\n'; cat walkthru.html; printf '\n</html>\n'; } > site/playground.html

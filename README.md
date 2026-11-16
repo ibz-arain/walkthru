@@ -19,11 +19,22 @@ When served with the API, the playground has two extra sides:
 
 Old links on the root URL (`/#admin`, `/#c/<token>`) redirect to the playground. Without the API (e.g. the Claude artifact) the app runs exactly as before, on the browser alone.
 
+## Accounts, email and customer links
+
+- **Accounts** (`api/auth.js`, `api/team.js`): email + password (scrypt hashes), 30-day HttpOnly session cookie, workspaces with owner / admin / editor / viewer roles, email invites, password reset. Sign in at `/account`. Projects belong to a workspace; other workspaces can't see them.
+- **Saved designs** (`api/designs.js`): signed-in playground designs sync to the account in the background and come down on other devices. Signed out they stay in the browser.
+- **Customer links** can have an expiry date and a password (sent as `x-share-pass`). Expired links answer 410.
+- **Email** (`api/_lib/mail.js`): customer link emails, comment / submission notifications to the team, studio replies to the customer, invites and password resets. Set `RESEND_API_KEY` and `MAIL_FROM` to send for real; without them every email is stored in the `outbox` table and printed in the dev server log.
+- **Telemetry** (`src/track.js` → `api/log.js`): page views, a few product events and uncaught errors, first-party only. Owners and admins see a 30-day summary on `/account`.
+- The old shared `ADMIN_KEY` still works as a studio key (it sees every project), so existing setups keep running.
+
 ## Run locally
 
 ```sh
 npm install
 npm run dev        # http://localhost:8787  — uses .data/local.db (SQLite) unless .env.local points at Turso
+npm run seed       # optional: a demo studio account (see scripts/seed.mjs for the login)
+npm test           # API tests against a throwaway database
 ```
 
 ## Deploy (Vercel + Turso)

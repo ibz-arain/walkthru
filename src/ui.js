@@ -166,6 +166,7 @@ const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene
 const mRay = new THREE.Raycaster(), mNdc = new THREE.Vector2(), mDot = new THREE.SphereGeometry(.28, 12, 8);
 const mMat = new THREE.MeshBasicMaterial({ color: '#3b5bfd', depthTest: false }), mLine = new THREE.LineBasicMaterial({ color: '#3b5bfd', depthTest: false });
 function setMeasure(on) {
+  if (on) window.wtTrack?.('measure');
   if (on && mode === 'walk') goView(curView);
   MEAS.on = on; MEAS.a = null; document.body.classList.toggle('measuring', on); $u('measureBar').hidden = !on;
   $u('measureBtn').setAttribute('aria-pressed', String(on)); $u('measureMsg').textContent = 'Click two points to measure';
@@ -218,6 +219,7 @@ function shot(scale = 1) {
   const pr = renderer.getPixelRatio(); if (scale !== 1) renderer.setPixelRatio(pr * scale);
   renderer.render(scene, camera); const url = renderer.domElement.toDataURL('image/png');
   if (scale !== 1) renderer.setPixelRatio(pr);
+  window.wtTrack?.('screenshot', { scale });
   download(url, `${slug()}-${VIEW_NAME[curView]?.toLowerCase().replace(/\s/g, '-') || 'view'}.png`); toast(scale > 1 ? 'High-res render saved' : 'Screenshot saved');
 }
 $u('shotBtn').onclick = () => shot(1); $u('exShot').onclick = () => shot(1); $u('exShot2').onclick = () => shot(2);
@@ -237,7 +239,7 @@ $u('importFile').onchange = async e => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   try {
     const j = JSON.parse(await f.text()), bm = j.bm || j; if (!Array.isArray(bm.rooms)) throw new Error();
-    const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported');
+    const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
   } catch (err) { toast('That file is not a Walkthru design'); }
 };
 $u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Link copied'); } catch (e) { toast(location.href); } };
@@ -246,7 +248,7 @@ $u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(l
 let libOn = ST.get('walkthru-lib', '1') === '1';
 function uiEditing(on) {
   if (!uiReady) return;
-  closePops(); if (on && MEAS.on) setMeasure(false);
+  closePops(); if (on && MEAS.on) setMeasure(false); if (on) window.wtTrack?.('editor_opened');
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
 }

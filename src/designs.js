@@ -12,6 +12,7 @@ function openDesign(id) {
   if (curHouse !== 3 || was) setHouse(3);
 }
 function newDesign(from) {
+  window.wtTrack?.('design_created', { from });
   const id = Math.max(0, ...DS.list.map(x => x.id)) + 1, n = DS.list.length + 1;
   const bm = from === 'campana' ? campanaPlan() : from === 'blank' ? { roof: 'hip', rooms: [], stairs: [] } : from === 'copy' ? JSON.parse(JSON.stringify(BM)) : permitPlan();
   DS.list.push({ id, name: from === 'campana' ? '1196 Campana' : from === 'copy' ? `${curDesign().name} copy` : `Design ${n}`, bm }); openDesign(id);
