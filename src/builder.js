@@ -317,9 +317,12 @@ const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete:
 // ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
 const _finMats = new Map();
 function finMat(base, hex) { const k = base.uuid + hex; if (!_finMats.has(k)) { const m = base.clone(); m.color.set(hex); _finMats.set(k, m); } return _finMats.get(k); }
-const ROOM_FLOORS = { oak: ['Light oak', () => M.wood, '#e0c49c'], natural: ['Natural oak', () => M.wood, '#bf9364'], walnut: ['Walnut', () => M.wood, '#7a563c'], greyoak: ['Grey oak', () => M.wood, '#b9b2a8'],
-  lvp: ['Vinyl plank', () => M.lvp, '#b7a58c'], tile: ['Light tile', () => M.tile, '#e4e2dc'], darktile: ['Dark tile', () => M.tile, '#5b5f63'], marble: ['Marble', () => M.tile, '#f2f1ec'],
-  carpet: ['Carpet, oat', () => M.carpet, '#cfc6b8'], carpetgrey: ['Carpet, grey', () => M.carpet, '#8f9296'], concrete: ['Polished concrete', () => M.concrete, '#b9b7b2'] };
+const _rfBase = {}; const rfBase = (map, rough) => _rfBase[map + rough] ||= std({ map: TX[map], color: '#ffffff', roughness: rough });
+const RF = (name, map, rough, hex) => [name, () => rfBase(map, rough), hex];
+const ROOM_FLOORS = { oak: RF('Light oak', 'wood', .6, '#e0c49c'), natural: RF('Natural oak', 'wood', .6, '#bf9364'), walnut: RF('Walnut', 'wood', .6, '#7a563c'), greyoak: RF('Grey oak', 'wood', .6, '#b9b2a8'),
+  herring: RF('Herringbone oak', 'herring', .55, '#c9a273'), lvp: RF('Vinyl plank', 'wood', .6, '#b7a58c'), tile: RF('Light tile', 'tile', .35, '#e4e2dc'), darktile: RF('Dark tile', 'tile', .35, '#5b5f63'),
+  bigtile: RF('Large tile', 'bigtile', .3, '#dcdad4'), mosaic: RF('Mosaic', 'mosaic', .3, '#e4e2dc'), marble: RF('Marble', 'marble', .15, '#f2f1ec'), slate: RF('Slate', 'slate', .7, '#8a8884'),
+  terrazzo: RF('Terrazzo', 'terrazzo', .3, '#f0eee8'), carpet: RF('Carpet, oat', 'carpet', 1, '#cfc6b8'), carpetgrey: RF('Carpet, grey', 'carpet', 1, '#8f9296'), concrete: RF('Polished concrete', 'concrete', .35, '#b9b7b2') };
 const floorFor = r => { const f = ROOM_FLOORS[r.finish?.floor]; return f ? finMat(f[1](), f[2]) : floorMat(r.type); };
 const paintFor = (r, side) => { const F = r.finish || {}; const hex = F.accent?.side === side ? F.accent.color : F.paint; return hex ? finMat(M.paint, hex) : M.paint; };
 // which side of room r a wall at coordinate c runs along

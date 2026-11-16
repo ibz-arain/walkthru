@@ -345,22 +345,83 @@ function drawMini(lv) {
 // =====================================================================
 //  FINISHES
 // =====================================================================
+// Each finish has material types (what it's made of: texture, sheen) and colours for each type.
+// A saved value is the old colour index / hex (first type), or "type:index" / "type:#hex".
+const FT = (id, name, map, rough, metal, colors) => ({ id, name, map, rough, metal, colors });
+const FC_WHITES = [['White', '#f1f0ec'], ['Warm white', '#ebe3d4'], ['Pale grey', '#cfd0cc'], ['Charcoal', '#55585c']];
+const FC_BRICK = [['Natural red', '#ffffff'], ['Smoked', '#a59a92'], ['Painted white', '#f4f1ea'], ['Painted black', '#4a4a4c']];
+const FC_WOODS = [['Light oak', '#e0c49c'], ['Natural oak', '#bf9364'], ['Walnut', '#7a563c'], ['Grey oak', '#b9b2a8'], ['Ebony', '#4a3a2e']];
+const FC_TILES = [['Warm white', '#e4e2dc'], ['Stone grey', '#a9a8a3'], ['Slate', '#5b5f63'], ['Sand', '#d8c8ad'], ['Sage', '#a9b39c'], ['Navy', '#3d4a63']];
+const FC_STONES = [['Light', '#e8e3d8'], ['Warm grey', '#b7b0a5'], ['Charcoal', '#6e6c6a'], ['Rust', '#b48a68']];
+const FC_MARBLE = [['Carrara', '#f4f3ef'], ['Warm', '#efe6d8'], ['Grey', '#c9c9c7'], ['Nero', '#3a3a3c']];
 const FIN = [
   ['Exterior', [
-    ['stucco', 'Stucco (EIFS)', [['White', '#f1f0ec'], ['Warm white', '#ebe3d4'], ['Pale grey', '#cfd0cc'], ['Charcoal', '#55585c']], c => M.stucco.color.set(c)],
-    ['siding', 'Board & batten', [['Charcoal', '#767a80'], ['Black', '#4f5256'], ['White', '#f0efeb'], ['Sage', '#9aa58f']], c => M.batten.color.set(c)],
-    ['stone', 'Stone veneer', [['Light ledgestone', '#dcd6ca'], ['Limestone', '#d2bd98'], ['Charcoal', '#727170']], c => M.stone.color.set(c)],
-    ['roof', 'Shingles', [['Charcoal', '#45474a'], ['Black', '#28292c'], ['Weathered', '#6b5a49']], c => M.roof.color.set(c)],
-    ['trim', 'Windows & fascia', [['Black', '#1e1f22'], ['Bronze', '#4d3b2c'], ['White', '#ecebe7']], c => M.trim.color.set(c)],
+    ['stucco', 'Main walls', () => M.stucco, [
+      FT('stucco', 'Stucco', 'stucco', .95, 0, FC_WHITES), FT('lap', 'Lap siding', 'lap', .85, 0, [['White', '#f0efeb'], ['Grey', '#9ea3a8'], ['Navy', '#4b5a72'], ['Sage', '#9aa58f'], ['Black', '#4f5256']]),
+      FT('brick', 'Brick', 'brick', .92, 0, FC_BRICK), FT('lime', 'Limestone', 'limestone', .9, 0, [['Natural', '#ffffff'], ['Warm', '#efe2c9'], ['Grey', '#cfcfcc']]),
+      FT('panel', 'Wood cladding', 'panel', .8, 0, [['Cedar', '#c9925e'], ['Teak', '#9a6a43'], ['Charred', '#3d3936'], ['Silver', '#b4b1aa']])]],
+    ['siding', 'Accent siding', () => M.batten, [
+      FT('batten', 'Board & batten', 'batten', .85, 0, [['Charcoal', '#767a80'], ['Black', '#4f5256'], ['White', '#f0efeb'], ['Sage', '#9aa58f']]),
+      FT('lap', 'Lap siding', 'lap', .85, 0, [['White', '#f0efeb'], ['Grey', '#9ea3a8'], ['Navy', '#4b5a72'], ['Black', '#4f5256']]),
+      FT('panel', 'Wood cladding', 'panel', .8, 0, [['Cedar', '#c9925e'], ['Teak', '#9a6a43'], ['Charred', '#3d3936']]),
+      FT('brick', 'Brick', 'brick', .92, 0, FC_BRICK), FT('metal', 'Metal panel', 'seam', .4, .5, [['Charcoal', '#55585c'], ['Black', '#2d2f33'], ['Galvalume', '#b9bdc1']])]],
+    ['stone', 'Stone veneer', () => M.stone, [
+      FT('ledge', 'Ledgestone', 'stone', .9, 0, [['Light ledgestone', '#dcd6ca'], ['Limestone', '#d2bd98'], ['Charcoal', '#727170']]),
+      FT('field', 'Fieldstone', 'field', .92, 0, FC_STONES), FT('slate', 'Stacked slate', 'slate', .85, 0, FC_STONES), FT('brick', 'Brick', 'brick', .92, 0, FC_BRICK)]],
+    ['roof', 'Roofing', () => M.roof, [
+      FT('shingle', 'Asphalt shingles', 'shingle', .9, 0, [['Charcoal', '#45474a'], ['Black', '#28292c'], ['Weathered', '#6b5a49']]),
+      FT('metal', 'Standing seam metal', 'seam', .38, .55, [['Black', '#2d2f33'], ['Charcoal', '#55585c'], ['Galvalume', '#b9bdc1'], ['Forest', '#3f5244'], ['Barn red', '#7a3b33']]),
+      FT('clay', 'Clay tile', 'clay', .85, 0, [['Terracotta', '#c9744a'], ['Sand', '#d8b48a'], ['Slate grey', '#6f6f70']]),
+      FT('cedar', 'Cedar shake', 'shingle', .95, 0, [['Fresh cedar', '#b88758'], ['Weathered', '#8f877c']]),
+      FT('slate', 'Slate', 'slate', .7, 0, [['Black slate', '#4a4c50'], ['Grey slate', '#7d8086']])]],
+    ['trim', 'Windows & fascia', () => M.trim, [
+      FT('paint', 'Painted', null, .5, .2, [['Black', '#1e1f22'], ['Bronze', '#4d3b2c'], ['White', '#ecebe7'], ['Grey', '#6d7075']]),
+      FT('metal', 'Anodised metal', null, .3, .75, [['Black', '#26272a'], ['Bronze', '#6b5038'], ['Silver', '#b9bdc1']])]],
+    ['gdoor', 'Garage door', () => M.gdoor, [
+      FT('flat', 'Flat panel', null, .55, .2, [['Charcoal', '#4a4d52'], ['Black', '#26272a'], ['White', '#ecebe7']]),
+      FT('wood', 'Wood look', 'panel', .7, 0, [['Cedar', '#c9925e'], ['Walnut', '#7a563c'], ['Grey', '#9f9b94']]),
+      FT('glass', 'Frosted glass', null, .15, .4, [['Black frame', '#3a3d42'], ['Silver frame', '#a9adb2']])]],
+    ['deck', 'Decking', () => M.deck, [
+      FT('wood', 'Natural wood', 'deck', .8, 0, [['Natural', '#ffffff'], ['Cedar', '#f2c9a5'], ['Dark stain', '#9a7c66']]),
+      FT('composite', 'Composite', 'boards', .7, 0, [['Driftwood', '#b8b2a8'], ['Walnut', '#7e5f48'], ['Charcoal', '#5d5d5f']])]],
   ]],
   ['Interior', [
-    ['floor', 'Main flooring', [['Light oak', '#e0c49c'], ['Natural oak', '#bf9364'], ['Walnut', '#7a563c'], ['Grey oak', '#b9b2a8']], c => M.wood.color.set(c)],
-    ['paint', 'Wall paint', [['Gallery white', '#f4f3ef'], ['Greige', '#ddd4c6'], ['Warm grey', '#c9c4bc'], ['Sage', '#c7cdb9'], ['Mist blue', '#cbd5dc']], c => M.paint.color.set(c)],
-    ['cab', 'Cabinets', [['White', '#f2f2ef'], ['Navy', '#2f3b52'], ['Walnut', '#6c4a31'], ['Matte black', '#2a2b2c'], ['Sage', '#97a38b']], c => M.cab.color.set(c)],
-    ['counter', 'Countertops', [['White quartz', '#f2f2f0'], ['Black granite', '#2c2c2e'], ['Concrete', '#aaa79f']], c => M.counter.color.set(c)],
-    ['tile', 'Bath & mud tile', [['Warm white', '#e4e2dc'], ['Stone grey', '#a9a8a3'], ['Slate', '#5b5f63']], c => M.tile.color.set(c)],
+    ['floor', 'Main flooring', () => M.wood, [
+      FT('plank', 'Wood plank', 'wood', .6, 0, FC_WOODS), FT('herring', 'Herringbone', 'herring', .55, 0, FC_WOODS),
+      FT('tile', 'Tile', 'tile', .35, 0, FC_TILES), FT('bigtile', 'Large tile', 'bigtile', .3, 0, FC_TILES), FT('marble', 'Marble', 'marble', .15, 0, FC_MARBLE),
+      FT('slate', 'Slate', 'slate', .7, 0, FC_STONES), FT('terrazzo', 'Terrazzo', 'terrazzo', .3, 0, [['White', '#f0eee8'], ['Warm', '#e6d6c2'], ['Grey', '#b8b8b6']]),
+      FT('concrete', 'Polished concrete', 'concrete', .35, 0, [['Natural', '#b9b7b2'], ['Light', '#d8d6d0'], ['Dark', '#7d7c79']]),
+      FT('carpet', 'Carpet', 'carpet', 1, 0, [['Oat', '#cfc6b8'], ['Grey', '#8f9296'], ['Charcoal', '#5a5c60']])]],
+    ['paint', 'Walls', () => M.paint, [
+      FT('paint', 'Paint', 'paint', .9, 0, [['Gallery white', '#f4f3ef'], ['Greige', '#ddd4c6'], ['Warm grey', '#c9c4bc'], ['Sage', '#c7cdb9'], ['Mist blue', '#cbd5dc'], ['Charcoal', '#5e6166']]),
+      FT('lime', 'Limewash', 'stucco', .97, 0, [['Chalk', '#efebe2'], ['Clay', '#d9c3ab'], ['Stone', '#c2bdb2'], ['Olive', '#a9a68c']]),
+      FT('panel', 'Wood panelling', 'panel', .7, 0, FC_WOODS), FT('brick', 'Exposed brick', 'brick', .92, 0, FC_BRICK)]],
+    ['cab', 'Cabinets', () => M.cab, [
+      FT('paint', 'Painted', null, .5, 0, [['White', '#f2f2ef'], ['Navy', '#2f3b52'], ['Walnut', '#6c4a31'], ['Matte black', '#2a2b2c'], ['Sage', '#97a38b']]),
+      FT('wood', 'Wood grain', 'panel', .55, 0, [['White oak', '#d6b48c'], ['Walnut', '#7a563c'], ['Rift oak', '#b98f63'], ['Ebony', '#4a3a2e']]),
+      FT('gloss', 'High gloss', null, .12, 0, [['White', '#f6f6f4'], ['Grey', '#9a9ea3'], ['Black', '#1f2022']])]],
+    ['counter', 'Countertops', () => M.counter, [
+      FT('quartz', 'Quartz', null, .2, 0, [['White quartz', '#f2f2f0'], ['Black granite', '#2c2c2e'], ['Concrete', '#aaa79f']]),
+      FT('marble', 'Marble', 'marble', .15, 0, FC_MARBLE), FT('granite', 'Granite', 'terrazzo', .2, 0, [['Salt & pepper', '#cfcfcf'], ['Black', '#505052'], ['Gold', '#d9c19a']]),
+      FT('butcher', 'Butcher block', 'wood', .5, 0, FC_WOODS), FT('concrete', 'Concrete', 'concrete', .6, 0, [['Natural', '#b9b7b2'], ['Charcoal', '#6e6d6a']])]],
+    ['tile', 'Bath & mud tile', () => M.tile, [
+      FT('square', 'Square', 'tile', .35, 0, FC_TILES), FT('subway', 'Subway', 'subway', .2, 0, FC_TILES), FT('mosaic', 'Mosaic', 'mosaic', .3, 0, FC_TILES),
+      FT('bigtile', 'Large format', 'bigtile', .3, 0, FC_TILES), FT('marble', 'Marble', 'marble', .15, 0, FC_MARBLE), FT('slate', 'Slate', 'slate', .7, 0, FC_STONES)]],
+    ['steel', 'Fixtures & appliances', () => M.steel, [
+      FT('metal', 'Metal', null, .3, .75, [['Stainless', '#b9bdc1'], ['Brushed brass', '#c2a466'], ['Bronze', '#6b5038'], ['Black', '#2a2b2d']]),
+      FT('enamel', 'Enamel', null, .25, 0, [['White', '#f4f4f2'], ['Cream', '#eee6d2'], ['Black', '#232426']])]],
   ]],
 ];
+// "type:index" | "type:#hex" | legacy index | legacy hex → { t, c } (c is an index or a hex string)
+function parseFin(types, v) {
+  let t = 0, c = v ?? 0;
+  if (typeof v === 'string' && v.includes(':')) { const [id, rest] = v.split(':'); t = Math.max(0, types.findIndex(x => x.id === id)); c = rest; }
+  const hex = typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c : null;
+  return { t, c: hex || Math.min(Math.max(0, +c || 0), types[t].colors.length - 1) };
+}
+const _thumb = new Map(); // a little picture of each texture for the type chips
+const texThumb = k => { if (!k) return ''; if (!_thumb.has(k)) { const c = document.createElement('canvas'); c.width = c.height = 64; c.getContext('2d').drawImage(TX[k].image, 0, 0, 64, 64); _thumb.set(k, c.toDataURL('image/jpeg', .8)); } return _thumb.get(k); };
+const swatchBg = (map, hex) => map ? `url(${texThumb(map)}) center/cover, ${hex}` : hex;
 let saved = {}; try { saved = JSON.parse(localStorage.getItem('walkthru-finishes-v2') || '{}'); } catch (e) { }
 // Finishes belong to the design when it lives in the Studio (cloud.js sets finishHook); otherwise they're remembered in this browser.
 let finishHook = null, finishMute = false; const FIN_PICK = {};
@@ -368,19 +429,28 @@ function applyFinishes(map) { finishMute = true; for (const k in FIN_PICK) FIN_P
 const fb = document.getElementById('finishBody');
 for (const [sec, items] of FIN) {
   const h = document.createElement('div'); h.className = 'grp'; h.dataset.sec = sec; h.innerHTML = `<h3>${sec}</h3>`; fb.appendChild(h);
-  for (const [key, label, opts, apply] of items) {
+  for (const [key, label, mat, types] of items) {
     const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3>${label}<span class="cur"></span></h3>`;
+    const ty = document.createElement('div'); ty.className = 'fin-types'; if (types.length > 1) g.appendChild(ty);
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
-    // A custom colour (any hex) is stored as the string itself; the presets as their index.
     const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Any colour'; custom.innerHTML = '<i></i><input type="color" aria-label="Any colour">';
-    const pick = (i) => { const hex = typeof i === 'string' && /^#[0-9a-f]{6}$/i.test(i) ? i : null; if (!hex) i = Math.min(+i || 0, opts.length - 1);
-      apply(hex || opts[i][1]); sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(!hex && i === j)));
-      g.querySelector('.cur').textContent = hex ? 'Custom colour' : opts[i][0];
-      custom.setAttribute('aria-pressed', String(!!hex)); if (hex) { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
-      if (finishHook) { if (!finishMute) finishHook(key, i); return; } saved[key] = i; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
+    let cur = { t: -1, c: 0 };
+    const drawColours = () => { const T0 = types[cur.t]; sw.innerHTML = '';
+      T0.colors.forEach(([n, c], i) => { const b = document.createElement('button'); b.type = 'button'; b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${swatchBg(T0.map, c)};background-blend-mode:multiply"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(`${T0.id}:${i}`); sw.appendChild(b); });
+      sw.appendChild(custom); };
+    const pick = (v) => { const p = parseFin(types, v), T0 = types[p.t], hex = typeof p.c === 'string' ? p.c : T0.colors[p.c][1], m = mat();
+      if (p.t !== cur.t) { cur.t = p.t; drawColours(); ty.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === p.t)));
+        m.map = T0.map ? TX[T0.map] : null; m.roughness = T0.rough; m.metalness = T0.metal; m.needsUpdate = true; if (typeof renderer !== 'undefined') renderer.shadowMap.needsUpdate = true; }
+      cur.c = p.c; m.color.set(hex);
+      sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(p.c === j)));
+      g.querySelector('.cur').textContent = `${types.length > 1 ? T0.name + ' · ' : ''}${typeof p.c === 'string' ? 'Custom colour' : T0.colors[p.c][0]}`;
+      custom.setAttribute('aria-pressed', String(typeof p.c === 'string')); if (typeof p.c === 'string') { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
+      const val = `${T0.id}:${p.c}`;
+      if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
-    opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(i); sw.appendChild(b); });
-    sw.appendChild(custom); custom.querySelector('input').oninput = e => pick(e.target.value);
+    types.forEach((T0, j) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="background:${swatchBg(T0.map, T0.colors[0][1])};background-blend-mode:multiply"></i><span>${T0.name}</span>`;
+      b.onclick = () => pick(`${T0.id}:0`); ty.appendChild(b); });
+    custom.querySelector('input').oninput = e => pick(`${types[cur.t].id}:${e.target.value}`);
     pick(saved[key] ?? 0);
   }
 }
