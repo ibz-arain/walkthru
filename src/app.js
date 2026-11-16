@@ -187,40 +187,13 @@ function collide() {
 const avatar = new THREE.Group(); avatar.visible = false; scene.add(avatar);
 const AV = { yaw: 0, phase: 0, amp: 0, third: false, dist: 12, pitch: .32, boom: 12, camY: 0, t: 0 };
 const rig = new THREE.Group(); avatar.add(rig);
-// ---------- You: a faceless figure (man or woman) at the height you pick; walking uses the same eye height ----------
-const ME = { body: 'm', h: 5.75 }; // h in feet
+// ---------- Your height: walking puts the camera at your eye level ----------
+const ME = { h: 5.75 }; // feet
 try { Object.assign(ME, JSON.parse(localStorage.getItem('walkthru-me') || '{}')); } catch (e) { }
 const eyeH = () => ME.h - .37; // eyes sit about 4½" below the top of the head
-const FIG_MAT = { skin: std({ color: '#e0c3a5', roughness: .6 }), shoe: std({ color: '#26262a', roughness: .6 }),
-  m: { top: std({ color: '#2f6fd0', roughness: .75 }), legs: std({ color: '#2c3138', roughness: .8 }), hair: std({ color: '#3a2a20', roughness: .9 }) },
-  f: { top: std({ color: '#e0566d', roughness: .75 }), legs: std({ color: '#33384a', roughness: .8 }), hair: std({ color: '#6b3f26', roughness: .9 }) } };
-// A blocky, rounded avatar (no face). Built for 5'-9" standing on y = 0, facing −z, then scaled to the chosen height.
-function buildFigure() {
-  for (const c of [...rig.children]) { rig.remove(c); c.traverse(o => o.geometry?.dispose()); }
-  const F = ME.body === 'f', C = FIG_MAT[F ? 'f' : 'm'], sk = FIG_MAT.skin;
-  const blk = (w, h, d, m, x, y, z, par = rig, r = .07) => { const o = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2 - .01, h / 2 - .01, d / 2 - .01)), m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
-  const TW = F ? 1.0 : 1.12, LEG = 2.35, TOR = 2.05, LW = TW / 2 - .01, AW = F ? .44 : .5;
-  blk(TW, TOR, .58, C.top, 0, LEG + TOR / 2, 0);                         // torso
-  blk(TW - .02, .34, .6, C.legs, 0, LEG + .16, 0);                         // belt / hips
-  AV.head = blk(.86, .9, .82, sk, 0, LEG + TOR + .06 + .45, 0, rig, .24);  // head, well rounded
-  const top = LEG + TOR + .06 + .9;
-  blk(.9, .2, .86, C.hair, 0, top - .02, .01, rig, .1);                      // hair on top
-  blk(.9, F ? .95 : .55, .2, C.hair, 0, top - (F ? .5 : .3), .36, rig, .08); // hair at the back (long for her)
-  if (F) for (const sx of [-1, 1]) blk(.12, .7, .5, C.hair, sx * .45, top - .4, .12, rig, .05);
-  const pivot = (x, y) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
-  for (const sx of [-1, 1]) {
-    const arm = pivot(sx * (TW / 2 + AW / 2 + .02), LEG + TOR - .12);
-    blk(AW, 1.0, .54, C.top, 0, -.38, 0, arm); blk(AW - .02, 1.05, .52, sk, 0, -1.4, 0, arm); // sleeve, arm and hand
-    const leg = pivot(sx * LW / 2, LEG);
-    blk(LW, LEG - .2, .56, C.legs, 0, -(LEG - .2) / 2, 0, leg); blk(LW + .02, .24, .66, FIG_MAT.shoe, 0, -LEG + .12, -.04, leg); // leg, shoe
-    if (sx < 0) { AV.armL = arm; AV.legL = leg; } else { AV.armR = arm; AV.legR = leg; }
-  }
-  const k = ME.h / (top + .08); avatar.scale.setScalar(k); if (AV.blob) AV.blob.scale.setScalar(1.05 * k); // top of the hair = chosen height
-}
-function setMe(patch) { Object.assign(ME, patch); try { localStorage.setItem('walkthru-me', JSON.stringify(ME)); } catch (e) { } buildFigure(); }
+function setMe(patch) { Object.assign(ME, patch); try { localStorage.setItem('walkthru-me', JSON.stringify(ME)); } catch (e) { } }
 AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .22, depthWrite: false }));
 AV.blob.rotation.x = -Math.PI / 2; AV.blob.visible = false; scene.add(AV.blob);
-buildFigure();
 const camRay = new THREE.Ray(), hitV = new THREE.Vector3(), headV = new THREE.Vector3(), boomV = new THREE.Vector3();
 function boomLength(from, dir, max) { // pull the camera in front of any wall between it and the avatar
   camRay.set(from, dir); let best = max;
@@ -433,7 +406,7 @@ sel.onchange = () => {
   const v = sel.value; sel.value = ''; sel.blur(); if (!v) return;
   if (mode !== 'walk' && !sel._fading) return fadeCut(() => { sel._fading = true; sel.value = v; sel.onchange(); sel._fading = false; });
   const H = HOUSES[curHouse];
-  const third = mode === 'walk' ? AV.third : groundMode === 'char';
+  const third = false;
   if (v === 'yard') return enterWalk(H.yard, third);
   if (v === 'drive') return enterWalk(H.drive, third);
   const r = roomsOf(curHouse)[+v]; enterWalk([r[3][0], r[3][1], r[3][2], H.levelY[r[1]] + 1], third);
@@ -466,14 +439,16 @@ addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabH
   });
   peg.addEventListener('pointerup', e => {
     const s0 = st; st = null; ghost.hidden = true; if (!s0) return;
-    if (!s0.moved) return enterWalk(HOUSES[curHouse].front, true);
+    if (!s0.moved) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
     if (document.elementFromPoint(e.clientX, e.clientY) !== renderer.domElement) return;
     if (mode === 'walk') exitWalk();
     ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); pr.setFromCamera(ndc, camera);
     const h = pr.intersectObjects(walkables, false).find(i => shown(i.object));
-    if (!h) return enterWalk(HOUSES[curHouse].front, true);
+    if (!h) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
     const yaw = Math.atan2(-(h.point.x - camera.position.x), -(h.point.z - camera.position.z));
-    curView = 'front'; enterWalk([h.point.x, h.point.z, yaw, h.point.y + .5], true);
+    // From outside the drop usually hits a roof or wall: stand on the main floor (or the ground) under that spot instead.
+    const outside = !['B', 'M', 'U'].includes(curView), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
+    curView = 'front'; fadeCut(() => enterWalk([h.point.x, h.point.z, yaw, feet], false));
   });
 }
 const tod = document.getElementById('tod'); tod.oninput = () => setSun(+tod.value);
