@@ -22,7 +22,7 @@ writeFileSync('walkthru.html', `${head}<style>\n${css}</style>\n${body}<script t
 // 2. site
 mkdirSync('site/assets', { recursive: true });
 for (const f of readdirSync('site/assets')) rmSync(`site/assets/${f}`);
-for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/pages/terms.html', 'terms.html'], ['src/pages/privacy.html', 'privacy.html'], ['src/assets/og.png', 'og.png']]) copyFileSync(from, `site/${to}`);
+for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/pages/terms.html', 'terms.html'], ['src/pages/privacy.html', 'privacy.html'], ['src/assets/og.png', 'og.png'], ['src/assets/home-render.jpg', 'home-render.jpg'], ['src/assets/home-plan.jpg', 'home-plan.jpg'], ['src/assets/home-walk.jpg', 'home-walk.jpg']]) copyFileSync(from, `site/${to}`);
 
 mkdirSync('.build', { recursive: true });
 writeFileSync('.build/playground.js', code.replaceAll("'three/addons/", "'three/examples/jsm/"));
