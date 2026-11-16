@@ -3,11 +3,19 @@
 // POST   /api/project?id=&action=accept&token=  → adopt a customer's version as a new version
 // POST   /api/project?id=&action=restore&version=  → roll back to an earlier version (as a new version)
 // DELETE /api/project?id=
-import { route, send, fail, isAdmin, body } from './_lib/http.js';
+import { route, send, fail, body } from './_lib/http.js';
+import { who, canEdit, canManage, ownsProject } from './_lib/auth.js';
 import { db, now, logEvent } from './_lib/db.js';
 import { putJSON, getJSON, delBlob, keys } from './_lib/blob.js';
 
 async function load(c, id) { return (await c.execute({ sql: 'SELECT * FROM projects WHERE id = ?', args: [id] })).rows[0]; }
+// Load the project if the caller's workspace owns it and their role allows the action; otherwise answer for them.
+async function gate(req, res, need = 'read') {
+  const w = await who(req); if (!w || (!w.super && !w.org)) { fail(res, 401, 'Sign in to open the Studio'); return null; }
+  const c = await db(), p = await load(c, req.query.id); if (!ownsProject(w, p)) { fail(res, 404, 'Project not found'); return null; }
+  if ((need === 'edit' && !canEdit(w)) || (need === 'manage' && !canManage(w))) { fail(res, 403, need === 'manage' ? 'Only owners and admins can do that' : 'Viewers can look but not change things'); return null; }
+  return { c, p, w };
+}
 async function newVersion(c, p, bm, note) {
   const v = p.version + 1, t = now();
   await putJSON(keys.version(p.id, v), bm);
@@ -20,8 +28,7 @@ async function newVersion(c, p, bm, note) {
 
 export default route({
   async GET(req, res) {
-    if (!isAdmin(req)) return fail(res, 401, 'Studio key required');
-    const c = await db(), p = await load(c, req.query.id); if (!p) return fail(res, 404, 'Project not found');
+    const g = await gate(req, res); if (!g) return; const { c, p } = g;
     const [shares, comments, events, versions] = await Promise.all([
       c.execute({ sql: 'SELECT * FROM shares WHERE project_id = ? ORDER BY created_at DESC', args: [p.id] }),
       c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? ORDER BY created_at ASC', args: [p.id] }),
@@ -29,12 +36,11 @@ export default route({
       c.execute({ sql: 'SELECT version, note, created_at FROM versions WHERE project_id = ? ORDER BY version DESC', args: [p.id] }),
     ]);
     const bm = await getJSON(keys.version(p.id, p.version));
-    send(res, 200, { project: { ...p, summary: p.summary ? JSON.parse(p.summary) : null }, bm, shares: shares.rows, versions: versions.rows,
+    send(res, 200, { project: { ...p, summary: p.summary ? JSON.parse(p.summary) : null }, bm, shares: shares.rows.map(({ pass_hash, ...r }) => ({ ...r, has_pass: !!pass_hash })), role: g.w.role, versions: versions.rows,
       comments: comments.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null })), events: events.rows.map(e => ({ ...e, detail: e.detail ? JSON.parse(e.detail) : null })) });
   },
   async PUT(req, res) {
-    if (!isAdmin(req)) return fail(res, 401, 'Studio key required');
-    const c = await db(), p = await load(c, req.query.id); if (!p) return fail(res, 404, 'Project not found');
+    const g = await gate(req, res, 'edit'); if (!g) return; const { c, p } = g;
     const b = body(req);
     if (b.bm) { if (!Array.isArray(b.bm.rooms)) return fail(res, 400, 'Bad design'); await putJSON(keys.version(p.id, p.version), b.bm); }
     const sets = [], args = [];
@@ -45,8 +51,7 @@ export default route({
     send(res, 200, { ok: true, version: p.version });
   },
   async POST(req, res) {
-    if (!isAdmin(req)) return fail(res, 401, 'Studio key required');
-    const c = await db(), p = await load(c, req.query.id); if (!p) return fail(res, 404, 'Project not found');
+    const g = await gate(req, res, 'edit'); if (!g) return; const { c, p } = g;
     if (req.query.action === 'accept') {
       const s = (await c.execute({ sql: 'SELECT * FROM shares WHERE token = ? AND project_id = ?', args: [req.query.token, p.id] })).rows[0];
       if (!s || !s.has_copy) return fail(res, 400, 'That customer has no changes to accept');
@@ -71,8 +76,7 @@ export default route({
     fail(res, 400, 'Unknown action');
   },
   async DELETE(req, res) {
-    if (!isAdmin(req)) return fail(res, 401, 'Studio key required');
-    const c = await db(), p = await load(c, req.query.id); if (!p) return fail(res, 404, 'Project not found');
+    const g = await gate(req, res, 'manage'); if (!g) return; const { c, p } = g;
     const vs = await c.execute({ sql: 'SELECT blob_key FROM versions WHERE project_id = ?', args: [p.id] });
     const ss = await c.execute({ sql: 'SELECT token FROM shares WHERE project_id = ?', args: [p.id] });
     for (const r of vs.rows) await delBlob(r.blob_key);
