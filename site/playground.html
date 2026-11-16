@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="/track.js" defer></script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.b8ae01810d.js">
+<link rel="modulepreload" href="/assets/playground.0d4f864d0c.js">
 <link rel="stylesheet" href="/assets/playground.1cdcd1f034.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -20,7 +20,8 @@
     <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></symbol>
     <symbol id="i-orbit" viewBox="0 0 24 24"><path d="M12 3.5 19.5 7.8v8.4L12 20.5l-7.5-4.3V7.8z"/><path d="M4.5 7.8 12 12l7.5-4.2M12 12v8.5"/></symbol>
     <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.7"/><path d="m9 21 2.2-6L9.5 11l3-2.5 2 3.5 3 1M11.2 15 14 17.5V21M9.5 11 7 12.5 6 15.5"/></symbol>
-    <symbol id="i-char" viewBox="0 0 24 24"><rect x="8.5" y="3" width="7" height="6" rx="1.2"/><path d="M7 10.5h10v6H7zM9.5 16.5V21M14.5 16.5V21"/></symbol>
+    <symbol id="i-char" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.2"/><path d="M8.6 21.5V14l-1.4-.6.9-5.2a1.5 1.5 0 0 1 1.5-1.2h4.8a1.5 1.5 0 0 1 1.5 1.2l.9 5.2-1.4.6v7.5M12 14.5v7"/></symbol>
+    <symbol id="i-height" viewBox="0 0 24 24"><circle cx="9" cy="4.6" r="2"/><path d="M6.2 21V14l-1.2-.5.8-4.8a1.3 1.3 0 0 1 1.3-1.1h3.8a1.3 1.3 0 0 1 1.3 1.1l.8 4.8-1.2.5v7M18.5 3v18M16.5 5l2-2 2 2M16.5 19l2 2 2-2"/></symbol>
     <symbol id="i-drop" viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5"/><path d="M8.5 21v-6.5L7 14V10.5h10V14l-1.5.5V21"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
     <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
@@ -88,6 +89,7 @@
       <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button><button type="button" data-mode="char" data-tip="Play as a character"><svg class="ic"><use href="#i-char"/></svg></button>
     </div>
     <button class="tb-b" id="peg" type="button" data-tip="Drop in: drag onto the house" aria-label="Drop in"><svg class="ic"><use href="#i-drop"/></svg></button>
+    <button class="tb-b tb-wide" id="meBtn" type="button" data-pop="mePop" data-tip="Your body and height for walking"><svg class="ic"><use href="#i-height"/></svg><span class="tb-t" id="meNow">5'9"</span></button>
   </div>
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
@@ -152,6 +154,14 @@
     <p class="pop-note" style="margin-top:0">Sign in to keep your designs on every device, share them with buyers and work with your team.</p>
     <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
   </div>
+</div>
+<div class="pop" id="mePop" hidden role="dialog" aria-label="You">
+  <h6>Walk as</h6>
+  <div class="seg full"><button type="button" data-body="m">Man</button><button type="button" data-body="f">Woman</button></div>
+  <h6>Height <output id="meHv" class="pop-out"></output></h6>
+  <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
+  <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
+  <p class="pop-note">Walk and Character modes see the house from this eye height, so you can check counters, windows and sightlines at your own size.</p>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -373,7 +383,7 @@
   <div id="hintWalk" hidden></div>
 </div>
 <div class="panel" id="mini" hidden><canvas id="miniC" width="380" height="300"></canvas></div>
-<div id="pegGhost" hidden><svg viewBox="0 0 30 44" width="34" height="50" aria-hidden="true"><circle cx="15" cy="8" r="6.5" fill="#f2c94c" stroke="#1b1c1e" stroke-width="1.5"/><rect x="7" y="15" width="16" height="13" rx="2" fill="#2f6fd6" stroke="#1b1c1e" stroke-width="1.5"/><rect x="8.5" y="28" width="5.5" height="13" rx="1.5" fill="#2b3340" stroke="#1b1c1e" stroke-width="1.5"/><rect x="16" y="28" width="5.5" height="13" rx="1.5" fill="#2b3340" stroke="#1b1c1e" stroke-width="1.5"/></svg></div>
+<div id="pegGhost" hidden><svg viewBox="0 0 30 64" width="26" height="56" aria-hidden="true"><ellipse cx="15" cy="7" rx="5" ry="6" fill="#d9c7b5"/><path d="M15 1.2c-3.4 0-5.3 2.2-5.3 4.6 1.6-1.6 3.4-2.2 5.3-2.2s3.7.6 5.3 2.2C20.3 3.4 18.4 1.2 15 1.2z" fill="#3a2f28"/><path d="M9 15h12l2 15h-3l-1-9v13H11V21l-1 9H7z" fill="#3e4b5e"/><path d="M11 34h8l-.5 27h-3l-.5-20-.5 20h-3z" fill="#2e3034"/></svg></div>
 <div class="panel" id="pad" hidden>
   <span></span><button data-k="f" aria-label="Forward">▲</button><span></span>
   <button data-k="l" aria-label="Step left">◀</button><button data-k="b" aria-label="Back">▼</button><button data-k="r" aria-label="Step right">▶</button>
@@ -383,5 +393,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.b8ae01810d.js"></script>
+<script type="module" src="/assets/playground.0d4f864d0c.js"></script>
 </html>

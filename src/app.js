@@ -175,7 +175,7 @@ function exitWalk() {
   document.getElementById('hintOrbit').hidden = false;
 }
 function collide() {
-  const r = 0.85, lo = player.feet + 1.0, hi = player.feet + 5.6;
+  const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
   for (const b of colliders) {
     if (b.max.y < lo || b.min.y > hi || !shown(b.mesh)) continue;
     if (player.x + r <= b.min.x || player.x - r >= b.max.x || player.z + r <= b.min.z || player.z - r >= b.max.z) continue;
@@ -187,62 +187,46 @@ function collide() {
 // ---------- Avatar: blocky character for third-person "play" mode ----------
 const avatar = new THREE.Group(); avatar.visible = false; scene.add(avatar);
 const AV = { yaw: 0, phase: 0, amp: 0, third: false, dist: 12, pitch: .32, boom: 12, camY: 0, t: 0 };
-const rig = new THREE.Group(); avatar.add(rig); avatar.scale.setScalar(.82);
-{
-  const skin = std({ color: '#d9a68b', roughness: .6 }), shirt = std({ color: '#26324a', roughness: .75 }), pants = std({ color: '#3a3d44', roughness: .8 }), shoe = std({ color: '#3a2a1f', roughness: .6 });
-  const hair = std({ color: '#6b5440', roughness: .9 }), collar = std({ color: '#b9cbe6', roughness: .7 });
-  // Hand-drawn head textures: forties, short salt-and-pepper hair, blue eyes, grey stubble, big smile.
-  const tex = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); draw(g); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
-  const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-  const SKIN = '#d9a68b';
-  const hairFill = (g, x, y, w, h) => { g.fillStyle = '#7d7670'; g.fillRect(x, y, w, h);
-    for (let i = 0; i < w * h / 7; i++) { const v = rnd(); g.fillStyle = v < .4 ? '#4f4741' : v < .75 ? '#9a948e' : '#c4bfb9'; g.fillRect(x + rnd() * w, y + rnd() * h, 2, 3); } };
-  const stubble = (g, x, y, w, h, dens) => { for (let i = 0; i < w * h * dens; i++) { const v = rnd(); g.fillStyle = v < .5 ? 'rgba(90,80,72,.45)' : 'rgba(150,145,140,.45)'; g.fillRect(x + rnd() * w, y + rnd() * h, 1.6, 1.6); } };
-  const faceTex = tex(g => {
-    g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256);
-    const sh = g.createRadialGradient(128, 120, 40, 128, 128, 170); sh.addColorStop(0, 'rgba(255,230,210,.18)'); sh.addColorStop(1, 'rgba(120,70,50,.18)'); g.fillStyle = sh; g.fillRect(0, 0, 256, 256);
-    hairFill(g, 0, 0, 256, 34); // short hairline, a little higher at the temples
-    g.fillStyle = SKIN; g.beginPath(); g.moveTo(0, 34); g.quadraticCurveTo(30, 18, 52, 34); g.fill(); g.beginPath(); g.moveTo(256, 34); g.quadraticCurveTo(226, 18, 204, 34); g.fill();
-    // forehead lines
-    g.strokeStyle = 'rgba(140,90,70,.35)'; g.lineWidth = 2; for (const y of [58, 68]) { g.beginPath(); g.moveTo(92, y); g.quadraticCurveTo(128, y - 4, 164, y); g.stroke(); }
-    // brows
-    g.fillStyle = '#5b514a'; for (const x of [70, 150]) { g.beginPath(); g.moveTo(x, 92); g.quadraticCurveTo(x + 18, 80, x + 38, 90); g.lineTo(x + 38, 96); g.quadraticCurveTo(x + 18, 88, x, 98); g.fill(); }
-    // eyes: whites, blue iris, pupil, glint, crow's feet
-    for (const cx of [88, 168]) {
-      g.fillStyle = '#f7f3ee'; g.beginPath(); g.ellipse(cx, 112, 16, 9, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#5f8fc4'; g.beginPath(); g.arc(cx, 112, 8, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#1b2430'; g.beginPath(); g.arc(cx, 112, 3.6, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(cx + 3, 109, 2, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = 'rgba(120,75,55,.55)'; g.lineWidth = 2; g.beginPath(); g.ellipse(cx, 113, 17, 10, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
-      const o = cx < 128 ? -1 : 1; g.strokeStyle = 'rgba(140,90,70,.4)'; g.lineWidth = 1.5;
-      for (const d of [-5, 0, 5]) { g.beginPath(); g.moveTo(cx + o * 19, 112 + d * .6); g.lineTo(cx + o * 28, 110 + d); g.stroke(); }
-    }
-    // nose
-    g.strokeStyle = 'rgba(130,80,60,.6)'; g.lineWidth = 3; g.beginPath(); g.moveTo(124, 118); g.quadraticCurveTo(118, 150, 128, 156); g.quadraticCurveTo(138, 158, 142, 152); g.stroke();
-    // smile lines
-    g.strokeStyle = 'rgba(130,80,60,.45)'; g.lineWidth = 2.5; for (const o of [-1, 1]) { g.beginPath(); g.moveTo(128 + o * 30, 150); g.quadraticCurveTo(128 + o * 46, 172, 128 + o * 40, 192); g.stroke(); }
-    // grey stubble beard and moustache
-    stubble(g, 50, 160, 156, 96, .55); stubble(g, 96, 158, 64, 16, .9); stubble(g, 34, 130, 26, 90, .35); stubble(g, 196, 130, 26, 90, .35);
-    // big open smile with teeth
-    g.fillStyle = '#7a2e2a'; g.beginPath(); g.moveTo(94, 180); g.quadraticCurveTo(128, 222, 162, 180); g.quadraticCurveTo(128, 192, 94, 180); g.fill();
-    g.fillStyle = '#fbfaf6'; g.beginPath(); g.moveTo(98, 182); g.quadraticCurveTo(128, 196, 158, 182); g.lineTo(156, 190); g.quadraticCurveTo(128, 200, 100, 190); g.fill();
-  });
-  const sideTex = tex(g => { g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256); hairFill(g, 0, 0, 256, 92); hairFill(g, 150, 92, 106, 50);
-    g.fillStyle = '#c99479'; g.beginPath(); g.ellipse(118, 128, 18, 30, 0, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(120,75,55,.5)'; g.lineWidth = 3; g.beginPath(); g.ellipse(118, 128, 10, 20, 0, -1, 2.2); g.stroke();
-    stubble(g, 0, 150, 120, 106, .45); });
-  const backTex = tex(g => { g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256); hairFill(g, 0, 0, 256, 200); });
-  const topTex = tex(g => hairFill(g, 0, 0, 256, 256));
-  const part = (w, h, d, mat, x, y, z, par = rig) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); par.add(m); return m; };
-  const head = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), [std({ map: sideTex, roughness: .7 }), std({ map: sideTex, roughness: .7 }), std({ map: topTex, roughness: .9 }), skin, std({ map: backTex, roughness: .85 }), std({ map: faceTex, roughness: .6 })]);
-  head.position.y = 4.95; rig.add(head); AV.head = head;
-  part(1.4, 1.9, .7, shirt, 0, 3.45, 0); part(.5, .35, .05, collar, 0, 4.22, -.37);
-  const limb = (x, y, mat, len, w, end) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); part(w, len, w, mat, 0, -len / 2, 0, pv); if (end) part(w + .02, .35, w + (end === shoe ? .15 : .02), end, 0, -len + .17, end === shoe ? -.07 : 0, pv); return pv; };
-  AV.armL = limb(-.94, 4.3, shirt, 1.95, .42, skin); AV.armR = limb(.94, 4.3, shirt, 1.95, .42, skin);
-  AV.legL = limb(-.33, 2.5, pants, 2.5, .62, shoe); AV.legR = limb(.33, 2.5, pants, 2.5, .62, shoe);
-  AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1.2, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .28, depthWrite: false }));
-  AV.blob.rotation.x = -Math.PI / 2; AV.blob.visible = false; scene.add(AV.blob);
+const rig = new THREE.Group(); avatar.add(rig);
+// ---------- You: a faceless figure (man or woman) at the height you pick; walking uses the same eye height ----------
+const ME = { body: 'm', h: 5.75 }; // h in feet
+try { Object.assign(ME, JSON.parse(localStorage.getItem('walkthru-me') || '{}')); } catch (e) { }
+const eyeH = () => ME.h - .37; // eyes sit about 4½" below the top of the head
+const FIG_MAT = { skin: std({ color: '#d9c7b5', roughness: .7 }), shoe: std({ color: '#2a2522', roughness: .6 }),
+  m: { top: std({ color: '#3e4b5e', roughness: .85 }), legs: std({ color: '#2e3034', roughness: .85 }), hair: std({ color: '#3a2f28', roughness: .95 }) },
+  f: { top: std({ color: '#8c6a5f', roughness: .85 }), legs: std({ color: '#383b42', roughness: .85 }), hair: std({ color: '#5b4034', roughness: .95 }) } };
+// Built for a 5'-9" person standing on y = 0, facing −z, then scaled to the chosen height.
+function buildFigure() {
+  for (const c of [...rig.children]) { rig.remove(c); c.traverse(o => o.geometry?.dispose()); }
+  const F = ME.body === 'f', C = FIG_MAT[F ? 'f' : 'm'], sk = FIG_MAT.skin;
+  const mesh = (g, m, x, y, z, par = rig) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
+  const ell = (r, sx, sy, sz, m, x, y, z, par) => { const o = mesh(new THREE.SphereGeometry(r, 24, 16), m, x, y, z, par); o.scale.set(sx, sy, sz); return o; };
+  const cyl = (rt, rb, h, m, x, y, z, par, sz = 1) => { const o = mesh(new THREE.CylinderGeometry(rt, rb, h, 20), m, x, y, z, par); o.scale.z = sz; return o; };
+  const sh = F ? .5 : .6, hip = F ? .4 : .37, waist = F ? .3 : .34;
+  // torso, hips, neck, head (no face)
+  cyl(sh * .82, waist, .95, C.top, 0, 4.12, 0, rig, .58); cyl(waist, hip, .62, C.top, 0, 3.35, 0, rig, .62);
+  ell(hip, 1, .62, .66, C.legs, 0, 2.98, 0); for (const sx of [-1, 1]) ell(.17, 1, 1, 1, C.top, sx * sh * .86, 4.52, 0);
+  cyl(.11, .13, .32, sk, 0, 4.72, 0);
+  const head = ell(.33, .86, 1.08, .95, sk, 0, 5.18, 0);
+  if (F) { const h1 = ell(.35, .9, 1.06, .98, C.hair, 0, 5.22, .04); h1.scale.set(.9, 1.06, .98); const back = ell(.3, .95, 1.25, .7, C.hair, 0, 4.98, .18); ell(.15, 1, 1, 1, C.hair, 0, 5.42, .3); back.castShadow = true; }
+  else { const cap = new THREE.Mesh(new THREE.SphereGeometry(.345, 24, 12, 0, Math.PI * 2, 0, Math.PI * .5), C.hair); cap.position.set(0, 5.24, .03); cap.scale.set(.88, 1.02, .98); cap.rotation.x = .28; cap.castShadow = true; rig.add(cap); }
+  AV.head = head;
+  // limbs hang from pivots so walking can swing them
+  const limb = (x, y, par) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
+  for (const sx of [-1, 1]) {
+    const arm = limb(sx * (sh * .86 + .04), 4.48);
+    cyl(F ? .085 : .1, F ? .07 : .08, 1.15, C.top, 0, -.58, 0, arm); cyl(F ? .065 : .075, F ? .055 : .065, 1.05, sk, 0, -1.68, 0, arm); ell(F ? .08 : .095, .8, 1.25, .55, sk, 0, -2.28, 0, arm);
+    const leg = limb(sx * hip * .48, 2.92);
+    cyl(F ? .16 : .17, F ? .12 : .13, 1.45, C.legs, 0, -.72, 0, leg); cyl(F ? .11 : .12, F ? .075 : .085, 1.3, C.legs, 0, -2.08, 0, leg);
+    ell(.13, .85, .55, 1.9, FIG_MAT.shoe, 0, -2.83, -.1, leg);
+    if (sx < 0) { AV.armL = arm; AV.legL = leg; } else { AV.armR = arm; AV.legR = leg; }
+  }
+  avatar.scale.setScalar(ME.h / 5.75); if (AV.blob) AV.blob.scale.setScalar(.95 * ME.h / 5.75);
 }
+function setMe(patch) { Object.assign(ME, patch); try { localStorage.setItem('walkthru-me', JSON.stringify(ME)); } catch (e) { } buildFigure(); }
+AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .22, depthWrite: false }));
+AV.blob.rotation.x = -Math.PI / 2; AV.blob.visible = false; scene.add(AV.blob);
+buildFigure();
 const camRay = new THREE.Ray(), hitV = new THREE.Vector3(), headV = new THREE.Vector3(), boomV = new THREE.Vector3();
 function boomLength(from, dir, max) { // pull the camera in front of any wall between it and the avatar
   camRay.set(from, dir); let best = max;
@@ -310,7 +294,7 @@ function stepWalk(dt) {
     avatar.position.set(player.x, player.feet, player.z); avatar.rotation.y = AV.yaw;
     AV.blob.position.set(player.x, (g ?? player.feet) + .04, player.z);
     // camera: boom behind and above, eases back out after a wall pushes it in, never pokes through the ceiling
-    headV.set(player.x, player.feet + 4.3, player.z);
+    headV.set(player.x, player.feet + ME.h * .78, player.z);
     const e = AV.pitch; boomV.set(Math.sin(player.yaw) * Math.cos(e), Math.sin(e), Math.cos(player.yaw) * Math.cos(e));
     const want = boomLength(headV, boomV, AV.dist);
     AV.boom = want < AV.boom ? want : AV.boom + (want - AV.boom) * Math.min(1, dt * 3);
@@ -321,7 +305,7 @@ function stepWalk(dt) {
     camera.lookAt(headV.x, headV.y + .4, headV.z);
     avatar.visible = AV.boom > 2.4; AV.blob.visible = true;
   } else {
-    camera.position.set(player.x, player.feet + 5.4, player.z);
+    camera.position.set(player.x, player.feet + eyeH(), player.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];

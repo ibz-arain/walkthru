@@ -406,7 +406,8 @@ body.cl-pinning #stage{cursor:crosshair}
     <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></symbol>
     <symbol id="i-orbit" viewBox="0 0 24 24"><path d="M12 3.5 19.5 7.8v8.4L12 20.5l-7.5-4.3V7.8z"/><path d="M4.5 7.8 12 12l7.5-4.2M12 12v8.5"/></symbol>
     <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.7"/><path d="m9 21 2.2-6L9.5 11l3-2.5 2 3.5 3 1M11.2 15 14 17.5V21M9.5 11 7 12.5 6 15.5"/></symbol>
-    <symbol id="i-char" viewBox="0 0 24 24"><rect x="8.5" y="3" width="7" height="6" rx="1.2"/><path d="M7 10.5h10v6H7zM9.5 16.5V21M14.5 16.5V21"/></symbol>
+    <symbol id="i-char" viewBox="0 0 24 24"><circle cx="12" cy="4.6" r="2.2"/><path d="M8.6 21.5V14l-1.4-.6.9-5.2a1.5 1.5 0 0 1 1.5-1.2h4.8a1.5 1.5 0 0 1 1.5 1.2l.9 5.2-1.4.6v7.5M12 14.5v7"/></symbol>
+    <symbol id="i-height" viewBox="0 0 24 24"><circle cx="9" cy="4.6" r="2"/><path d="M6.2 21V14l-1.2-.5.8-4.8a1.3 1.3 0 0 1 1.3-1.1h3.8a1.3 1.3 0 0 1 1.3 1.1l.8 4.8-1.2.5v7M18.5 3v18M16.5 5l2-2 2 2M16.5 19l2 2 2-2"/></symbol>
     <symbol id="i-drop" viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.5"/><path d="M8.5 21v-6.5L7 14V10.5h10V14l-1.5.5V21"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
     <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
@@ -474,6 +475,7 @@ body.cl-pinning #stage{cursor:crosshair}
       <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button><button type="button" data-mode="char" data-tip="Play as a character"><svg class="ic"><use href="#i-char"/></svg></button>
     </div>
     <button class="tb-b" id="peg" type="button" data-tip="Drop in: drag onto the house" aria-label="Drop in"><svg class="ic"><use href="#i-drop"/></svg></button>
+    <button class="tb-b tb-wide" id="meBtn" type="button" data-pop="mePop" data-tip="Your body and height for walking"><svg class="ic"><use href="#i-height"/></svg><span class="tb-t" id="meNow">5'9"</span></button>
   </div>
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
@@ -538,6 +540,14 @@ body.cl-pinning #stage{cursor:crosshair}
     <p class="pop-note" style="margin-top:0">Sign in to keep your designs on every device, share them with buyers and work with your team.</p>
     <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
   </div>
+</div>
+<div class="pop" id="mePop" hidden role="dialog" aria-label="You">
+  <h6>Walk as</h6>
+  <div class="seg full"><button type="button" data-body="m">Man</button><button type="button" data-body="f">Woman</button></div>
+  <h6>Height <output id="meHv" class="pop-out"></output></h6>
+  <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
+  <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
+  <p class="pop-note">Walk and Character modes see the house from this eye height, so you can check counters, windows and sightlines at your own size.</p>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -759,7 +769,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <div id="hintWalk" hidden></div>
 </div>
 <div class="panel" id="mini" hidden><canvas id="miniC" width="380" height="300"></canvas></div>
-<div id="pegGhost" hidden><svg viewBox="0 0 30 44" width="34" height="50" aria-hidden="true"><circle cx="15" cy="8" r="6.5" fill="#f2c94c" stroke="#1b1c1e" stroke-width="1.5"/><rect x="7" y="15" width="16" height="13" rx="2" fill="#2f6fd6" stroke="#1b1c1e" stroke-width="1.5"/><rect x="8.5" y="28" width="5.5" height="13" rx="1.5" fill="#2b3340" stroke="#1b1c1e" stroke-width="1.5"/><rect x="16" y="28" width="5.5" height="13" rx="1.5" fill="#2b3340" stroke="#1b1c1e" stroke-width="1.5"/></svg></div>
+<div id="pegGhost" hidden><svg viewBox="0 0 30 64" width="26" height="56" aria-hidden="true"><ellipse cx="15" cy="7" rx="5" ry="6" fill="#d9c7b5"/><path d="M15 1.2c-3.4 0-5.3 2.2-5.3 4.6 1.6-1.6 3.4-2.2 5.3-2.2s3.7.6 5.3 2.2C20.3 3.4 18.4 1.2 15 1.2z" fill="#3a2f28"/><path d="M9 15h12l2 15h-3l-1-9v13H11V21l-1 9H7z" fill="#3e4b5e"/><path d="M11 34h8l-.5 27h-3l-.5-20-.5 20h-3z" fill="#2e3034"/></svg></div>
 <div class="panel" id="pad" hidden>
   <span></span><button data-k="f" aria-label="Forward">▲</button><span></span>
   <button data-k="l" aria-label="Step left">◀</button><button data-k="b" aria-label="Back">▼</button><button data-k="r" aria-label="Step right">▶</button>
@@ -3642,7 +3652,7 @@ function exitWalk() {
   document.getElementById('hintOrbit').hidden = false;
 }
 function collide() {
-  const r = 0.85, lo = player.feet + 1.0, hi = player.feet + 5.6;
+  const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
   for (const b of colliders) {
     if (b.max.y < lo || b.min.y > hi || !shown(b.mesh)) continue;
     if (player.x + r <= b.min.x || player.x - r >= b.max.x || player.z + r <= b.min.z || player.z - r >= b.max.z) continue;
@@ -3654,62 +3664,46 @@ function collide() {
 // ---------- Avatar: blocky character for third-person "play" mode ----------
 const avatar = new THREE.Group(); avatar.visible = false; scene.add(avatar);
 const AV = { yaw: 0, phase: 0, amp: 0, third: false, dist: 12, pitch: .32, boom: 12, camY: 0, t: 0 };
-const rig = new THREE.Group(); avatar.add(rig); avatar.scale.setScalar(.82);
-{
-  const skin = std({ color: '#d9a68b', roughness: .6 }), shirt = std({ color: '#26324a', roughness: .75 }), pants = std({ color: '#3a3d44', roughness: .8 }), shoe = std({ color: '#3a2a1f', roughness: .6 });
-  const hair = std({ color: '#6b5440', roughness: .9 }), collar = std({ color: '#b9cbe6', roughness: .7 });
-  // Hand-drawn head textures: forties, short salt-and-pepper hair, blue eyes, grey stubble, big smile.
-  const tex = (draw) => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); draw(g); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
-  const rnd = (() => { let s = 7; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
-  const SKIN = '#d9a68b';
-  const hairFill = (g, x, y, w, h) => { g.fillStyle = '#7d7670'; g.fillRect(x, y, w, h);
-    for (let i = 0; i < w * h / 7; i++) { const v = rnd(); g.fillStyle = v < .4 ? '#4f4741' : v < .75 ? '#9a948e' : '#c4bfb9'; g.fillRect(x + rnd() * w, y + rnd() * h, 2, 3); } };
-  const stubble = (g, x, y, w, h, dens) => { for (let i = 0; i < w * h * dens; i++) { const v = rnd(); g.fillStyle = v < .5 ? 'rgba(90,80,72,.45)' : 'rgba(150,145,140,.45)'; g.fillRect(x + rnd() * w, y + rnd() * h, 1.6, 1.6); } };
-  const faceTex = tex(g => {
-    g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256);
-    const sh = g.createRadialGradient(128, 120, 40, 128, 128, 170); sh.addColorStop(0, 'rgba(255,230,210,.18)'); sh.addColorStop(1, 'rgba(120,70,50,.18)'); g.fillStyle = sh; g.fillRect(0, 0, 256, 256);
-    hairFill(g, 0, 0, 256, 34); // short hairline, a little higher at the temples
-    g.fillStyle = SKIN; g.beginPath(); g.moveTo(0, 34); g.quadraticCurveTo(30, 18, 52, 34); g.fill(); g.beginPath(); g.moveTo(256, 34); g.quadraticCurveTo(226, 18, 204, 34); g.fill();
-    // forehead lines
-    g.strokeStyle = 'rgba(140,90,70,.35)'; g.lineWidth = 2; for (const y of [58, 68]) { g.beginPath(); g.moveTo(92, y); g.quadraticCurveTo(128, y - 4, 164, y); g.stroke(); }
-    // brows
-    g.fillStyle = '#5b514a'; for (const x of [70, 150]) { g.beginPath(); g.moveTo(x, 92); g.quadraticCurveTo(x + 18, 80, x + 38, 90); g.lineTo(x + 38, 96); g.quadraticCurveTo(x + 18, 88, x, 98); g.fill(); }
-    // eyes: whites, blue iris, pupil, glint, crow's feet
-    for (const cx of [88, 168]) {
-      g.fillStyle = '#f7f3ee'; g.beginPath(); g.ellipse(cx, 112, 16, 9, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#5f8fc4'; g.beginPath(); g.arc(cx, 112, 8, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#1b2430'; g.beginPath(); g.arc(cx, 112, 3.6, 0, Math.PI * 2); g.fill();
-      g.fillStyle = '#fff'; g.beginPath(); g.arc(cx + 3, 109, 2, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = 'rgba(120,75,55,.55)'; g.lineWidth = 2; g.beginPath(); g.ellipse(cx, 113, 17, 10, 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
-      const o = cx < 128 ? -1 : 1; g.strokeStyle = 'rgba(140,90,70,.4)'; g.lineWidth = 1.5;
-      for (const d of [-5, 0, 5]) { g.beginPath(); g.moveTo(cx + o * 19, 112 + d * .6); g.lineTo(cx + o * 28, 110 + d); g.stroke(); }
-    }
-    // nose
-    g.strokeStyle = 'rgba(130,80,60,.6)'; g.lineWidth = 3; g.beginPath(); g.moveTo(124, 118); g.quadraticCurveTo(118, 150, 128, 156); g.quadraticCurveTo(138, 158, 142, 152); g.stroke();
-    // smile lines
-    g.strokeStyle = 'rgba(130,80,60,.45)'; g.lineWidth = 2.5; for (const o of [-1, 1]) { g.beginPath(); g.moveTo(128 + o * 30, 150); g.quadraticCurveTo(128 + o * 46, 172, 128 + o * 40, 192); g.stroke(); }
-    // grey stubble beard and moustache
-    stubble(g, 50, 160, 156, 96, .55); stubble(g, 96, 158, 64, 16, .9); stubble(g, 34, 130, 26, 90, .35); stubble(g, 196, 130, 26, 90, .35);
-    // big open smile with teeth
-    g.fillStyle = '#7a2e2a'; g.beginPath(); g.moveTo(94, 180); g.quadraticCurveTo(128, 222, 162, 180); g.quadraticCurveTo(128, 192, 94, 180); g.fill();
-    g.fillStyle = '#fbfaf6'; g.beginPath(); g.moveTo(98, 182); g.quadraticCurveTo(128, 196, 158, 182); g.lineTo(156, 190); g.quadraticCurveTo(128, 200, 100, 190); g.fill();
-  });
-  const sideTex = tex(g => { g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256); hairFill(g, 0, 0, 256, 92); hairFill(g, 150, 92, 106, 50);
-    g.fillStyle = '#c99479'; g.beginPath(); g.ellipse(118, 128, 18, 30, 0, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = 'rgba(120,75,55,.5)'; g.lineWidth = 3; g.beginPath(); g.ellipse(118, 128, 10, 20, 0, -1, 2.2); g.stroke();
-    stubble(g, 0, 150, 120, 106, .45); });
-  const backTex = tex(g => { g.fillStyle = SKIN; g.fillRect(0, 0, 256, 256); hairFill(g, 0, 0, 256, 200); });
-  const topTex = tex(g => hairFill(g, 0, 0, 256, 256));
-  const part = (w, h, d, mat, x, y, z, par = rig) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); par.add(m); return m; };
-  const head = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), [std({ map: sideTex, roughness: .7 }), std({ map: sideTex, roughness: .7 }), std({ map: topTex, roughness: .9 }), skin, std({ map: backTex, roughness: .85 }), std({ map: faceTex, roughness: .6 })]);
-  head.position.y = 4.95; rig.add(head); AV.head = head;
-  part(1.4, 1.9, .7, shirt, 0, 3.45, 0); part(.5, .35, .05, collar, 0, 4.22, -.37);
-  const limb = (x, y, mat, len, w, end) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); part(w, len, w, mat, 0, -len / 2, 0, pv); if (end) part(w + .02, .35, w + (end === shoe ? .15 : .02), end, 0, -len + .17, end === shoe ? -.07 : 0, pv); return pv; };
-  AV.armL = limb(-.94, 4.3, shirt, 1.95, .42, skin); AV.armR = limb(.94, 4.3, shirt, 1.95, .42, skin);
-  AV.legL = limb(-.33, 2.5, pants, 2.5, .62, shoe); AV.legR = limb(.33, 2.5, pants, 2.5, .62, shoe);
-  AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1.2, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .28, depthWrite: false }));
-  AV.blob.rotation.x = -Math.PI / 2; AV.blob.visible = false; scene.add(AV.blob);
+const rig = new THREE.Group(); avatar.add(rig);
+// ---------- You: a faceless figure (man or woman) at the height you pick; walking uses the same eye height ----------
+const ME = { body: 'm', h: 5.75 }; // h in feet
+try { Object.assign(ME, JSON.parse(localStorage.getItem('walkthru-me') || '{}')); } catch (e) { }
+const eyeH = () => ME.h - .37; // eyes sit about 4½" below the top of the head
+const FIG_MAT = { skin: std({ color: '#d9c7b5', roughness: .7 }), shoe: std({ color: '#2a2522', roughness: .6 }),
+  m: { top: std({ color: '#3e4b5e', roughness: .85 }), legs: std({ color: '#2e3034', roughness: .85 }), hair: std({ color: '#3a2f28', roughness: .95 }) },
+  f: { top: std({ color: '#8c6a5f', roughness: .85 }), legs: std({ color: '#383b42', roughness: .85 }), hair: std({ color: '#5b4034', roughness: .95 }) } };
+// Built for a 5'-9" person standing on y = 0, facing −z, then scaled to the chosen height.
+function buildFigure() {
+  for (const c of [...rig.children]) { rig.remove(c); c.traverse(o => o.geometry?.dispose()); }
+  const F = ME.body === 'f', C = FIG_MAT[F ? 'f' : 'm'], sk = FIG_MAT.skin;
+  const mesh = (g, m, x, y, z, par = rig) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
+  const ell = (r, sx, sy, sz, m, x, y, z, par) => { const o = mesh(new THREE.SphereGeometry(r, 24, 16), m, x, y, z, par); o.scale.set(sx, sy, sz); return o; };
+  const cyl = (rt, rb, h, m, x, y, z, par, sz = 1) => { const o = mesh(new THREE.CylinderGeometry(rt, rb, h, 20), m, x, y, z, par); o.scale.z = sz; return o; };
+  const sh = F ? .5 : .6, hip = F ? .4 : .37, waist = F ? .3 : .34;
+  // torso, hips, neck, head (no face)
+  cyl(sh * .82, waist, .95, C.top, 0, 4.12, 0, rig, .58); cyl(waist, hip, .62, C.top, 0, 3.35, 0, rig, .62);
+  ell(hip, 1, .62, .66, C.legs, 0, 2.98, 0); for (const sx of [-1, 1]) ell(.17, 1, 1, 1, C.top, sx * sh * .86, 4.52, 0);
+  cyl(.11, .13, .32, sk, 0, 4.72, 0);
+  const head = ell(.33, .86, 1.08, .95, sk, 0, 5.18, 0);
+  if (F) { const h1 = ell(.35, .9, 1.06, .98, C.hair, 0, 5.22, .04); h1.scale.set(.9, 1.06, .98); const back = ell(.3, .95, 1.25, .7, C.hair, 0, 4.98, .18); ell(.15, 1, 1, 1, C.hair, 0, 5.42, .3); back.castShadow = true; }
+  else { const cap = new THREE.Mesh(new THREE.SphereGeometry(.345, 24, 12, 0, Math.PI * 2, 0, Math.PI * .5), C.hair); cap.position.set(0, 5.24, .03); cap.scale.set(.88, 1.02, .98); cap.rotation.x = .28; cap.castShadow = true; rig.add(cap); }
+  AV.head = head;
+  // limbs hang from pivots so walking can swing them
+  const limb = (x, y, par) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
+  for (const sx of [-1, 1]) {
+    const arm = limb(sx * (sh * .86 + .04), 4.48);
+    cyl(F ? .085 : .1, F ? .07 : .08, 1.15, C.top, 0, -.58, 0, arm); cyl(F ? .065 : .075, F ? .055 : .065, 1.05, sk, 0, -1.68, 0, arm); ell(F ? .08 : .095, .8, 1.25, .55, sk, 0, -2.28, 0, arm);
+    const leg = limb(sx * hip * .48, 2.92);
+    cyl(F ? .16 : .17, F ? .12 : .13, 1.45, C.legs, 0, -.72, 0, leg); cyl(F ? .11 : .12, F ? .075 : .085, 1.3, C.legs, 0, -2.08, 0, leg);
+    ell(.13, .85, .55, 1.9, FIG_MAT.shoe, 0, -2.83, -.1, leg);
+    if (sx < 0) { AV.armL = arm; AV.legL = leg; } else { AV.armR = arm; AV.legR = leg; }
+  }
+  avatar.scale.setScalar(ME.h / 5.75); if (AV.blob) AV.blob.scale.setScalar(.95 * ME.h / 5.75);
 }
+function setMe(patch) { Object.assign(ME, patch); try { localStorage.setItem('walkthru-me', JSON.stringify(ME)); } catch (e) { } buildFigure(); }
+AV.blob = new THREE.Mesh(new THREE.CircleGeometry(1, 24), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: .22, depthWrite: false }));
+AV.blob.rotation.x = -Math.PI / 2; AV.blob.visible = false; scene.add(AV.blob);
+buildFigure();
 const camRay = new THREE.Ray(), hitV = new THREE.Vector3(), headV = new THREE.Vector3(), boomV = new THREE.Vector3();
 function boomLength(from, dir, max) { // pull the camera in front of any wall between it and the avatar
   camRay.set(from, dir); let best = max;
@@ -3777,7 +3771,7 @@ function stepWalk(dt) {
     avatar.position.set(player.x, player.feet, player.z); avatar.rotation.y = AV.yaw;
     AV.blob.position.set(player.x, (g ?? player.feet) + .04, player.z);
     // camera: boom behind and above, eases back out after a wall pushes it in, never pokes through the ceiling
-    headV.set(player.x, player.feet + 4.3, player.z);
+    headV.set(player.x, player.feet + ME.h * .78, player.z);
     const e = AV.pitch; boomV.set(Math.sin(player.yaw) * Math.cos(e), Math.sin(e), Math.cos(player.yaw) * Math.cos(e));
     const want = boomLength(headV, boomV, AV.dist);
     AV.boom = want < AV.boom ? want : AV.boom + (want - AV.boom) * Math.min(1, dt * 3);
@@ -3788,7 +3782,7 @@ function stepWalk(dt) {
     camera.lookAt(headV.x, headV.y + .4, headV.z);
     avatar.visible = AV.boom > 2.4; AV.blob.visible = true;
   } else {
-    camera.position.set(player.x, player.feet + 5.4, player.z);
+    camera.position.set(player.x, player.feet + eyeH(), player.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
@@ -4616,7 +4610,7 @@ document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => set
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
-  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(),
+  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
   dockPop: () => { press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
   pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
@@ -4739,6 +4733,16 @@ $u('expo').oninput = e => { renderer.toneMappingExposure = +e.target.value; $u('
 $u('fov').oninput = e => { orbitFov = +e.target.value; $u('fovv').textContent = e.target.value + '°'; if (mode !== 'walk') { camera.fov = orbitFov; camera.updateProjectionMatrix(); } };
 let sunPlay = false;
 $u('sunPlay').onclick = () => { sunPlay = !sunPlay; $u('sunPlay').setAttribute('aria-pressed', String(sunPlay)); $u('sunPlay').innerHTML = `<svg class="ic"><use href="#i-${sunPlay ? 'pause' : 'play'}"/></svg>`; };
+
+// ---------- you: body and height ----------
+const fmtH = ft => { const t = Math.round(ft * 12); return `${Math.floor(t / 12)}'${t % 12}"`; };
+function syncMe() {
+  press('[data-body]', 'body', ME.body); $u('meH').value = Math.round(ME.h * 12); $u('meHv').textContent = fmtH(ME.h); $u('meNow').textContent = fmtH(ME.h);
+  document.querySelectorAll('[data-hpre]').forEach(b => b.setAttribute('aria-pressed', String(Math.round(+b.dataset.hpre * 12) === Math.round(ME.h * 12))));
+}
+document.querySelectorAll('[data-body]').forEach(b => b.onclick = () => { setMe({ body: b.dataset.body }); syncMe(); window.wtTrack?.('avatar', { body: ME.body }); });
+document.querySelectorAll('[data-hpre]').forEach(b => b.onclick = () => { setMe({ h: +b.dataset.hpre }); syncMe(); });
+$u('meH').oninput = e => { setMe({ h: +e.target.value / 12 }); syncMe(); };
 
 // ---------- measure ----------
 const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene.add(MEAS.group);
@@ -4886,7 +4890,7 @@ const uiClock = new THREE.Clock();
 })();
 
 setDock(['top', 'bottom', 'left', 'right'].includes(ST.get('walkthru-dock', 'top')) ? ST.get('walkthru-dock', 'top') : 'top');
-press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer');
+press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe();
 uiReady = true; uiSync(); uiEditing(PE.open); updateViewOffset();
 
 

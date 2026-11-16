@@ -37,7 +37,7 @@ document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => set
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
-  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(),
+  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
   dockPop: () => { press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
   pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
@@ -160,6 +160,16 @@ $u('expo').oninput = e => { renderer.toneMappingExposure = +e.target.value; $u('
 $u('fov').oninput = e => { orbitFov = +e.target.value; $u('fovv').textContent = e.target.value + '°'; if (mode !== 'walk') { camera.fov = orbitFov; camera.updateProjectionMatrix(); } };
 let sunPlay = false;
 $u('sunPlay').onclick = () => { sunPlay = !sunPlay; $u('sunPlay').setAttribute('aria-pressed', String(sunPlay)); $u('sunPlay').innerHTML = `<svg class="ic"><use href="#i-${sunPlay ? 'pause' : 'play'}"/></svg>`; };
+
+// ---------- you: body and height ----------
+const fmtH = ft => { const t = Math.round(ft * 12); return `${Math.floor(t / 12)}'${t % 12}"`; };
+function syncMe() {
+  press('[data-body]', 'body', ME.body); $u('meH').value = Math.round(ME.h * 12); $u('meHv').textContent = fmtH(ME.h); $u('meNow').textContent = fmtH(ME.h);
+  document.querySelectorAll('[data-hpre]').forEach(b => b.setAttribute('aria-pressed', String(Math.round(+b.dataset.hpre * 12) === Math.round(ME.h * 12))));
+}
+document.querySelectorAll('[data-body]').forEach(b => b.onclick = () => { setMe({ body: b.dataset.body }); syncMe(); window.wtTrack?.('avatar', { body: ME.body }); });
+document.querySelectorAll('[data-hpre]').forEach(b => b.onclick = () => { setMe({ h: +b.dataset.hpre }); syncMe(); });
+$u('meH').oninput = e => { setMe({ h: +e.target.value / 12 }); syncMe(); };
 
 // ---------- measure ----------
 const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene.add(MEAS.group);
@@ -307,5 +317,5 @@ const uiClock = new THREE.Clock();
 })();
 
 setDock(['top', 'bottom', 'left', 'right'].includes(ST.get('walkthru-dock', 'top')) ? ST.get('walkthru-dock', 'top') : 'top');
-press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer');
+press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe();
 uiReady = true; uiSync(); uiEditing(PE.open); updateViewOffset();
