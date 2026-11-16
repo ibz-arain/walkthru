@@ -80,6 +80,7 @@ body.ui-hidden .tb{display:none}
 .tb-b .chev{width:12px;height:12px;margin-left:-2px;color:var(--ink-3)}
 .tb-wide{color:var(--ink)}
 .tb-t{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.cl-customer #homeLink{display:none}
 #homeLink.wordmark{font:600 14.5px/1 var(--f-ui);letter-spacing:-.01em;color:var(--ink);padding:0 10px}
 body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:10.5px;padding:0}
 .tb-seg button{height:28px;padding:0 9px}
@@ -89,8 +90,6 @@ body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:1
 .tb-primary:hover{opacity:.88}
 .tb-primary .ic{width:15px;height:15px}
 .avatar{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font:600 10.5px/1 var(--f-ui);letter-spacing:.02em}
-.acc-head{display:flex;flex-direction:column;gap:1px;padding:6px 8px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
-.acc-head b{font-weight:600;font-size:13.5px}.acc-head span{font-size:12px;color:var(--ink-2)}.acc-org{margin-top:4px;color:var(--ink-3)!important}
 .sync-note{display:flex;gap:6px;align-items:flex-start;line-height:1.45}.sync-note .ic{width:14px;height:14px;margin-top:1px;color:var(--ink-3)}
 #checkCount:empty{display:none}
 #checkCount{position:absolute;top:2px;right:1px;background:#d97706;color:#fff;border-radius:99px;font:600 9.5px/1 var(--f-ui);padding:2px 4px;min-width:8px;text-align:center}
@@ -302,6 +301,14 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
   .tb-t{max-width:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* account menu (same look as Studio's) */
+#acctPop{width:240px;padding:6px}
+#acctPop .st-who{display:flex;flex-direction:column;gap:1px;padding:8px 10px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+#acctPop .st-who b{font-size:13.5px;font-weight:600}#acctPop .st-who span{font-size:12px;color:var(--ink-2)}#acctPop .st-org{margin-top:4px;color:var(--ink-3)!important}
+#acctPop button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer}
+#acctPop button:hover{background:var(--paper-2)}
+#acctBtn .avatar{width:28px;height:28px;font-size:11px}
 
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
@@ -532,9 +539,8 @@ body.editing .cl-save{display:none}
 <!-- ===== Toolbar (docks to any edge) ===== -->
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
-    <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
+    <button class="tb-b" id="homeLink" type="button" data-tip="All projects" aria-label="All projects"><svg class="ic"><use href="#i-back"/></svg></button>
     <span class="tb-proj" id="clHead" hidden>
-      <button class="tb-b" id="clBack" type="button" hidden data-tip="All projects" aria-label="All projects"><svg class="ic"><use href="#i-back"/></svg></button>
       <span class="cl-brand" id="clBrand"></span>
       <input id="clTitle" class="cl-title" aria-label="Project name" maxlength="80">
       <span class="cl-save" id="clSave" aria-live="polite"></span>
@@ -625,16 +631,9 @@ body.editing .cl-save{display:none}
   <p class="pop-note sync-note"><svg class="ic"><use href="#i-cloud"/></svg><span id="syncState">Designs are saved in this browser only.</span></p>
   <div class="dm-row dm-new"><span>New from</span><button class="btn" id="designNewPermit" type="button">Sample plan</button><button class="btn" id="designNewBlank" type="button">Blank page</button></div>
 </div>
-<div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
-  <div id="accIn" hidden>
-    <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
-    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
-  </div>
-  <div id="accOut">
-    <h6>Account</h6>
-    <p class="pop-note" style="margin-top:0">Sign in to save and share.</p>
-    <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
-  </div>
+<div class="pop acct-menu" id="acctPop" hidden role="menu" aria-label="Account">
+  <div class="st-who"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="st-org"></span></div>
+  <button type="button" id="accOutBtn" role="menuitem">Sign out</button>
 </div>
 <div class="pop" id="mePop" hidden role="dialog" aria-label="Play as a person">
   <h6>Person</h6>
@@ -820,7 +819,7 @@ body.editing .cl-save{display:none}
     <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button>
       <div class="st-acct"><button class="st-av" id="stAvatar" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar" id="stInit"></span></button>
         <div class="st-menu" id="stMenu" hidden role="menu"><div class="st-who"><b id="stName"></b><span id="stMail"></span><span id="stOrg" class="st-org"></span></div>
-          <a href="/account" role="menuitem">Account and team</a><button type="button" id="stOut" role="menuitem">Sign out</button></div></div></div>
+          <button type="button" id="stOut" role="menuitem">Sign out</button></div></div></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -4441,19 +4440,13 @@ async function pullDesigns() {
 // ---------- toolbar menu ----------
 function accRender() {
   const b = accEl('acctBtn'); if (!b) return;
-  const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('') : '';
-  b.innerHTML = u ? `<span class="avatar">${initials}</span>` : '<svg class="ic"><use href="#i-user"/></svg>';
-  b.dataset.tip = u ? `${u.name || u.email}` : 'Sign in to save your designs';
+  const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') : '';
+  b.innerHTML = `<span class="avatar">${initials}</span>`; b.dataset.tip = u ? (u.name || u.email) : '';
   const st = accEl('syncState'); if (st) st.textContent = !u ? 'Designs are saved in this browser only.' : { saving: 'Saving to your account…', saved: 'All designs saved to your account.', error: 'Couldn’t reach the server. Changes are kept here and will retry.', local: 'Saved in this browser.' }[ACC.sync];
-  const p = accEl('acctPop'); if (!p) return;
-  p.querySelector('#accIn').hidden = !u; p.querySelector('#accOut').hidden = !!u;
-  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : 'No workspace'; }
+  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }
 }
-accEl('accSignIn').onclick = () => { location.href = signInUrl('login'); };
-accEl('accSignUp').onclick = () => { location.href = signInUrl('signup'); };
-accEl('accSettings').onclick = () => { location.href = '/account'; };
-accEl('accStudio').onclick = () => { closePops(); location.hash = '#admin'; };
-accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.reload(); };
+accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.href = '/'; };
+accEl('homeLink').onclick = () => { location.hash = '#admin'; };
 
 (async () => {
   try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }
@@ -4701,7 +4694,7 @@ async function openProject(id, keepView) {
   const first = !CL.project || CL.project.project.id !== id;
   CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
-  $c('clBack').hidden = false; $c('clBrand').textContent = '';
+  $c('clBrand').textContent = '';
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
   $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
   setSave('Saved'); banner(''); chrome(); renderPins();
@@ -4730,7 +4723,6 @@ $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
   CL.project.project.name = name; await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { name }); setSave('Renamed');
 };
-$c('clBack').onclick = () => goRoute('#admin');
 async function viewCustomerVersion(token) {
   const s = await cloudApi('GET', `share?token=${token}&as=studio`); CL.view = token;
   showDesign(s.bm, { save: null }); chrome(); clearPins();
@@ -4767,7 +4759,7 @@ async function openShare(token) {
   CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
-  $c('clBack').hidden = true; $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
+  $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
   const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
   $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();

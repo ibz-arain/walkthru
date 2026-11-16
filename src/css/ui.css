@@ -70,6 +70,7 @@ body.ui-hidden .tb{display:none}
 .tb-b .chev{width:12px;height:12px;margin-left:-2px;color:var(--ink-3)}
 .tb-wide{color:var(--ink)}
 .tb-t{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.cl-customer #homeLink{display:none}
 #homeLink.wordmark{font:600 14.5px/1 var(--f-ui);letter-spacing:-.01em;color:var(--ink);padding:0 10px}
 body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:10.5px;padding:0}
 .tb-seg button{height:28px;padding:0 9px}
@@ -79,8 +80,6 @@ body.dock-left #homeLink.wordmark,body.dock-right #homeLink.wordmark{font-size:1
 .tb-primary:hover{opacity:.88}
 .tb-primary .ic{width:15px;height:15px}
 .avatar{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font:600 10.5px/1 var(--f-ui);letter-spacing:.02em}
-.acc-head{display:flex;flex-direction:column;gap:1px;padding:6px 8px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
-.acc-head b{font-weight:600;font-size:13.5px}.acc-head span{font-size:12px;color:var(--ink-2)}.acc-org{margin-top:4px;color:var(--ink-3)!important}
 .sync-note{display:flex;gap:6px;align-items:flex-start;line-height:1.45}.sync-note .ic{width:14px;height:14px;margin-top:1px;color:var(--ink-3)}
 #checkCount:empty{display:none}
 #checkCount{position:absolute;top:2px;right:1px;background:#d97706;color:#fff;border-radius:99px;font:600 9.5px/1 var(--f-ui);padding:2px 4px;min-width:8px;text-align:center}
@@ -292,3 +291,11 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
   .tb-t{max-width:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* account menu (same look as Studio's) */
+#acctPop{width:240px;padding:6px}
+#acctPop .st-who{display:flex;flex-direction:column;gap:1px;padding:8px 10px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+#acctPop .st-who b{font-size:13.5px;font-weight:600}#acctPop .st-who span{font-size:12px;color:var(--ink-2)}#acctPop .st-org{margin-top:4px;color:var(--ink-3)!important}
+#acctPop button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer}
+#acctPop button:hover{background:var(--paper-2)}
+#acctBtn .avatar{width:28px;height:28px;font-size:11px}

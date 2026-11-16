@@ -231,7 +231,7 @@ async function openProject(id, keepView) {
   const first = !CL.project || CL.project.project.id !== id;
   CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
-  $c('clBack').hidden = false; $c('clBrand').textContent = '';
+  $c('clBrand').textContent = '';
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
   $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
   setSave('Saved'); banner(''); chrome(); renderPins();
@@ -260,7 +260,6 @@ $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
   CL.project.project.name = name; await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { name }); setSave('Renamed');
 };
-$c('clBack').onclick = () => goRoute('#admin');
 async function viewCustomerVersion(token) {
   const s = await cloudApi('GET', `share?token=${token}&as=studio`); CL.view = token;
   showDesign(s.bm, { save: null }); chrome(); clearPins();
@@ -297,7 +296,7 @@ async function openShare(token) {
   CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
-  $c('clBack').hidden = true; $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
+  $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
   const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
   $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();

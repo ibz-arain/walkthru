@@ -56,19 +56,13 @@ async function pullDesigns() {
 // ---------- toolbar menu ----------
 function accRender() {
   const b = accEl('acctBtn'); if (!b) return;
-  const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0].toUpperCase()).join('') : '';
-  b.innerHTML = u ? `<span class="avatar">${initials}</span>` : '<svg class="ic"><use href="#i-user"/></svg>';
-  b.dataset.tip = u ? `${u.name || u.email}` : 'Sign in to save your designs';
+  const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') : '';
+  b.innerHTML = `<span class="avatar">${initials}</span>`; b.dataset.tip = u ? (u.name || u.email) : '';
   const st = accEl('syncState'); if (st) st.textContent = !u ? 'Designs are saved in this browser only.' : { saving: 'Saving to your account…', saved: 'All designs saved to your account.', error: 'Couldn’t reach the server. Changes are kept here and will retry.', local: 'Saved in this browser.' }[ACC.sync];
-  const p = accEl('acctPop'); if (!p) return;
-  p.querySelector('#accIn').hidden = !u; p.querySelector('#accOut').hidden = !!u;
-  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : 'No workspace'; }
+  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }
 }
-accEl('accSignIn').onclick = () => { location.href = signInUrl('login'); };
-accEl('accSignUp').onclick = () => { location.href = signInUrl('signup'); };
-accEl('accSettings').onclick = () => { location.href = '/account'; };
-accEl('accStudio').onclick = () => { closePops(); location.hash = '#admin'; };
-accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.reload(); };
+accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.href = '/'; };
+accEl('homeLink').onclick = () => { location.hash = '#admin'; };
 
 (async () => {
   try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }

@@ -64,9 +64,8 @@
 <!-- ===== Toolbar (docks to any edge) ===== -->
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
-    <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
+    <button class="tb-b" id="homeLink" type="button" data-tip="All projects" aria-label="All projects"><svg class="ic"><use href="#i-back"/></svg></button>
     <span class="tb-proj" id="clHead" hidden>
-      <button class="tb-b" id="clBack" type="button" hidden data-tip="All projects" aria-label="All projects"><svg class="ic"><use href="#i-back"/></svg></button>
       <span class="cl-brand" id="clBrand"></span>
       <input id="clTitle" class="cl-title" aria-label="Project name" maxlength="80">
       <span class="cl-save" id="clSave" aria-live="polite"></span>
@@ -157,16 +156,9 @@
   <p class="pop-note sync-note"><svg class="ic"><use href="#i-cloud"/></svg><span id="syncState">Designs are saved in this browser only.</span></p>
   <div class="dm-row dm-new"><span>New from</span><button class="btn" id="designNewPermit" type="button">Sample plan</button><button class="btn" id="designNewBlank" type="button">Blank page</button></div>
 </div>
-<div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
-  <div id="accIn" hidden>
-    <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
-    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
-  </div>
-  <div id="accOut">
-    <h6>Account</h6>
-    <p class="pop-note" style="margin-top:0">Sign in to save and share.</p>
-    <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
-  </div>
+<div class="pop acct-menu" id="acctPop" hidden role="menu" aria-label="Account">
+  <div class="st-who"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="st-org"></span></div>
+  <button type="button" id="accOutBtn" role="menuitem">Sign out</button>
 </div>
 <div class="pop" id="mePop" hidden role="dialog" aria-label="Play as a person">
   <h6>Person</h6>
@@ -352,7 +344,7 @@
     <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button>
       <div class="st-acct"><button class="st-av" id="stAvatar" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar" id="stInit"></span></button>
         <div class="st-menu" id="stMenu" hidden role="menu"><div class="st-who"><b id="stName"></b><span id="stMail"></span><span id="stOrg" class="st-org"></span></div>
-          <a href="/account" role="menuitem">Account and team</a><button type="button" id="stOut" role="menuitem">Sign out</button></div></div></div>
+          <button type="button" id="stOut" role="menuitem">Sign out</button></div></div></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
