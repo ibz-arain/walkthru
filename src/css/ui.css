@@ -137,7 +137,7 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .menu.sepd{border-top:1px solid var(--rule);margin-top:4px;padding-top:4px}
 .menu button .ic{color:var(--ink-2)}
 #morePop,#edMorePop{width:250px}
-.nav-mini{max-height:240px;overflow:auto;margin:0 0 4px;scrollbar-width:thin}
+.nav-mini{max-height:240px;overflow:auto;margin:0 0 4px}
 .nav-mini p{margin:8px 6px 4px;font:500 11px var(--f-ui);color:var(--ink-3)}
 .nav-mini div{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px}
 .nav-mini button{font:12.5px var(--f-ui);color:var(--ink);background:var(--paper-2);border:1px solid transparent;border-radius:7px;padding:5px 9px;cursor:pointer}
@@ -185,7 +185,7 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .sp-h h2{margin:0;font-size:13.5px;font-weight:600;letter-spacing:-.005em}
 .sp-x{width:28px;height:28px;display:grid;place-items:center;border:0;background:none;border-radius:6px;color:var(--ink-2);cursor:pointer}
 .sp-x:hover{background:var(--paper-2);color:var(--ink)}
-.sp-b{flex:1;overflow:auto;padding:6px 10px 20px;scrollbar-width:thin}
+.sp-b{flex:1;overflow:auto;padding:6px 10px 20px}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 .sp-b > h3:first-child{margin-top:10px}
 .sp-b > .seg{margin:0 0 6px}
@@ -306,3 +306,13 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .fin-types button:hover{border-color:var(--ink-3);color:var(--ink)}
 .fin-types button i{width:22px;height:22px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);flex:none}
 .fin-types button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:500}
+
+/* slim scrollbars everywhere: a thin rounded thumb, no track */
+*{scrollbar-width:thin;scrollbar-color:var(--rule-2) transparent}
+*:hover{scrollbar-color:var(--ink-3) transparent}
+@supports selector(::-webkit-scrollbar){*{scrollbar-width:auto;scrollbar-color:auto}*:hover{scrollbar-color:auto}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--rule-2);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:32px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box}
+::-webkit-scrollbar-button{display:none}

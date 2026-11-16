@@ -69,6 +69,16 @@ h1{font-size:clamp(36px,5.6vw,64px);line-height:1.03;letter-spacing:-.04em;font-
 }
 @media (max-width:480px){.wrap{padding:0 16px} .shots{grid-template-columns:1fr} .shot.big{grid-column:auto}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+
+/* slim scrollbars everywhere: a thin rounded thumb, no track */
+*{scrollbar-width:thin;scrollbar-color:rgba(128,128,140,.35) transparent}
+*:hover{scrollbar-color:rgba(128,128,140,.6) transparent}
+@supports selector(::-webkit-scrollbar){*{scrollbar-width:auto;scrollbar-color:auto}*:hover{scrollbar-color:auto}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(128,128,140,.35);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:32px}
+::-webkit-scrollbar-thumb:hover{background:rgba(128,128,140,.6);background-clip:padding-box}
+::-webkit-scrollbar-button{display:none}
 </style>
 </head>
 <body>

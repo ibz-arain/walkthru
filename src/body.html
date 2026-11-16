@@ -1,6 +1,8 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
+    <symbol id="i-collapse" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11M10.5 6.5 8.5 8l2 1.5"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11M8.5 6.5l2 1.5-2 1.5"/></symbol>
     <symbol id="i-chev" viewBox="0 0 16 16"><path d="m5 6.5 3 3 3-3"/></symbol>
     <symbol id="i-house" viewBox="0 0 24 24"><path d="M3.5 10.5 12 4l8.5 6.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></symbol>
     <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></symbol>
@@ -220,10 +222,11 @@
 <section id="planEd" hidden aria-label="Floor plan editor">
   <div class="pe-body">
     <nav id="peList" aria-label="Rooms to add">
-      <div class="pe-find"><input id="peFind" type="search" placeholder="Search rooms" aria-label="Search rooms"></div>
+      <div class="pe-find"><input id="peFind" type="search" placeholder="Search rooms" aria-label="Search rooms"><button type="button" class="pe-libx" id="peLibHide" data-tip="Hide list" aria-label="Hide the room list"><svg class="ic"><use href="#i-collapse"/></svg></button></div>
       <div id="pePalette"></div>
     </nav>
     <div class="pe-canvas"><canvas id="peCanvas"></canvas>
+      <button type="button" class="pe-libopen" id="peLibShow" data-tip="Show room list" aria-label="Show the room list"><svg class="ic"><use href="#i-expand"/></svg><span>Rooms</span></button>
       <p class="pe-tip">Scroll to zoom · Drag to pan</p>
       <div class="pe-zoom"><button type="button" id="peZoomOut" data-tip="Zoom out (−)"><svg class="ic"><use href="#i-minus"/></svg></button><button type="button" id="peZoomFit" data-tip="Fit to screen (0)"><span id="peZoomV">100%</span></button><button type="button" id="peZoomIn" data-tip="Zoom in (+)"><svg class="ic"><use href="#i-plus"/></svg></button></div>
       <div id="peStatus"></div>

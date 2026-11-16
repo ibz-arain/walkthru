@@ -276,6 +276,7 @@ function uiEditing(on) {
   if (on) renderChecks();
 }
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
+$u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
 $u('peFind').oninput = e => {
   const q = e.target.value.trim().toLowerCase();
   $u('pePalette').querySelectorAll('[data-add],[data-item]').forEach(b => b.hidden = !!q && !b.textContent.toLowerCase().includes(q));

@@ -147,7 +147,7 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .menu.sepd{border-top:1px solid var(--rule);margin-top:4px;padding-top:4px}
 .menu button .ic{color:var(--ink-2)}
 #morePop,#edMorePop{width:250px}
-.nav-mini{max-height:240px;overflow:auto;margin:0 0 4px;scrollbar-width:thin}
+.nav-mini{max-height:240px;overflow:auto;margin:0 0 4px}
 .nav-mini p{margin:8px 6px 4px;font:500 11px var(--f-ui);color:var(--ink-3)}
 .nav-mini div{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px}
 .nav-mini button{font:12.5px var(--f-ui);color:var(--ink);background:var(--paper-2);border:1px solid transparent;border-radius:7px;padding:5px 9px;cursor:pointer}
@@ -195,7 +195,7 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .sp-h h2{margin:0;font-size:13.5px;font-weight:600;letter-spacing:-.005em}
 .sp-x{width:28px;height:28px;display:grid;place-items:center;border:0;background:none;border-radius:6px;color:var(--ink-2);cursor:pointer}
 .sp-x:hover{background:var(--paper-2);color:var(--ink)}
-.sp-b{flex:1;overflow:auto;padding:6px 10px 20px;scrollbar-width:thin}
+.sp-b{flex:1;overflow:auto;padding:6px 10px 20px}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 .sp-b > h3:first-child{margin-top:10px}
 .sp-b > .seg{margin:0 0 6px}
@@ -317,12 +317,23 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .fin-types button i{width:22px;height:22px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);flex:none}
 .fin-types button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:500}
 
+/* slim scrollbars everywhere: a thin rounded thumb, no track */
+*{scrollbar-width:thin;scrollbar-color:var(--rule-2) transparent}
+*:hover{scrollbar-color:var(--ink-3) transparent}
+@supports selector(::-webkit-scrollbar){*{scrollbar-width:auto;scrollbar-color:auto}*:hover{scrollbar-color:auto}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--rule-2);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:32px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box}
+::-webkit-scrollbar-button{display:none}
+
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
 .pe-body{flex:1;display:flex;min-height:0;position:relative}
-#peList{width:168px;flex:none;border-right:1px solid var(--rule);overflow:auto;padding:0 8px 14px;scrollbar-width:thin;background:var(--paper)}
+#peList{width:168px;flex:none;border-right:1px solid var(--rule);overflow:auto;padding:0 8px 14px;background:var(--paper)}
 #planEd.lib-off #peList{display:none}
-.pe-find{position:sticky;top:0;background:var(--paper);padding:10px 0 4px;z-index:1}
+.pe-find{position:sticky;top:0;background:var(--paper);padding:10px 0 4px;z-index:1;display:flex;gap:4px;align-items:center}
+.pe-find input{flex:1;min-width:0}
 .pe-find input{width:100%;box-sizing:border-box;font:12.5px var(--f-ui);padding:6px 9px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--paper-2);color:var(--ink)}
 .pe-find input:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
 #peList h3{margin:12px 6px 4px;font:500 11px var(--f-ui);color:var(--ink-3)}
@@ -348,7 +359,7 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
 #planEd:not(.has-sel) #peSide{display:none}
-#peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);scrollbar-width:thin;transition:opacity .12s}
+#peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);transition:opacity .12s}
 .pe-busy #peSide{opacity:0;pointer-events:none}
 #peSide .pe-card:last-child{border-bottom:0}
 .pe-empty{padding:18px 16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
@@ -427,7 +438,7 @@ body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs button{flex:1;padding:7px 6px}
 .linkish{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer}
 #clSide .cl-tabs .x{flex:none;padding:7px 9px}
-.cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start;scrollbar-width:thin}
+.cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start}
 .cl-foot{border-top:1px solid var(--rule);padding:12px;display:grid;gap:8px}
 .cl-foot:empty{display:none}
 .cl-item{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;display:grid;gap:6px;background:var(--paper)}
@@ -481,10 +492,20 @@ body.editing .cl-save{display:none}
 .st-who b{font-size:13.5px;font-weight:600}.st-who span{font-size:12px;color:var(--ink-2)}.st-org{margin-top:4px;color:var(--ink-3)!important}
 .st-menu a,.st-menu button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;text-decoration:none}
 .st-menu a:hover,.st-menu button:hover{background:var(--paper-2)}
+
+/* room list: hide it from its own corner, bring it back from the canvas */
+#peList .pe-libx{flex:none;width:28px;padding:0;gap:0;touch-action:auto;height:28px;display:grid;place-items:center;border:0;border-radius:7px;background:none;color:var(--ink-3);cursor:pointer}
+#peList .pe-libx:hover{background:var(--paper-2);color:var(--ink)}
+.pe-libopen{position:absolute;left:10px;top:10px;z-index:4;display:none;align-items:center;gap:6px;height:30px;padding:0 10px 0 7px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink-2);font:500 12px var(--f-ui);box-shadow:var(--shadow);cursor:pointer}
+.pe-libopen:hover{color:var(--ink);border-color:var(--rule-2)}
+#planEd.lib-off .pe-libopen{display:flex}
+#planEd.lib-off .pe-tip{left:100px;top:17px}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
+    <symbol id="i-collapse" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11M10.5 6.5 8.5 8l2 1.5"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 16 16"><rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11M8.5 6.5l2 1.5-2 1.5"/></symbol>
     <symbol id="i-chev" viewBox="0 0 16 16"><path d="m5 6.5 3 3 3-3"/></symbol>
     <symbol id="i-house" viewBox="0 0 24 24"><path d="M3.5 10.5 12 4l8.5 6.5V20h-17z"/><path d="M9.5 20v-5.5h5V20"/></symbol>
     <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></symbol>
@@ -704,10 +725,11 @@ body.editing .cl-save{display:none}
 <section id="planEd" hidden aria-label="Floor plan editor">
   <div class="pe-body">
     <nav id="peList" aria-label="Rooms to add">
-      <div class="pe-find"><input id="peFind" type="search" placeholder="Search rooms" aria-label="Search rooms"></div>
+      <div class="pe-find"><input id="peFind" type="search" placeholder="Search rooms" aria-label="Search rooms"><button type="button" class="pe-libx" id="peLibHide" data-tip="Hide list" aria-label="Hide the room list"><svg class="ic"><use href="#i-collapse"/></svg></button></div>
       <div id="pePalette"></div>
     </nav>
     <div class="pe-canvas"><canvas id="peCanvas"></canvas>
+      <button type="button" class="pe-libopen" id="peLibShow" data-tip="Show room list" aria-label="Show the room list"><svg class="ic"><use href="#i-expand"/></svg><span>Rooms</span></button>
       <p class="pe-tip">Scroll to zoom · Drag to pan</p>
       <div class="pe-zoom"><button type="button" id="peZoomOut" data-tip="Zoom out (−)"><svg class="ic"><use href="#i-minus"/></svg></button><button type="button" id="peZoomFit" data-tip="Fit to screen (0)"><span id="peZoomV">100%</span></button><button type="button" id="peZoomIn" data-tip="Zoom in (+)"><svg class="ic"><use href="#i-plus"/></svg></button></div>
       <div id="peStatus"></div>
@@ -5224,6 +5246,7 @@ function uiEditing(on) {
   if (on) renderChecks();
 }
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
+$u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
 $u('peFind').oninput = e => {
   const q = e.target.value.trim().toLowerCase();
   $u('pePalette').querySelectorAll('[data-add],[data-item]').forEach(b => b.hidden = !!q && !b.textContent.toLowerCase().includes(q));

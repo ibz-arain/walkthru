@@ -1,9 +1,10 @@
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
 .pe-body{flex:1;display:flex;min-height:0;position:relative}
-#peList{width:168px;flex:none;border-right:1px solid var(--rule);overflow:auto;padding:0 8px 14px;scrollbar-width:thin;background:var(--paper)}
+#peList{width:168px;flex:none;border-right:1px solid var(--rule);overflow:auto;padding:0 8px 14px;background:var(--paper)}
 #planEd.lib-off #peList{display:none}
-.pe-find{position:sticky;top:0;background:var(--paper);padding:10px 0 4px;z-index:1}
+.pe-find{position:sticky;top:0;background:var(--paper);padding:10px 0 4px;z-index:1;display:flex;gap:4px;align-items:center}
+.pe-find input{flex:1;min-width:0}
 .pe-find input{width:100%;box-sizing:border-box;font:12.5px var(--f-ui);padding:6px 9px;border:1px solid var(--rule);border-radius:var(--r-sm);background:var(--paper-2);color:var(--ink)}
 .pe-find input:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
 #peList h3{margin:12px 6px 4px;font:500 11px var(--f-ui);color:var(--ink-3)}
@@ -29,7 +30,7 @@
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
 #planEd:not(.has-sel) #peSide{display:none}
-#peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);scrollbar-width:thin;transition:opacity .12s}
+#peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);transition:opacity .12s}
 .pe-busy #peSide{opacity:0;pointer-events:none}
 #peSide .pe-card:last-child{border-bottom:0}
 .pe-empty{padding:18px 16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
@@ -108,7 +109,7 @@ body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs button{flex:1;padding:7px 6px}
 .linkish{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer}
 #clSide .cl-tabs .x{flex:none;padding:7px 9px}
-.cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start;scrollbar-width:thin}
+.cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start}
 .cl-foot{border-top:1px solid var(--rule);padding:12px;display:grid;gap:8px}
 .cl-foot:empty{display:none}
 .cl-item{border:1px solid var(--rule);border-radius:var(--r);padding:10px 12px;display:grid;gap:6px;background:var(--paper)}
@@ -162,3 +163,11 @@ body.editing .cl-save{display:none}
 .st-who b{font-size:13.5px;font-weight:600}.st-who span{font-size:12px;color:var(--ink-2)}.st-org{margin-top:4px;color:var(--ink-3)!important}
 .st-menu a,.st-menu button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;text-decoration:none}
 .st-menu a:hover,.st-menu button:hover{background:var(--paper-2)}
+
+/* room list: hide it from its own corner, bring it back from the canvas */
+#peList .pe-libx{flex:none;width:28px;padding:0;gap:0;touch-action:auto;height:28px;display:grid;place-items:center;border:0;border-radius:7px;background:none;color:var(--ink-3);cursor:pointer}
+#peList .pe-libx:hover{background:var(--paper-2);color:var(--ink)}
+.pe-libopen{position:absolute;left:10px;top:10px;z-index:4;display:none;align-items:center;gap:6px;height:30px;padding:0 10px 0 7px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink-2);font:500 12px var(--f-ui);box-shadow:var(--shadow);cursor:pointer}
+.pe-libopen:hover{color:var(--ink);border-color:var(--rule-2)}
+#planEd.lib-off .pe-libopen{display:flex}
+#planEd.lib-off .pe-tip{left:100px;top:17px}
