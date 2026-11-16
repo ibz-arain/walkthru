@@ -449,7 +449,10 @@ function peSideFollow() { // called after every inspector refresh: move when the
   const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), PE.selX && PE.selX.kind + PE.selX.id, PE.multi?.size].join('|');
   if (k !== peSelKey || !el.contains(document.activeElement)) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
 }
-pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; pc.parentElement.parentElement.classList.add('pe-busy'); });
-addEventListener('pointerup', () => { const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
+// the menu steps aside only while you actually drag something; a plain click leaves it where it is
+let peDown = null;
+pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peDown = pePt; });
+addEventListener('pointermove', e => { if (peDown && Math.hypot(e.clientX - peDown[0], e.clientY - peDown[1]) > 4) pc.parentElement.parentElement.classList.add('pe-busy'); });
+addEventListener('pointerup', () => { peDown = null; const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
 pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too; no browser menu over the plan
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
