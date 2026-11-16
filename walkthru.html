@@ -308,7 +308,9 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #acctPop .st-who b{font-size:13.5px;font-weight:600}#acctPop .st-who span{font-size:12px;color:var(--ink-2)}#acctPop .st-org{margin-top:4px;color:var(--ink-3)!important}
 #acctPop button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer}
 #acctPop button:hover{background:var(--paper-2)}
-#acctBtn .avatar{width:28px;height:28px;font-size:11px}
+#acctBtn{background:none!important;padding:0 3px}
+#acctBtn .avatar{width:30px;height:30px;font-size:11.5px;transition:box-shadow .12s}
+#acctBtn:hover .avatar,#acctBtn[aria-expanded="true"] .avatar{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink-3)}
 
 /* finish material: a dropdown above the colours */
 .fin-type{display:block;width:calc(100% - 12px);margin:0 6px 10px;font:13px var(--f-ui);padding:6px 28px 6px 9px;border:1px solid var(--rule-2);border-radius:var(--r-sm);color:var(--ink);background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239e9ea8' stroke-width='1.6'%3E%3Cpath d='m5 6.5 3 3 3-3'/%3E%3C/svg%3E") no-repeat right 8px center;appearance:none;-webkit-appearance:none;cursor:pointer}
