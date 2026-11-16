@@ -2512,6 +2512,64 @@ function campanaPlan() {
     { x0: 39.06, x1: 50.74, z0: 8.42, z1: 18, plate: UC },              // left gable, bedroom 4
   ] } });
 }
+// Original showcase house for the landing page (not a client plan): two storeys over a basement,
+// open living room to a covered patio, and a pool in the back yard.
+function showcasePlan() {
+  BID = 1;
+  const rooms = [
+    // main floor — street is -z
+    R('office', 'M', 0, 16, 0, 18),
+    R('foyer', 'M', 16, 30, 0, 18),
+    R('dining', 'M', 30, 48, 0, 18),
+    R('garage', 'M', 48, 72, 0, 26),
+    R('library', 'M', 0, 16, 18, 30, { name: 'Library' }),
+    R('hall', 'M', 16, 30, 18, 30, { name: 'Stair Hall' }),
+    R('kitchen', 'M', 30, 48, 18, 34),
+    R('great', 'M', 0, 30, 30, 52, { name: 'Living Room', rot: 3, var: 14, finish: { floor: 'herring', paint: '#f4f1ea' } }),
+    R('dining', 'M', 30, 48, 34, 52, { name: 'Breakfast' }),
+    R('mud', 'M', 48, 60, 26, 38),
+    R('powder', 'M', 60, 72, 26, 36, { name: 'Powder' }),
+    R('laundry', 'M', 48, 60, 38, 52),
+    R('sunroom', 'M', 60, 72, 36, 52, { name: 'Sunroom' }),
+    R('porch', 'M', 18, 42, -8, 0, { name: 'Front Porch' }),
+    R('porch', 'M', 0, 48, 52, 60, { name: 'Covered Patio' }),
+    R('deck', 'M', 2, 42, 60, 68, { name: 'Pool Deck' }),
+    // 2nd floor
+    R('primary', 'U', 30, 54, 0, 20, { name: 'Primary Suite' }),
+    R('walkin', 'U', 54, 68, 0, 12, { name: 'Walk-in Closet' }),
+    R('ensuite', 'U', 54, 72, 12, 28, { name: 'Ensuite' }),
+    R('bedroom', 'U', 0, 16, 0, 16, { name: 'Bedroom 2' }),
+    R('bedroom', 'U', 16, 30, 0, 16, { name: 'Bedroom 3' }),
+    R('bath', 'U', 0, 14, 16, 28, { name: 'Bath' }),
+    R('hall', 'U', 14, 30, 16, 34, { name: 'Upper Hall' }),
+    R('bedroom', 'U', 30, 48, 20, 34, { name: 'Bedroom 4' }),
+    R('closet', 'U', 48, 54, 20, 28, { name: 'Closet' }),
+    R('laundry', 'U', 48, 60, 28, 36),
+    R('closet', 'U', 60, 72, 28, 36, { name: 'Linen' }),
+    R('hall', 'U', 0, 14, 28, 36, { name: 'Hall' }),
+    // basement
+    R('rec', 'B', 0, 48, 32, 52, { name: 'Rec Room' }),
+    R('theatre', 'B', 0, 24, 0, 16),
+    R('gym', 'B', 24, 48, 0, 16),
+    R('bath', 'B', 0, 16, 16, 32),
+    R('hall', 'B', 16, 32, 16, 32),
+    R('storage', 'B', 32, 48, 16, 32, { name: 'Mechanical' }),
+    R('wine', 'B', 48, 60, 16, 28),
+    R('storage', 'B', 60, 72, 12, 26),
+  ];
+  return normalizeStairs({
+    roof: 'hip', pitch: 6,
+    rooms,
+    stairs: [
+      { id: 200, level: 'M', cx: 23, cz: 24, W: 5, L: 10, dir: '+z' },
+      { id: 201, level: 'B', cx: 23, cz: 24, W: 5, L: 10, dir: '-z' },
+    ],
+    walls: { '2-3': 'door', '2-6': 'door', '3-7': 'door', '6-7': 'door', '18-19': 'door' },
+    ext: { '8:-x': 'solid', '8:+z': 'door', '9:+z': 'door' },
+    ops: { '8:+z': { w: 20, h: 8, style: 'slider' }, '9:+z': { w: 12, h: 8, style: 'slider' } },
+    site: { setback: 36, trees: 3, pool: { x: 4, z: 70, w: 36, d: 16 } },
+  });
+}
 // board-and-batten siding and red brick (House 3 style)
 TX.batten = ctex(256, 4, (g, s, r) => { noise(g, s, r, 190, 16, 6000, 2); for (let i = 0; i < 3; i++) { const x = i * s / 3; g.fillStyle = 'rgba(0,0,0,.42)'; g.fillRect(x, 0, 3, s); g.fillStyle = 'rgba(255,255,255,.16)'; g.fillRect(x + 3, 0, 7, s); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 10, 0, 2, s); } }, 43);
 TX.brick = ctex(256, 4, (g, s, r) => { g.fillStyle = '#b9b2a6'; g.fillRect(0, 0, s, s); const rows = 18, rh = s / rows, bw = s / 6;
@@ -2962,13 +3020,29 @@ function buildHouse3() {
   // site: ground, street, driveway to the garage door, walk to the front door
   const all = rooms.filter(r => r.level !== 'B'); const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
   const bsm = rooms.filter(r => r.level === 'B');
-  if (!bsm.length) flat(G3.site, rect(-420, 420, -420, 420), [], 0, M.grass, { walk: true });
+  const SITE = BM.site || {};
+  const pool = SITE.pool && SITE.pool.w > 4 && SITE.pool.d > 4 ? SITE.pool : null;
+  const poolHole = pool ? rect(pool.x, pool.x + pool.w, pool.z, pool.z + pool.d) : null;
+  if (!bsm.length) flat(G3.site, rect(-420, 420, -420, 420), poolHole ? [poolHole] : [], 0, M.grass, { walk: true });
   else { // open the ground over the basement so stairs and cutaway views work
     const bb = { x: Math.min(minX, ...bsm.map(r => r.x)) - 1, z: Math.min(minZ, ...bsm.map(r => r.z)) - 1 }; bb.w = Math.max(maxX, ...bsm.map(r => r.x + r.w)) + 1 - bb.x; bb.d = Math.max(maxZ, ...bsm.map(r => r.z + r.d)) + 1 - bb.z;
-    flat(G3.site, rect(-420, 420, -420, 420), [rect(bb.x, bb.x + bb.w, bb.z, bb.z + bb.d)], 0, M.grass, { walk: true });
-    for (const [a0, a1, b0, b1] of rectCells([bb], .5, bsm)) flat(G3.site, rect(a0, a1, b0, b1), [], 0, M.grass, { walk: true });
+    flat(G3.site, rect(-420, 420, -420, 420), [rect(bb.x, bb.x + bb.w, bb.z, bb.z + bb.d), ...(poolHole ? [poolHole] : [])], 0, M.grass, { walk: true });
+    for (const [a0, a1, b0, b1] of rectCells([bb], .5, bsm)) flat(G3.site, rect(a0, a1, b0, b1), poolHole ? [poolHole] : [], 0, M.grass, { walk: true });
   }
-  const SITE = BM.site || {}, roadZ = minZ - (SITE.setback ?? 48);
+  if (pool) { // coping, water and a paver apron; a fence closes the back yard
+    const x0 = pool.x, z0 = pool.z, x1 = pool.x + pool.w, z1 = pool.z + pool.d, t = .35, c = .45;
+    for (const r of [[x0, x1, z0, z0 + t], [x0, x1, z1 - t, z1], [x0, x0 + t, z0, z1], [x1 - t, x1, z0, z1]]) box(G3.site, r[0], r[1], -4.6, 0, r[2], r[3], M.pooltile);
+    flat(G3.site, rect(x0, x1, z0, z1), [], -4.6, M.pooltile);
+    flat(G3.site, rect(x0, x1, z0, z1), [], -.42, M.water, { walk: true });
+    for (const r of [[x0 - c, x1 + c, z0 - c, z0], [x0 - c, x1 + c, z1, z1 + c], [x0 - c, x0, z0, z1], [x1, x1 + c, z0, z1]]) box(G3.site, r[0], r[1], 0, .16, r[2], r[3], M.white, { walk: true });
+    slab(G3.site, rect(x0 - 5, x1 + 5, z0 - 5, z1 + 6), [rect(x0 - c, x1 + c, z0 - c, z1 + c)], 0, .08, M.pavers, { walk: true });
+    const fx0 = Math.min(minX, x0) - 8, fx1 = Math.max(maxX, x1) + 8, fz1 = z1 + 8, fz0 = (minZ + maxZ) * .55;
+    const fence = (ax, cq, a, b) => { const lo = Math.min(a, b), hi = Math.max(a, b); if (hi - lo < .5) return;
+      if (ax === 'x') box(G3.site, lo, hi, .3, 6, cq - .08, cq + .08, M.fence, { solid: true }); else box(G3.site, cq - .08, cq + .08, .3, 6, lo, hi, M.fence, { solid: true });
+      for (let u = lo; u <= hi + .01; u += 8) { const q = Math.min(u, hi); if (ax === 'x') box(G3.site, q - .2, q + .2, 0, 6.3, cq - .2, cq + .2, M.fence); else box(G3.site, cq - .2, cq + .2, 0, 6.3, q - .2, q + .2, M.fence); } };
+    fence('x', fz1, fx0, fx1); fence('z', fx0, fz0, fz1); fence('z', fx1, fz0, fz1);
+  }
+  const roadZ = minZ - (SITE.setback ?? 48);
   flat(G3.site, rect(-420, 420, roadZ - 26, roadZ), [], .03, M.asphalt, { walk: true });
   flat(G3.site, rect(-420, 420, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true });
   const mw = planLevel('M'), fd = mw.find(w => w.front), gd = mw.find(w => w.garageDoor);
