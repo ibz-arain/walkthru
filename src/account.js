@@ -77,7 +77,7 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
   if (!ACC.user && !/^#c\//.test(location.hash)) { location.replace(signInUrl('login')); return; }
   document.documentElement.classList.remove('gate');
   addEventListener('hashchange', () => { if (!ACC.user && !/^#c\//.test(location.hash)) location.replace(signInUrl('login')); });
-  accRender(); if (ACC.user) { pullDesigns(); loadCatalog(); }
+  accRender(); if (ACC.user) pullDesigns();
   // Signed-in people start on their Projects page; the bare playground is one click away from there.
   let sandbox = false; try { sandbox = sessionStorage.getItem('wt-sandbox') === '1'; } catch (e) { }
   if (ACC.user && !sandbox && (location.hash === '' || location.hash === '#')) location.hash = '#admin';

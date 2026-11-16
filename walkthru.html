@@ -143,6 +143,15 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .menu .row button:first-child{flex:1}
 .menu .row .del{width:28px;flex:none;justify-content:center;color:var(--ink-3);padding:6px}
 .menu .row .del:hover{color:var(--danger)}
+.menu.sepd{border-top:1px solid var(--rule);margin-top:4px;padding-top:4px}
+.menu button .ic{color:var(--ink-2)}
+#morePop,#edMorePop{width:250px}
+.nav-mini{max-height:240px;overflow:auto;margin:0 0 4px;scrollbar-width:thin}
+.nav-mini p{margin:8px 6px 4px;font:500 11px var(--f-ui);color:var(--ink-3)}
+.nav-mini div{display:flex;flex-wrap:wrap;gap:4px;padding:0 4px}
+.nav-mini button{font:12.5px var(--f-ui);color:var(--ink);background:var(--paper-2);border:1px solid transparent;border-radius:7px;padding:5px 9px;cursor:pointer}
+.nav-mini button:hover{border-color:var(--rule-2)}
+#viewPop{width:300px}
 .menu.big button{padding:9px 10px;align-items:flex-start}
 .menu.big button .ic{margin-top:1px;color:var(--ink-2)}
 .menu.big span{display:flex;flex-direction:column;gap:2px}
@@ -197,31 +206,22 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .icb .ic{width:12px;height:12px}
 .icb[aria-pressed="true"]{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
 /* finishes */
-#finishBody .grp h3{margin:12px 6px 7px;font:500 12.5px var(--f-ui);color:var(--ink)}
+#finishBody .grp h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:14px 6px 8px;font:500 12.5px var(--f-ui);color:var(--ink)}
+#finishBody .grp h3 .cur{font:400 12px var(--f-ui);color:var(--ink-2);text-align:right}
 #finishBody .grp > h3:only-child{margin:18px 6px 2px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 #finishBody .grp:first-child > h3:only-child{margin-top:8px}
-.sw{display:flex;flex-wrap:wrap;gap:4px;padding:0 6px}
-.sw button{display:flex;align-items:center;gap:6px;font:12px var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--rule);border-radius:7px;padding:3px 9px 3px 3px;cursor:pointer;transition:border-color .12s}
-.sw button:hover{border-color:var(--ink-3)}
-.sw button i{width:18px;height:18px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);display:block}
-.sw button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 .5px var(--ink)}
-.sw button em{font-style:normal;font:500 10.5px var(--f-mono);color:var(--accent);margin-left:2px}
-#priceBar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:8px 6px 4px;padding:8px;border:1px solid var(--rule);border-radius:10px;background:var(--paper-2)}
-#priceBar div{display:flex;flex-direction:column;gap:1px}#priceBar span{font-size:11px;color:var(--ink-3)}#priceBar b{font:600 13px var(--f-ui);font-variant-numeric:tabular-nums}
-#priceBar .tot b{color:var(--accent)}
-#addonsBox .ad-g{margin:8px 6px 2px;font-size:11px;color:var(--ink-3)}
-#addonsBox .ad span:first-child{display:flex;flex-direction:column}#addonsBox .ad small{font:500 11px var(--f-mono);color:var(--ink-2)}
-.sw-custom{position:relative;display:flex;align-items:center;gap:6px;font:12px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px dashed var(--rule-2);border-radius:7px;padding:3px 9px 3px 3px;cursor:pointer}
-.sw-custom i{width:18px;height:18px;border-radius:5px;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);display:block}
+.sw{display:flex;flex-wrap:wrap;gap:8px;padding:0 6px 4px}
+.sw button{position:relative;display:block;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;transition:transform .15s}
+.sw button:hover{transform:scale(1.08)}
+.sw button span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.sw button i{display:block;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.sw button[aria-pressed="true"] i{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
+.sw-custom{position:relative;width:30px;height:30px;border-radius:50%;cursor:pointer;display:block}
+.sw-custom i{display:block;width:30px;height:30px;border-radius:50%;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);opacity:.85}
 .sw-custom input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.sw-custom[aria-pressed="true"]{border-style:solid;border-color:var(--ink);color:var(--ink);box-shadow:0 0 0 .5px var(--ink)}
+.sw-custom[aria-pressed="true"] i{opacity:1;box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
 .tex-row{display:grid;grid-template-columns:1fr auto;gap:6px;margin:4px 6px}
 .tex-row select{font:13px var(--f-ui);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper);color:var(--ink)}
-/* navigate */
-#navList h4{margin:14px 6px 4px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
-#navList button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:7px 8px;cursor:pointer;text-align:left}
-#navList button:hover{background:var(--paper-2)}
-#navList button small{font:11px var(--f-mono);color:var(--ink-3)}
 /* info */
 #brand{padding:12px 6px 4px}
 #brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em}
@@ -230,11 +230,6 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .stat{background:var(--paper-2);border-radius:8px;padding:9px 10px}
 .stat b{display:block;font:600 16px var(--f-ui);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
 .stat span{font-size:11.5px;color:var(--ink-2)}
-.est{display:grid;grid-template-columns:1fr 1fr}
-.money{position:relative;display:block}.money::before{content:"$";position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-3);font-size:13px}
-.money input{padding-left:20px!important}
-.est-out{margin:4px 6px;border:1px solid var(--rule);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--ink-2)}
-.est-out b{display:block;font:600 22px var(--f-ui);letter-spacing:-.02em;color:var(--ink);margin-bottom:2px;font-variant-numeric:tabular-nums}
 .sched{width:calc(100% - 12px);margin:0 6px;border-collapse:collapse;font-size:12.5px}
 .sched td{padding:5px 0;border-bottom:1px solid var(--rule)}
 .sched td:last-child{text-align:right;font:12px var(--f-mono);color:var(--ink-2)}
@@ -248,6 +243,7 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 #room{top:calc(var(--it) + 12px);left:50%;transform:translateX(-50%);padding:7px 14px;text-align:center;pointer-events:none}
 #room b{display:block;font-size:13.5px;font-weight:600}
 #room span{font:11.5px var(--f-mono);color:var(--ink-2)}
+#room span:empty{display:none}
 #hint{right:calc(var(--ir) + 12px);bottom:calc(var(--ib) + 12px);padding:9px 30px 9px 12px;font:12px/1.65 var(--f-ui);color:var(--ink-2);max-width:260px}
 #hint b{color:var(--ink);font-weight:500}
 .hint-x{position:absolute;top:6px;right:6px;width:20px;height:20px;display:grid;place-items:center;border:0;background:none;color:var(--ink-3);border-radius:5px;cursor:pointer}
@@ -271,6 +267,8 @@ body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
 body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
 .lbl{font:500 11px var(--f-ui);color:#111114;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap}
+.lbl{transition:opacity .2s}
+.lbl.lbl-off{opacity:0}
 .lbl small{display:block;font:400 9.5px var(--f-mono);color:#6b6b76}
 html.gate body > :not(#gateCover){visibility:hidden}
 #gateCover{display:none}
@@ -279,6 +277,23 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #loading{position:fixed;inset:0;display:grid;place-items:center;align-content:center;gap:14px;background:var(--bg);z-index:100;font:500 12.5px var(--f-ui);color:var(--ink-2)}
 #loading::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--rule);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+#loading{transition:opacity .4s ease}
+#loading.done{opacity:0;pointer-events:none}
+#fadeCut{position:fixed;inset:0;z-index:28;background:var(--bg);opacity:0;pointer-events:none;transition:opacity .16s ease}
+#fadeCut.on{opacity:1}
+/* motion: panels slide, menus and dialogs settle in */
+@keyframes slideIn{from{transform:translateX(18px);opacity:0}}
+@keyframes rise{from{transform:translateY(8px);opacity:0}}
+@keyframes dlgIn{from{transform:translate(-50%,-48%) scale(.98);opacity:0}}
+#side:not([hidden]),#clSide:not([hidden]){animation:slideIn .26s cubic-bezier(.2,.8,.2,1)}
+.sp:not([hidden]) .sp-b{animation:rise .22s ease-out}
+.st-modal:not([hidden]){animation:dlgIn .22s cubic-bezier(.2,.8,.2,1)}
+#toast:not([hidden]){animation:rise .2s ease-out}
+#hint,#room,#measureBar{transition:opacity .2s,transform .2s}
+.pop{animation:popin .16s cubic-bezier(.2,.8,.2,1)}
+@keyframes popin{from{opacity:0;transform:translateY(4px) scale(.985)}}
+.tb-b,.tb-primary,.seg button,.btn{transition:background .15s,color .15s,box-shadow .15s,opacity .15s,transform .1s}
+.tb-b:active,.tb-primary:active,.btn:active{transform:scale(.97)}
 @media (max-width:760px){
   #side,#clSide{left:var(--il);right:var(--ir);width:auto;top:auto;height:58vh;border-left:0;border-top:1px solid var(--rule);border-radius:14px 14px 0 0;box-shadow:var(--shadow-lg)}
   #hint,#mini{display:none}
@@ -316,7 +331,8 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .pe-zoom button + button{border-left:1px solid var(--rule)}
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
-#peSide{width:224px;flex:none;border-left:1px solid var(--rule);overflow:auto;padding:4px 0 16px;background:var(--paper);scrollbar-width:thin}
+#planEd:not(.has-sel) #peSide{display:none}
+#peSide{width:236px;flex:none;border-left:1px solid var(--rule);overflow:auto;padding:4px 0 16px;background:var(--paper);scrollbar-width:thin}
 .pe-empty{padding:18px 16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
 .pe-empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:4px}
 .pe-empty p{margin:0}
@@ -364,8 +380,10 @@ body.editing #clHead{display:none!important}
 .st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
 .st-card{background:var(--paper);border:1px solid var(--rule);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}
 button.st-card{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer}
-button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow)}
-.st-card canvas{display:block;width:100%;height:150px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+button.st-card{transition:box-shadow .2s,border-color .2s,transform .2s}
+button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.st-thumb{display:block;width:100%;height:170px;object-fit:cover;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+.st-card canvas{display:block;width:100%;height:170px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
 .st-meta{padding:14px 16px;display:grid;gap:3px}
 .st-meta h3{margin:0;font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-meta p{margin:0;color:var(--ink-2);font-size:13px}
@@ -382,11 +400,6 @@ button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow)}
 .st-modal h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
 .st-modal label{display:grid;gap:6px;font-size:12.5px;color:var(--ink-2);font-weight:500}
 .st-row{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.pl-modal{width:min(640px,calc(100vw - 32px))!important}
-.pl-scroll{max-height:56vh;overflow:auto;display:grid;gap:8px;padding-right:4px}
-.pl-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;align-items:end}
-.pl-row b{grid-column:1/-1;font-size:13px}.pl-row label{font-size:11.5px!important;gap:3px!important}.pl-row input{padding:6px 8px!important}
-.pl-add{display:grid;grid-template-columns:1fr 1.6fr 1fr auto;gap:6px}.pl-add input{padding:6px 8px!important}
 
 /* ---------- project / customer chrome ---------- */
 body.cl-on #designMenuBtn,body.cl-on #designMenu{display:none!important}
@@ -403,6 +416,7 @@ body.cl-customer #peResetBtn,body.cl-customer #peAutoBtn{display:none!important}
 body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs{margin:8px 8px 0;flex:none}
 #clSide .cl-tabs button{flex:1;padding:7px 6px}
+.linkish{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer}
 #clSide .cl-tabs .x{flex:none;padding:7px 9px}
 .cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start;scrollbar-width:thin}
 .cl-foot{border-top:1px solid var(--rule);padding:12px;display:grid;gap:8px}
@@ -483,11 +497,13 @@ body.cl-pinning #stage{cursor:crosshair}
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5s1.1-5.9 3.6-8.5z"/></symbol>
     <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8.5h5M9 13h6M9 16.5h6"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.2-3 7.4-7 8.5-4-1.1-7-4.3-7-8.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </defs>
 </svg>
 
 <div id="gateCover" aria-hidden="true"></div>
+<div id="fadeCut" aria-hidden="true"></div>
 <div id="stage"></div>
 <div id="labels"></div>
 <div id="loading">Loading playground…</div>
@@ -496,64 +512,79 @@ body.cl-pinning #stage{cursor:crosshair}
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
     <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
-    <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Designs"><svg class="ic"><use href="#i-house"/></svg><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Switch design"><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <span class="tb-sep" id="tbViewSep"></span>
   <div class="tb-g" id="tbView">
-    <button class="tb-b tb-wide" id="viewBtn" type="button" data-pop="viewPop" data-tip="Camera views (F, B, T, V)"><svg class="ic"><use href="#i-cam"/></svg><span class="tb-t" id="viewNow">Front</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b tb-wide" id="viewBtn" type="button" data-pop="viewPop" data-tip="Views and rooms"><svg class="ic"><use href="#i-cam"/></svg><span class="tb-t" id="viewNow">Front</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
     <div class="seg tb-seg" id="segLvl" aria-label="Floor">
-      <button type="button" data-view="B" data-tip="Basement (1)"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-view="M" data-tip="Main floor (2)"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-view="U" data-tip="2nd floor (3)"><span class="l">Upper</span><span class="s">U</span></button>
+      <button type="button" data-view="B" data-tip="See the basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-view="M" data-tip="See the main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-view="U" data-tip="See the upper floor"><span class="l">Upper</span><span class="s">U</span></button>
     </div>
   </div>
   <span class="tb-sep" id="tbModeSep"></span>
   <div class="tb-g" id="tbMode">
     <div class="seg tb-seg" id="segMode" role="group" aria-label="How to explore">
-      <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button>
+      <button type="button" data-mode="drone" data-tip="Look around the outside"><svg class="ic"><use href="#i-orbit"/></svg><span class="tb-t">Overview</span></button><button type="button" data-mode="walk" data-tip="Walk through at eye level"><svg class="ic"><use href="#i-walk"/></svg><span class="tb-t">Walk</span></button>
     </div>
-    <button class="tb-b" id="charBtn" type="button" data-pop="mePop" data-tip="Play as a person"><svg class="ic"><use href="#i-char"/></svg><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b" id="charBtn" type="button" data-pop="mePop" data-tip="Walk as a person"><svg class="ic"><use href="#i-char"/></svg><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
   <div class="tb-g ed-only" id="tbEdit">
-    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">B</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit 2nd floor"><span class="l">2nd</span><span class="s">U</span></button></div>
+    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
-    <button class="tb-b" id="peLibBtn" type="button" data-tip="Room library" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg></button>
-    <button class="tb-b" id="peAutoBtn" type="button" data-pop="peAuto" data-tip="Auto layout"><svg class="ic"><use href="#i-wand"/></svg></button>
-    <button class="tb-b" id="peNoteBtn" type="button" data-tip="Add a note" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg></button>
-    <button class="tb-b" id="peDimBtn" type="button" data-tip="Draw a dimension line" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg></button>
-    <button class="tb-b" id="peGaps" type="button" data-tip="Close gaps between rooms"><svg class="ic"><use href="#i-gaps"/></svg></button>
-    <button class="tb-b" id="peTrace" type="button" hidden data-tip="Trace main floor into the basement"><svg class="ic"><use href="#i-trace"/></svg></button>
-    <button class="tb-b" id="pePlanBtn" type="button" data-pop="pePlanPop" data-tip="Plan settings: guide, roof, grid"><svg class="ic"><use href="#i-sliders"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span id="checkCount"></span></button>
-    <button class="tb-b" id="peResetBtn" type="button" data-pop="peResetPop" data-tip="Start over"><svg class="ic"><use href="#i-reset"/></svg></button>
-  </div>
-  <span class="tb-sep"></span>
-  <div class="tb-g" id="tbTools">
-    <button class="tb-b" id="measureBtn" type="button" data-tip="Measure (M)" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg></button>
-    <button class="tb-b" id="roofBtn" type="button" data-tip="Hide roof (H)" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg></button>
-    <button class="tb-b" id="shotBtn" type="button" data-tip="Save a screenshot (P)"><svg class="ic"><use href="#i-shot"/></svg></button>
-    <button class="tb-b" id="recBtn" type="button" data-tip="Record a video" aria-pressed="false"><svg class="ic"><use href="#i-rec"/></svg></button>
-    <button class="tb-b" id="fullBtn" type="button" data-tip="Full screen"><svg class="ic"><use href="#i-full"/></svg></button>
+    <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
+    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span class="tb-t">Checks</span><span id="checkCount"></span></button>
+    <button class="tb-b" id="edMoreBtn" type="button" data-pop="edMorePop" data-tip="More plan tools"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
-    <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Finishes"><svg class="ic"><use href="#i-palette"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="nav" data-tip="Go to a room"><svg class="ic"><use href="#i-pin"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="display" data-tip="Display, sun and camera"><svg class="ic"><use href="#i-sun"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="info" data-tip="Areas and estimate"><svg class="ic"><use href="#i-info"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="export" data-tip="Export and import"><svg class="ic"><use href="#i-down"/></svg></button>
+    <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
-    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Project panel"><svg class="ic"><use href="#i-msg"/></svg><span id="clSideCount"></span></button>
+    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Versions and activity"><svg class="ic"><use href="#i-reset"/></svg><span class="tb-t">History</span><span id="clSideCount"></span></button>
+    <button class="tb-b" type="button" data-panel-btn="export" data-tip="Download images, PDFs and files"><svg class="ic"><use href="#i-down"/></svg><span class="tb-t">Export</span></button>
+    <button class="tb-b" id="moreBtn" type="button" data-pop="morePop" data-tip="More"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-sep"></span>
   <div class="tb-g">
     <button class="tb-b" id="acctBtn" type="button" data-pop="acctPop" hidden data-tip="Account"><svg class="ic"><use href="#i-user"/></svg></button>
-    <button class="tb-b" id="dockBtn" type="button" data-pop="dockPop" data-tip="Layout and theme"><svg class="ic"><use href="#i-layout"/></svg></button>
     <button class="tb-primary" id="editBtn" type="button" aria-pressed="false" hidden data-tip="Edit floor plan (E)"><svg class="ic"><use href="#i-pencil"/></svg><span class="tb-t" id="editLabel">Edit plan</span></button>
     <button class="tb-primary ed-only" id="peDone" type="button" data-tip="Back to 3D (E)"><svg class="ic"><use href="#i-check"/></svg><span class="tb-t">Done</span></button>
   </div>
 </header>
+
+<!-- "More" menus: everything occasional lives here instead of on the bar -->
+<div class="pop" id="morePop" hidden role="menu" aria-label="More">
+  <div class="menu">
+    <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
+    <button type="button" id="roofBtn" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg>Hide the roof<kbd>H</kbd></button>
+    <button type="button" data-panel-btn="display"><svg class="ic"><use href="#i-sun"/></svg>Lighting and display</button>
+    <button type="button" data-panel-btn="info"><svg class="ic"><use href="#i-info"/></svg>Areas and estimate</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="shotBtn"><svg class="ic"><use href="#i-shot"/></svg>Take a picture<kbd>P</kbd></button>
+    <button type="button" id="recBtn" aria-pressed="false"><svg class="ic"><use href="#i-rec"/></svg>Record a video</button>
+    <button type="button" id="fullBtn"><svg class="ic"><use href="#i-full"/></svg>Full screen</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="dockBtn" data-pop="dockPop"><svg class="ic"><use href="#i-layout"/></svg>Layout, units and theme</button>
+    <button type="button" id="helpBtn2"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts<kbd>?</kbd></button>
+  </div>
+</div>
+<div class="pop" id="edMorePop" hidden role="menu" aria-label="More plan tools">
+  <div class="menu">
+    <button type="button" id="peAutoBtn" data-pop="peAuto"><svg class="ic"><use href="#i-wand"/></svg>Lay out a house for me</button>
+    <button type="button" id="peNoteBtn" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg>Add a note</button>
+    <button type="button" id="peDimBtn" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg>Draw a dimension</button>
+    <button type="button" id="peGaps"><svg class="ic"><use href="#i-gaps"/></svg>Close gaps between rooms</button>
+    <button type="button" id="peTrace" hidden><svg class="ic"><use href="#i-trace"/></svg>Copy main floor to basement</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="pePlanBtn" data-pop="pePlanPop"><svg class="ic"><use href="#i-sliders"/></svg>Plan settings: roof, site, grid</button>
+    <button type="button" id="peResetBtn" data-pop="peResetPop"><svg class="ic"><use href="#i-reset"/></svg>Start over</button>
+  </div>
+</div>
 
 <!-- ===== Popovers ===== -->
 <div class="pop" id="designMenu" hidden role="dialog" aria-label="Designs">
@@ -590,6 +621,8 @@ body.cl-pinning #stage{cursor:crosshair}
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
   <div class="vgrid" id="segExt"><button type="button" data-view="front">Front</button><button type="button" data-view="rear">Rear</button><button type="button" data-view="aerial">Aerial</button><button type="button" data-view="left">Left</button><button type="button" data-view="right">Right</button><button type="button" data-view="top">Top</button></div>
+  <h6>Go to a room</h6>
+  <div id="navList" class="nav-mini"></div>
   <h6>Saved views <button class="mini" id="saveView" type="button"><svg class="ic"><use href="#i-plus"/></svg>Save current</button></h6>
   <div class="menu" id="savedViews"></div>
 </div>
@@ -680,10 +713,6 @@ body.cl-pinning #stage{cursor:crosshair}
     <header class="sp-h"><h2>Finishes</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b" id="finishBody"></div>
   </section>
-  <section class="sp" data-panel="nav" hidden>
-    <header class="sp-h"><h2>Go to</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
-    <div class="sp-b"><select id="goto" hidden></select><div id="navList"></div></div>
-  </section>
   <section class="sp" data-panel="display" hidden>
     <header class="sp-h"><h2>Display</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
@@ -710,9 +739,6 @@ body.cl-pinning #stage{cursor:crosshair}
     <div class="sp-b">
       <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
-      <h3>Estimate</h3>
-      <div class="est"><label class="fld"><span id="rateLbl">Cost per sq ft</span> <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
-      <div id="estOut" class="est-out"></div>
       <h3>Room schedule</h3>
       <div id="schedule"></div>
     </div>
@@ -720,6 +746,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <section class="sp" data-panel="export" hidden>
     <header class="sp-h"><h2>Export</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
+      <select id="goto" hidden></select>
       <div class="menu big">
         <button type="button" id="exShot"><svg class="ic"><use href="#i-shot"/></svg><span>Screenshot</span></button>
         <button type="button" id="exShot2"><svg class="ic"><use href="#i-shot"/></svg><span>High-res render</span></button>
@@ -728,8 +755,6 @@ body.cl-pinning #stage{cursor:crosshair}
         <button type="button" id="exFly"><svg class="ic"><use href="#i-rec"/></svg><span>Fly-around video</span></button>
         <button type="button" id="exVideo"><svg class="ic"><use href="#i-rec"/></svg><span>Record a walkthrough</span></button>
         <button type="button" id="exPlan"><svg class="ic"><use href="#i-lib"/></svg><span>Floor plan image</span></button>
-        <button type="button" id="exSel"><svg class="ic"><use href="#i-pdf"/></svg><span>Selections sheet</span></button>
-        <button type="button" id="exSelCsv"><svg class="ic"><use href="#i-info"/></svg><span>Selections (CSV)</span></button>
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule</span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file</span></button>
         <button type="button" id="exImport"><svg class="ic"><use href="#i-up"/></svg><span>Import a design</span></button>
@@ -765,7 +790,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <header class="st-top">
     <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
     <span class="st-user" id="stUser" hidden></span>
-    <div class="st-actions"><button class="btn st-ghost" id="stPrices" type="button" hidden>Price list</button><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
+    <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -803,7 +828,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <div class="cl-foot" id="clFoot"></div>
 </aside>
 <div class="panel st-modal" id="clWelcome" hidden role="dialog" aria-label="Welcome"></div>
-<form class="panel st-modal pl-modal" id="priceForm" hidden onsubmit="return false" aria-label="Price list"></form>
+
 
 <!-- ===== HUD ===== -->
 <div class="panel" id="lockTip" hidden>Click to look around</div>
@@ -2880,8 +2905,8 @@ const S2W = (sx, sy) => [(sx - PE.ox) / PE.s, (sy - PE.oy) / PE.s];
 function peFit() {
   const rs = BM.rooms.length ? BM.rooms : [{ x: 0, z: 0, w: 40, d: 40 }], r = pc.getBoundingClientRect();
   const x0 = Math.min(...rs.map(q => q.x)), x1 = Math.max(...rs.map(q => q.x + q.w)), z0 = Math.min(...rs.map(q => q.z)), z1 = Math.max(...rs.map(q => q.z + q.d));
-  PE.s = Math.max(4, Math.min(30, Math.min((r.width - 60) / (x1 - x0 + 4), (r.height - 60) / (z1 - z0 + 4))));
-  PE.ox = (r.width - (x1 - x0) * PE.s) / 2 - x0 * PE.s; PE.oy = (r.height - (z1 - z0) * PE.s) / 2 - z0 * PE.s;
+  PE.s = Math.max(4, Math.min(30, Math.min((r.width - 150) / (x1 - x0 + 4), (r.height - 150) / (z1 - z0 + 4)))); // room for dimension strings
+  PE.ox = (r.width - (x1 - x0) * PE.s) / 2 - x0 * PE.s + 20; PE.oy = (r.height - (z1 - z0) * PE.s) / 2 - z0 * PE.s + 16;
 }
 function peSize() {
   const r = pc.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2), w = Math.round(r.width * d), h = Math.round(r.height * d);
@@ -3176,7 +3201,8 @@ function peAddStair(at) {
 function peInspector() {
   peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
-  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra); if (!q) return;
+  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
+  document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
   document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
@@ -4027,7 +4053,7 @@ function stepWalk(dt) {
   }
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
-  document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : 'Lot 49 · 39.62 m × 41.86 m';
+  document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
   drawMini(lv);
 }
 // drag to look
@@ -4113,23 +4139,23 @@ const FIN = [
 ];
 let saved = {}; try { saved = JSON.parse(localStorage.getItem('walkthru-finishes-v2') || '{}'); } catch (e) { }
 // Finishes belong to the design when it lives in the Studio (cloud.js sets finishHook); otherwise they're remembered in this browser.
-let finishHook = null, finishMute = false; const FIN_PICK = {}, FIN_CUR = {}; // FIN_CUR: what is picked now (index, or a hex for a custom colour)
+let finishHook = null, finishMute = false; const FIN_PICK = {};
 function applyFinishes(map) { finishMute = true; for (const k in FIN_PICK) FIN_PICK[k](map?.[k] ?? 0); finishMute = false; }
 const fb = document.getElementById('finishBody');
 for (const [sec, items] of FIN) {
   const h = document.createElement('div'); h.className = 'grp'; h.dataset.sec = sec; h.innerHTML = `<h3>${sec}</h3>`; fb.appendChild(h);
   for (const [key, label, opts, apply] of items) {
-    const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3 style="text-transform:none;letter-spacing:0;color:var(--ink)">${label}</h3>`;
+    const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3>${label}<span class="cur"></span></h3>`;
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
     // A custom colour (any hex) is stored as the string itself; the presets as their index.
-    const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Pick any colour'; custom.innerHTML = '<i></i>Custom<input type="color">';
+    const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Any colour'; custom.innerHTML = '<i></i><input type="color" aria-label="Any colour">';
     const pick = (i) => { const hex = typeof i === 'string' && /^#[0-9a-f]{6}$/i.test(i) ? i : null; if (!hex) i = Math.min(+i || 0, opts.length - 1);
       apply(hex || opts[i][1]); sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(!hex && i === j)));
+      g.querySelector('.cur').textContent = hex ? 'Custom colour' : opts[i][0];
       custom.setAttribute('aria-pressed', String(!!hex)); if (hex) { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
-      FIN_CUR[key] = hex || i; pricesChanged();
       if (finishHook) { if (!finishMute) finishHook(key, i); return; } saved[key] = i; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
-    opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i>${n}`; b.onclick = () => pick(i); sw.appendChild(b); });
+    opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(i); sw.appendChild(b); });
     sw.appendChild(custom); custom.querySelector('input').oninput = e => pick(e.target.value);
     pick(saved[key] ?? 0);
   }
@@ -4143,7 +4169,7 @@ function setMode(m) {
   if (m === 'drone') { if (mode === 'walk') goView(curView); return; }
   if (mode === 'walk') setThird(m === 'char'); else enterWalk(HOUSES[curHouse].front, m === 'char');
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { setMode(b.dataset.mode); b.blur(); });
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { const m = b.dataset.mode, cur = mode !== 'walk' ? 'drone' : AV.third ? 'char' : 'walk'; if (m !== cur && (m === 'drone' || cur === 'drone')) fadeCut(() => setMode(m)); else setMode(m); b.blur(); });
 document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => b.blur()));
 const sel = document.getElementById('goto');
 function fillGoto() {
@@ -4154,6 +4180,7 @@ function fillGoto() {
 }
 sel.onchange = () => {
   const v = sel.value; sel.value = ''; sel.blur(); if (!v) return;
+  if (mode !== 'walk' && !sel._fading) return fadeCut(() => { sel._fading = true; sel.value = v; sel.onchange(); sel._fading = false; });
   const H = HOUSES[curHouse];
   const third = mode === 'walk' ? AV.third : groundMode === 'char';
   if (v === 'yard') return enterWalk(H.yard, third);
@@ -4201,7 +4228,7 @@ addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabH
 const tod = document.getElementById('tod'); tod.oninput = () => setSun(+tod.value);
 document.getElementById('optLabels').onchange = e => { showLabels = e.target.checked; applyVisibility(); };
 document.getElementById('optFurn').onchange = e => { showFurn = e.target.checked; applyVisibility(); };
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; updateViewOffset(); renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; updateViewOffset(true); renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight); });
 
 // =====================================================================
 //  START
@@ -4263,14 +4290,21 @@ function updateViews3() {
 // While the floor plan editor covers the left side, shift the 3D picture so its centre sits in the visible right panel.
 function editorWidth() { return PE.open && innerWidth > 760 ? document.getElementById('planEd').getBoundingClientRect().width : 0; }
 // Keep the picture centred in the space the toolbar, editor and side panel leave free.
-function updateViewOffset() {
-  const E = editorWidth(), I = uiInsets(), x = (I.r + I.p - I.l - E) / 2, y = (I.b - I.t) / 2;
-  if (x || y) camera.setViewOffset(innerWidth, innerHeight, x, y, innerWidth, innerHeight); else camera.clearViewOffset();
-  camera.updateProjectionMatrix();
+// The picture glides to its new centre (instead of jumping) when panels open or close.
+const VO = { x: 0, y: 0, tx: 0, ty: 0, raf: 0 };
+function applyViewOffset() { if (Math.abs(VO.x) > .5 || Math.abs(VO.y) > .5) camera.setViewOffset(innerWidth, innerHeight, VO.x, VO.y, innerWidth, innerHeight); else camera.clearViewOffset(); camera.updateProjectionMatrix(); }
+function updateViewOffset(instant) {
+  const E = editorWidth(), I = uiInsets(); VO.tx = (I.r + I.p - I.l - E) / 2; VO.ty = (I.b - I.t) / 2;
+  if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { VO.x = VO.tx; VO.y = VO.ty; return applyViewOffset(); }
+  cancelAnimationFrame(VO.raf); const x0 = VO.x, y0 = VO.y, t0 = performance.now();
+  const step = t => { const k = Math.min(1, (t - t0) / 320), e = 1 - Math.pow(1 - k, 3); VO.x = x0 + (VO.tx - x0) * e; VO.y = y0 + (VO.ty - y0) * e; applyViewOffset(); if (k < 1) VO.raf = requestAnimationFrame(step); };
+  VO.raf = requestAnimationFrame(step);
 }
+// A quick crossfade hides the camera cut when switching between overview and walking.
+function fadeCut(fn) { const f = document.getElementById('fadeCut'); if (!f || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn(); f.classList.add('on'); setTimeout(() => { fn(); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on'))); }, 160); }
 rebuildHouse3();
 setHouse(startHouse, true); goView('front', true); syncModes();
-document.getElementById('loading').remove();
+{ const ld = document.getElementById('loading'); ld.classList.add('done'); setTimeout(() => ld.remove(), 450); }
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
@@ -4405,7 +4439,7 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
   if (!ACC.user && !/^#c\//.test(location.hash)) { location.replace(signInUrl('login')); return; }
   document.documentElement.classList.remove('gate');
   addEventListener('hashchange', () => { if (!ACC.user && !/^#c\//.test(location.hash)) location.replace(signInUrl('login')); });
-  accRender(); if (ACC.user) { pullDesigns(); loadCatalog(); }
+  accRender(); if (ACC.user) pullDesigns();
   // Signed-in people start on their Projects page; the bare playground is one click away from there.
   let sandbox = false; try { sandbox = sessionStorage.getItem('wt-sandbox') === '1'; } catch (e) { }
   if (ACC.user && !sandbox && (location.hash === '' || location.hash === '#')) location.hash = '#admin';
@@ -4435,7 +4469,7 @@ async function cloudApi(method, path, data) {
 }
 
 // Forms here are handled in JS; never let the browser submit them (that would reload the page).
-document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome, #priceForm')) e.preventDefault(); }, true);
+document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome')) e.preventDefault(); }, true);
 
 // ---------- design helpers ----------
 const BEDS = new Set(['bedroom', 'primary', 'guest', 'nursery']);
@@ -4515,14 +4549,13 @@ async function studioHome() {
 function renderStudio() {
   const q = $c('stSearch').value.trim().toLowerCase(), list = stProjects.filter(p => !q || `${p.name} ${p.client || ''} ${p.address || ''}`.toLowerCase().includes(q));
   const tot = (k) => stProjects.reduce((a, p) => a + (p[k] || 0), 0);
-  $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> projects</span><span class="st-stat"><b>${tot('shares')}</b> customer links</span>` +
-    (tot('submitted') ? `<span class="st-stat chip alert"><b>${tot('submitted')}</b> waiting for review</span>` : '') + (tot('open_comments') ? `<span class="st-stat"><b>${tot('open_comments')}</b> open comments</span>` : '');
+  $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> project${stProjects.length === 1 ? '' : 's'}</span>`;
   $c('stEmpty').hidden = stProjects.length > 0;
-  $c('stList').innerHTML = list.map(p => `<button class="st-card" type="button" data-pid="${clEsc(p.id)}"><canvas aria-hidden="true"></canvas><div class="st-meta">
+  $c('stList').innerHTML = list.map(p => `<button class="st-card" type="button" data-pid="${clEsc(p.id)}">${p.thumb ? `<img class="st-thumb" src="${p.thumb}" alt="">` : '<canvas aria-hidden="true"></canvas>'}<div class="st-meta">
       <h3>${clEsc(p.name)}</h3><p>${clEsc([p.client, p.address].filter(Boolean).join(' · ') || 'No client yet')}</p><span class="st-spec">${clEsc(specLine(p.summary))}</span>
-      <div class="st-flags"><span class="chip ${clEsc(p.status)}">${clEsc(STATUS_NAME[p.status] || p.status)}</span>${p.submitted ? `<span class="chip alert">${p.submitted} to review</span>` : ''}${p.open_comments ? `<span class="chip">${p.open_comments} comment${p.open_comments>1?'s':''}</span>` : ''}<span class="chip">v${p.version}</span></div>
+      <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
       <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></button>`).join('');
-  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { drawPreview(b.querySelector('canvas'), list[i].preview); b.onclick = () => goRoute(`#admin/p/${b.dataset.pid}`); });
+  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview); b.onclick = () => goRoute(`#admin/p/${b.dataset.pid}`); });
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
@@ -4640,12 +4673,16 @@ async function openProject(id, keepView) {
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBack').hidden = false; $c('clBrand').textContent = `${CL.brand.name} · Studio`;
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; document.title = `${j.project.name} · ${CL.brand.name}`;
-  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ') || 'Add a client when you share it';
+  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ');
   setSave(`Saved · version ${j.project.version}`); banner(''); chrome(); renderPins();
-  if (first) CL.tab = j.shares.some(s => s.status === 'submitted') ? 'share' : 'share';
-  toggleSide(true); renderSide();
+  CL.tab = 'history'; toggleSide(false); renderSide();
   CL.poll = setInterval(refreshProject, 20000);
-  loadCatalog();
+  if (first) setTimeout(saveThumb, 2500);
+}
+let thumbAt = 0;
+async function saveThumb() {
+  if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
+  const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
 }
 async function refreshProject() {
   if (CL.route?.kind !== 'project' || document.hidden) return;
@@ -4655,7 +4692,7 @@ async function refreshProject() {
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
+    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
     catch (e) { setSave(`Not saved: ${e.message}`); }
   }, 800);
 }
@@ -4683,60 +4720,14 @@ const EV = {
   restored: e => ['', `Restored version ${e.detail?.from} as v${e.detail?.version}`], snapshot: e => ['', `Saved version ${e.detail?.version}: ${e.detail?.note}`],
 };
 function renderProjectSide() {
-  const P = CL.project, open = CL.comments.filter(c => c.author_role === 'customer' && !c.resolved).length, waiting = P.shares.filter(s => s.status === 'submitted').length;
-  sideTabs([['share', `Customers${waiting ? ` (${waiting})` : ''}`], ['comments', `Comments${open ? ` (${open})` : ''}`], ['pricing', 'Price'], ['activity', 'Activity'], ['versions', 'Versions']]);
-  $c('clSideCount').textContent = open ? open : '';
+  const P = CL.project;
+  sideTabs([['history', 'History']]);
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  if (CL.tab === 'share') {
-    B.innerHTML = `<div class="cl-sec">Share with a customer</div>
-      <form class="cl-form" id="shForm" onsubmit="return false"><label>Customer name <input id="shName" maxlength="80" placeholder="e.g. Jane Smith" required></label>
-      <label>Email (optional) <input id="shEmail" type="email" maxlength="120" placeholder="jane@example.com"></label>
-      <label>What they can do <select id="shAccess"><option value="view">Look around and comment</option><option value="finishes">Also choose finishes</option><option value="edit" selected>Also change the floor plan</option></select></label>
-      <label>Message (optional) <textarea id="shMsg" rows="2" placeholder="Here’s the first draft of your home. Have a look around and tell us what you think!"></textarea></label>
-      <div class="cl-2"><label>Link expires <select id="shExp"><option value="0">Never</option><option value="7">In 7 days</option><option value="30" selected>In 30 days</option><option value="90">In 90 days</option></select></label><label>Password (optional) <input id="shPass" type="text" autocomplete="off" maxlength="60" placeholder="None"></label></div>
-      <label class="cl-check"><input type="checkbox" id="shMail" checked> Email the link to the customer</label>
-      <button class="btn st-primary" type="submit" id="shGo">Create customer link</button></form>
-      <div class="cl-sec">Customer links</div>` + (P.shares.length ? P.shares.map(s => `<div class="cl-item${s.revoked ? ' res' : ''}" data-tok="${clEsc(s.token)}">
-        <h4><span>${clEsc(s.customer)}</span><span class="chip ${s.revoked ? '' : clEsc(s.status)}">${s.revoked ? 'Turned off' : clEsc(STATUS_NAME[s.status] || s.status)}</span></h4>
-        <small>${clEsc(ACCESS_NAME[s.access])} · ${s.opened_at ? 'opened ' + clAgo(s.opened_at) : 'not opened yet'}${s.updated_at ? ' · active ' + clAgo(s.updated_at) : ''}</small>
-        <small>${s.expires_at ? (s.expires_at < Date.now() ? '<b class="st-danger">Expired</b>' : 'Expires ' + new Date(s.expires_at).toLocaleDateString()) : 'Never expires'}${s.has_pass ? ' · password protected' : ''}${s.email ? ' · ' + clEsc(s.email) : ''}</small>
-        ${s.submit_note && s.status === 'submitted' ? `<p>“${clEsc(s.submit_note)}”</p>` : ''}
-        <div class="cl-link"><input readonly value="${clEsc(shareURL(s.token))}" aria-label="Customer link"><button class="btn" type="button" data-act="copy">Copy</button></div>
-        <div class="cl-acts">${s.has_copy ? `<button class="btn" type="button" data-act="view">View their version</button><button class="btn" type="button" data-act="accept">Accept changes</button>` : ''}
-          <a class="btn" href="${clEsc(shareURL(s.token))}" target="_blank" rel="noopener">Open as customer</a>
-          <select data-act="access" aria-label="Access">${Object.entries(ACCESS_NAME).map(([k, n]) => `<option value="${k}"${k === s.access ? ' selected' : ''}>${n}</option>`).join('')}</select>
-          <select data-act="exp" aria-label="Expiry"><option value="">Change expiry…</option><option value="0">Never expires</option><option value="7">7 more days</option><option value="30">30 more days</option><option value="90">90 more days</option></select>
-          <button class="btn" type="button" data-act="pass">${s.has_pass ? 'Change password' : 'Add password'}</button>
-          <button class="btn${s.revoked ? '' : ' st-danger'}" type="button" data-act="revoke">${s.revoked ? 'Turn back on' : 'Turn off'}</button></div></div>`).join('') : '<p class="cl-sub">No customer links yet.</p>');
-    $c('shForm').onsubmit = async () => {
-      const customer = $c('shName').value.trim(); if (!customer) return $c('shName').focus();
-      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim(), expiresDays: +$c('shExp').value, password: $c('shPass').value.trim(), sendEmail: $c('shMail').checked });
-        window.wtTrack?.('share_created', { access: $c('shAccess').value });
-        const mailed = j.mailed === 'sent' ? ' and emailed' : j.mailed === 'queued' ? ' (email queued: no mail provider set up)' : '';
-        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave(`Link created${mailed}, copied`); } catch (e) { setSave(`Link created${mailed}`); }
-        await refreshProject(); renderSide(); } catch (e) { setSave(e.message); }
-    };
-    B.querySelectorAll('[data-tok]').forEach(el => { const tok = el.dataset.tok, s = P.shares.find(x => x.token === tok);
-      el.querySelector('[data-act="copy"]').onclick = async e => { el.querySelector('input').select(); try { await navigator.clipboard.writeText(shareURL(tok)); e.target.textContent = 'Copied'; } catch (er) { document.execCommand?.('copy'); e.target.textContent = 'Copied'; } setTimeout(() => e.target.textContent = 'Copy', 1500); };
-      el.querySelector('[data-act="view"]')?.addEventListener('click', () => viewCustomerVersion(tok));
-      el.querySelector('[data-act="accept"]')?.addEventListener('click', () => acceptShare(tok));
-      el.querySelector('[data-act="access"]').onchange = async e => { await cloudApi('PATCH', `share?token=${tok}`, { access: e.target.value }); s.access = e.target.value; setSave('Access updated'); };
-      el.querySelector('[data-act="exp"]').onchange = async e => { if (e.target.value === '') return; await cloudApi('PATCH', `share?token=${tok}`, { expiresDays: +e.target.value }); setSave('Expiry updated'); await refreshProject(); renderSide(); };
-      el.querySelector('[data-act="pass"]').onclick = async () => { const pw = prompt(s.has_pass ? 'New password for this link (leave empty to remove it)' : 'Password for this link'); if (pw === null) return; await cloudApi('PATCH', `share?token=${tok}`, { password: pw.trim() }); setSave(pw.trim() ? 'Password set. Share it with the customer separately.' : 'Password removed'); await refreshProject(); renderSide(); };
-      el.querySelector('[data-act="revoke"]').onclick = async () => { await cloudApi('PATCH', `share?token=${tok}`, { revoked: !s.revoked }); await refreshProject(); renderSide(); };
-    });
-  } else if (CL.tab === 'pricing') { B.innerHTML = priceSideHTML(true); wirePriceSide(true);
-  } else if (CL.tab === 'comments') {
-    B.innerHTML = CL.comments.length ? CL.comments.map(c => commentHTML(c, true)).join('') : '<p class="cl-sub">No comments yet. Customers can pin comments anywhere in the house.</p>';
-    wireComments(B, true); F.innerHTML = composerHTML(true); wireComposer(true, async () => { await refreshProject(); renderPins(); renderSide(); });
-  } else if (CL.tab === 'activity') {
-    B.innerHTML = P.events.length ? P.events.map(e => { const [ic, tx] = (EV[e.kind] || (() => ['•', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>';
-  } else {
-    B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this design as a version <input id="vsNote" maxlength="120" placeholder="e.g. Sent to client for first review"></label><button class="btn" type="submit">Save version</button></form>
-      <div class="cl-sec">History</div>` + P.versions.map(v => `<div class="cl-item"><h4><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''}</span><small>${clAgo(v.created_at)}</small></h4><p>${clEsc(v.note || '')}</p>${v.version !== P.project.version ? `<div class="cl-acts"><button class="btn" type="button" data-ver="${v.version}">Restore</button></div>` : ''}</div>`).join('');
-    $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'versions'; renderSide(); };
-    B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'versions'; renderSide(); });
-  }
+  B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this version <input id="vsNote" maxlength="120" placeholder="e.g. Sent for first review"></label><button class="btn" type="submit">Save version</button></form>
+    <div class="cl-sec">Versions</div>` + P.versions.map(v => `<div class="cl-ev ver"><i></i><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''} · ${clEsc(v.note || '')}${v.version !== P.project.version ? ` <button class="linkish" type="button" data-ver="${v.version}">Restore</button>` : ''}</span><small>${clAgo(v.created_at)}</small></div>`).join('')
+    + `<div class="cl-sec">Activity</div>` + (P.events.length ? P.events.map(e => { const [, tx] = (EV[e.kind] || (() => ['', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>');
+  $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); };
+  B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); });
 }
 
 // ---------- Customer link ----------
@@ -4752,7 +4743,6 @@ async function openShare(token) {
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
   if (!seen) welcome();
-  loadCatalog();
   CL.poll = setInterval(async () => { if (document.hidden) return; try { const r = await cloudApi('GET', `comments?token=${token}`); if (r.comments.length !== CL.comments.length) { CL.comments = r.comments; renderPins(); renderSide(); } } catch (e) { } }, 20000);
 }
 function shareStatus() {
@@ -4768,7 +4758,7 @@ function shareSave() {
 }
 function renderShareSide() {
   const s = CL.share, canSave = s.access !== 'view';
-  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ...(hasPricing() ? [['price', 'Price']] : []), ['send', 'Send'], ['help', 'How to']]);
+  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ['send', 'Send'], ['help', 'How to']]);
   $c('clSideCount').textContent = CL.comments.length || '';
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
   if (CL.tab === 'comments') {
@@ -4776,7 +4766,6 @@ function renderShareSide() {
       (CL.comments.length ? CL.comments.map(c => commentHTML(c, false)).join('') : '<p class="cl-sub">Questions or ideas? Pin a comment to any spot in the house and we’ll see exactly what you mean.</p>');
     wireComments(B, false); F.innerHTML = composerHTML(false);
     wireComposer(false, async () => { const r = await cloudApi('GET', `comments?token=${CL.route.token}`); CL.comments = r.comments; renderPins(); renderSide(); setSave('Comment posted'); });
-  } else if (CL.tab === 'price') { B.innerHTML = priceSideHTML(false); wirePriceSide(false);
   } else if (CL.tab === 'send') {
     const sent = s.status === 'submitted';
     B.innerHTML = `<p class="cl-sub">${canSave ? (s.changed ? 'Your version is saved. When you’re happy with it, send it over and we’ll review your changes and comments.' : 'You haven’t changed anything yet. You can still send your comments.') : 'Send your comments when you’re ready.'}</p>
@@ -4815,119 +4804,10 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Projects';
+  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg><span class="tb-t">Projects</span>'; sb.dataset.tip = 'All projects';
   sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
-
-
-// =====================================================================
-//  PRICING — the workspace price list on top of the design: upgrade prices on finish choices, add-on
-//  packages, a running total, and a selections sheet to print or sign. The list lives in /api/catalog.
-//  Picks are the finishes (FIN_CUR) plus BM.addons (ids of add-ons the buyer ticked).
-// =====================================================================
-var PRICE = { cat: null, canEdit: false, ready: false };
-const usd = v => '$' + Math.round(v).toLocaleString();
-function pricesChanged() { if (PRICE && PRICE.ready) renderPriceBits(); } // called while the app is still starting, before this file runs
-async function loadCatalog() {
-  try {
-    const kind = CL.route?.kind;
-    const j = kind === 'customer' ? await cloudApi('GET', `catalog?token=${encodeURIComponent(CL.route.token)}`) : ACC.user ? await accApi('GET', 'catalog') : null;
-    PRICE.cat = j?.catalog || null; PRICE.canEdit = !!j?.canEdit;
-  } catch (e) { PRICE.cat = null; }
-  PRICE.ready = true; renderPriceBits(); $c('stPrices').hidden = !PRICE.canEdit;
-}
-const finPrice = key => { const v = FIN_CUR[key]; return typeof v === 'number' ? (PRICE.cat?.finish?.[key]?.[v] || 0) : 0; };
-const basePrice = () => CL.route?.kind === 'project' ? (CL.project?.project?.base_price ?? PRICE.cat?.base ?? 0) : PRICE.cat?.base || 0;
-function selections() { // [{group, item, choice, price}] plus totals
-  const rows = [];
-  for (const [sec, items] of FIN) for (const [key, label, opts] of items) { const v = FIN_CUR[key]; if (v === undefined) continue; rows.push({ group: sec, item: label, choice: typeof v === 'number' ? opts[v]?.[0] : `Custom ${v}`, price: finPrice(key) }); }
-  for (const a of PRICE.cat?.addons || []) if ((BM.addons || []).includes(a.id)) rows.push({ group: a.group || 'Options', item: a.name, choice: 'Included', price: a.price });
-  const options = rows.reduce((s, r) => s + r.price, 0), base = basePrice();
-  return { rows, base, options, total: base + options };
-}
-const hasPricing = () => !!PRICE.cat && (PRICE.cat.base > 0 || Object.keys(PRICE.cat.finish || {}).length > 0 || (PRICE.cat.addons || []).length > 0 || basePrice() > 0);
-
-function renderPriceBits() {
-  const cat = PRICE.cat, on = hasPricing();
-  for (const [, items] of FIN) for (const [key, , opts] of items) opts.forEach((_, i) => { // price tags on the swatches
-    const b = document.getElementById(`sw-${key}-${i}`); if (!b) return; let em = b.querySelector('em'); const p = cat?.finish?.[key]?.[i];
-    if (p) { if (!em) { em = document.createElement('em'); b.appendChild(em); } em.textContent = '+' + usd(p); } else em?.remove();
-  });
-  const fb = document.getElementById('finishBody'); let bar = document.getElementById('priceBar'), box = document.getElementById('addonsBox');
-  if (!on) { bar?.remove(); box?.remove(); return; }
-  if (!bar) { bar = document.createElement('div'); bar.id = 'priceBar'; fb.prepend(bar); }
-  const S = selections(), canPick = !(CL.route?.kind === 'customer' && CL.share?.access === 'view');
-  bar.innerHTML = `<div><span>Base</span><b>${usd(S.base)}</b></div><div><span>Options</span><b>+${usd(S.options)}</b></div><div class="tot"><span>Total</span><b>${usd(S.total)}</b></div>`;
-  const adds = cat.addons || [];
-  if (!adds.length) { box?.remove(); return; }
-  if (!box) { box = document.createElement('div'); box.id = 'addonsBox'; box.className = 'grp'; fb.insertBefore(box, bar.nextSibling); }
-  const groups = [...new Set(adds.map(a => a.group || 'Options'))];
-  box.innerHTML = '<h3>Add-ons</h3>' + groups.map(g => `<p class="ad-g">${g}</p>` + adds.filter(a => (a.group || 'Options') === g).map(a => `<label class="sw-row ad"><span>${a.name.replace(/</g, '&lt;')}<small>+${usd(a.price)}</small></span><input type="checkbox" data-addon="${a.id}" ${(BM.addons || []).includes(a.id) ? 'checked' : ''} ${canPick ? '' : 'disabled'}><span class="tg"></span></label>`).join('')).join('');
-  box.querySelectorAll('[data-addon]').forEach(i => i.onchange = () => { const id = i.dataset.addon, s = new Set(BM.addons || []); if (i.checked) s.add(id); else s.delete(id); BM.addons = [...s]; saveBM(); renderPriceBits(); window.wtTrack?.('addon_toggled'); });
-}
-
-// ---------- selections sheet ----------
-function sheetName() { return CL.route?.kind === 'project' ? CL.project.project.name : CL.route?.kind === 'customer' ? CL.share.project.name : $c('designNow').textContent; }
-function selectionsSheet() {
-  const S = selections(), win = window.open('', '_blank'); if (!win) return toast('Allow pop-ups to open the sheet');
-  const esc = s => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-  const who = CL.route?.kind === 'customer' ? CL.share.customer : CL.route?.kind === 'project' ? (CL.project.project.client || '') : '';
-  const addr = CL.route?.kind === 'project' ? CL.project.project.address : CL.route?.kind === 'customer' ? CL.share.project.address : '';
-  let last = '';
-  const body = S.rows.map(r => { const g = r.group !== last ? `<tr class="g"><td colspan="3">${esc(r.group)}</td></tr>` : ''; last = r.group; return `${g}<tr><td>${esc(r.item)}</td><td>${esc(r.choice)}</td><td>${r.price ? '+' + usd(r.price) : 'Included'}</td></tr>`; }).join('');
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(sheetName())} · selections</title><style>
-    @page{margin:14mm} body{font:12.5px/1.45 Inter,system-ui,sans-serif;color:#111;max-width:760px;margin:0 auto;padding:24px} h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em} .m{color:#666;margin:0 0 20px}
-    table{width:100%;border-collapse:collapse} td{padding:7px 0;border-bottom:1px solid #e5e5e5} td:last-child{text-align:right;white-space:nowrap} tr.g td{padding-top:16px;font-weight:600;border-bottom:1.5px solid #111}
-    .sum td{border:0;padding:4px 0} .sum .t td{font-size:16px;font-weight:700;border-top:2px solid #111;padding-top:10px} .sig{display:grid;grid-template-columns:2fr 1fr;gap:28px;margin-top:48px} .sig div{border-top:1px solid #111;padding-top:6px;color:#666;font-size:11px}
-    .tools{text-align:center;margin-bottom:16px} .tools button{font:500 14px Inter,sans-serif;padding:10px 16px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer} @media print{.tools{display:none}}
-    </style></head><body><div class="tools"><button onclick="print()">Save as PDF or print</button></div>
-    <h1>${esc(sheetName())}</h1><p class="m">Selections${who ? ' for ' + esc(who) : ''}${addr ? ' · ' + esc(addr) : ''} · ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-    <table>${body}</table>
-    <table class="sum" style="margin-top:22px"><tr><td>Base price</td><td></td><td>${usd(S.base)}</td></tr><tr><td>Options</td><td></td><td>+${usd(S.options)}</td></tr><tr class="t"><td>Total</td><td></td><td>${usd(S.total)}</td></tr></table>
-    <div class="sig"><div>Buyer signature</div><div>Date</div><div>Builder signature</div><div>Date</div></div></body></html>`);
-  win.document.close(); window.wtTrack?.('selections_sheet');
-}
-function selectionsCsv() {
-  const S = selections(), q = c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c;
-  const rows = [['Group', 'Item', 'Selection', 'Price'], ...S.rows.map(r => [r.group, r.item, r.choice, r.price]), [], ['', 'Base price', '', S.base], ['', 'Options', '', S.options], ['', 'Total', '', S.total]];
-  downloadText(rows.map(r => r.map(q).join(',')).join('\n'), `${slug()}-selections.csv`, 'text/csv'); toast('Selections saved');
-}
-$c('exSel').onclick = selectionsSheet; $c('exSelCsv').onclick = selectionsCsv;
-
-// ---------- the price tab in a project / on a customer link ----------
-function priceSideHTML(studio) {
-  const S = selections();
-  return `${studio ? `<form class="cl-form" id="bpForm" onsubmit="return false"><label>Base price for this home <input id="bpIn" type="number" min="0" step="1000" value="${CL.project.project.base_price ?? ''}" placeholder="${PRICE.cat?.base || 0}"></label></form>` : ''}
-    <div class="cl-item"><h4><span>Total</span><span>${usd(S.total)}</span></h4><small>Base ${usd(S.base)} · options +${usd(S.options)}</small></div>
-    ${S.rows.filter(r => r.price).map(r => `<div class="cl-ev"><i></i><span>${r.item}: ${r.choice}</span><small>+${usd(r.price)}</small></div>`).join('') || '<p class="cl-sub">No paid options picked yet.</p>'}
-    <div class="cl-acts"><button class="btn" type="button" id="psSheet">Selections sheet</button><button class="btn" type="button" id="psCsv">CSV</button>${studio && PRICE.canEdit ? '<button class="btn" type="button" id="psList">Price list</button>' : ''}</div>`;
-}
-function wirePriceSide(studio) {
-  $c('psSheet').onclick = selectionsSheet; $c('psCsv').onclick = selectionsCsv; if ($c('psList')) $c('psList').onclick = () => openPriceList();
-  if (studio) $c('bpIn').onchange = async e => { const v = e.target.value; await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { base_price: v === '' ? null : +v }); CL.project.project.base_price = v === '' ? null : +v; renderPriceBits(); renderSide(); };
-}
-
-// ---------- price list editor (Studio) ----------
-function openPriceList() {
-  const cat = JSON.parse(JSON.stringify(PRICE.cat || { base: 0, finish: {}, addons: [] })), f = $c('priceForm');
-  const draw = () => {
-    f.innerHTML = `<h2>Price list</h2><label>Default base price <input id="plBase" type="number" min="0" step="1000" value="${cat.base || ''}" placeholder="0"></label>
-      <div class="pl-scroll">${FIN.map(([sec, items]) => `<div class="cl-sec">${sec} finishes</div>` + items.map(([key, label, opts]) => `<div class="pl-row"><b>${label}</b>${opts.map(([n], i) => `<label>${n}<input type="number" min="0" step="100" data-fk="${key}" data-fi="${i}" value="${cat.finish?.[key]?.[i] || ''}" placeholder="Included"></label>`).join('')}</div>`).join('')).join('')}
-      <div class="cl-sec">Add-ons</div>${(cat.addons || []).map((a, i) => `<div class="pl-add"><input data-ag="${i}" value="${a.group || ''}" placeholder="Group"><input data-an="${i}" value="${a.name.replace(/"/g, '&quot;')}" placeholder="Name"><input data-ap="${i}" type="number" min="0" step="100" value="${a.price || ''}" placeholder="Price"><button class="btn" type="button" data-ax="${i}" aria-label="Remove">✕</button></div>`).join('')}
-      <button class="btn" type="button" id="plAdd">Add an option</button></div>
-      <div class="st-row"><button class="btn st-ghost" type="button" id="plCancel">Cancel</button><button class="btn st-primary" type="submit">Save prices</button></div><p class="st-err" id="plErr"></p>`;
-    f.querySelectorAll('[data-fk]').forEach(i => i.oninput = () => { const k = i.dataset.fk; cat.finish[k] = cat.finish[k] || {}; if (i.value) cat.finish[k][i.dataset.fi] = +i.value; else delete cat.finish[k][i.dataset.fi]; });
-    f.querySelectorAll('[data-ag],[data-an],[data-ap]').forEach(i => i.oninput = () => { const a = cat.addons[i.dataset.ag ?? i.dataset.an ?? i.dataset.ap]; if (i.dataset.ag !== undefined) a.group = i.value; else if (i.dataset.an !== undefined) a.name = i.value; else a.price = +i.value || 0; });
-    f.querySelectorAll('[data-ax]').forEach(b => b.onclick = () => { cat.addons.splice(+b.dataset.ax, 1); draw(); });
-    $c('plAdd').onclick = () => { cat.addons.push({ id: Math.random().toString(36).slice(2, 10), group: 'Packages', name: '', price: 0 }); draw(); f.querySelector(`[data-an="${cat.addons.length - 1}"]`).focus(); };
-    $c('plBase').oninput = e => cat.base = +e.target.value || 0;
-    $c('plCancel').onclick = () => f.hidden = true;
-  };
-  f.onsubmit = async e => { e?.preventDefault(); try { const j = await accApi('PUT', 'catalog', cat); PRICE.cat = j.catalog; f.hidden = true; renderPriceBits(); toast('Prices saved'); if (CL.route?.kind === 'project') renderSide(); } catch (e) { $c('plErr').textContent = e.message; } };
-  draw(); f.hidden = false;
-}
-$c('stPrices').onclick = () => openPriceList();
 
 
 // =====================================================================
@@ -4976,7 +4856,7 @@ document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnit
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
-  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
+  designMenu: () => fillDesignMenu(), viewPop: () => { renderNav(); renderSaved(); }, mePop: () => syncMe(),
   dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
   pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
@@ -4995,10 +4875,18 @@ function placePop(el, btn) {
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-pop]'); if (b) { e.preventDefault(); openPop(b.dataset.pop, b); return; }
-  if (e.target.closest('#designMenu [data-house], #designMenu [data-design], #viewPop [data-view], #viewPop [data-saved]')) setTimeout(closePops, 0);
+  // picking something from a menu closes it (rows that open another menu don't)
+  if (e.target.closest('#designMenu [data-house], #designMenu [data-design], #viewPop [data-view], #viewPop [data-saved], #navList [data-go], .pop .menu button:not([data-pop]):not(.del):not(#designAdd)')) setTimeout(closePops, 0);
 });
 addEventListener('pointerdown', e => { if (popOpen && !e.target.closest('.pop, [data-pop]')) closePops(); }, true);
 addEventListener('resize', () => { closePops(); relayout(); });
+
+// ---------- dialogs: one at a time; Esc or a click outside closes them ----------
+const DIALOGS = ['stNewForm'];
+new MutationObserver(ms => { for (const m of ms) if (!m.target.hidden && DIALOGS.includes(m.target.id)) for (const id of DIALOGS) if (id !== m.target.id) $u(id).hidden = true; })
+  .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+const openDialog = () => DIALOGS.map($u).find(d => d && !d.hidden);
+addEventListener('pointerdown', e => { const d = openDialog(); if (d && !d.contains(e.target) && !e.target.closest('[data-pop], .pop, #stNew')) d.hidden = true; }, true);
 
 // ---------- tooltips ----------
 const tipEl = $u('tip'); let tipT = 0;
@@ -5018,7 +4906,7 @@ addEventListener('pointerdown', hideTip, true);
 
 // ---------- side panels ----------
 let panel = null;
-const PANEL_OPEN = { nav: () => renderNav(), info: () => renderInfo(), checks: () => renderChecks() };
+const PANEL_OPEN = { info: () => renderInfo(), checks: () => renderChecks() };
 function openPanel(name) {
   if (panel === name) return closePanel();
   if (!$u('clSide').hidden) toggleSide(false);
@@ -5032,13 +4920,13 @@ function closePanel() {
 }
 document.querySelectorAll('[data-panel-btn]').forEach(b => b.onclick = () => openPanel(b.dataset.panelBtn));
 document.querySelectorAll('#side [data-close]').forEach(b => b.onclick = closePanel);
-$u('helpBtn').onclick = () => { closePops(); openPanel('help'); };
+$u('helpBtn').onclick = $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 
 // ---------- navigate ----------
 let navKey = '';
 function renderNav() {
-  const sel = $u('goto'), key = curHouse + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
-  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<h4>${g.label}</h4>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}<small>${({ yard: 'outside', drive: 'outside' })[o.value] || ''}</small></button>`).join('')).join('');
+  const sel = $u('goto'), key = curHouse + ':' + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
+  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${g.label}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}</button>`).join('') + '</div>').join('');
   $u('navList').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sel.value = b.dataset.go; sel.dispatchEvent(new Event('change')); });
 }
 
@@ -5057,15 +4945,9 @@ const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = (A.above + A.base * bf) * (METRIC ? .092903 : 1) * rate;
-  $u('rateLbl').textContent = `Cost per ${U_AREA()}`;
-  $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Rough estimate.`;
   const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
-$u('rate').value = ST.get('walkthru-rate', 250);
-$u('rate').oninput = () => { ST.set('walkthru-rate', $u('rate').value); renderInfo(); };
-$u('bfac').onchange = renderInfo;
 
 // ---------- display: render style, layers, sun, camera ----------
 let RS = 'real';
@@ -5200,7 +5082,7 @@ $u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(l
 let libOn = ST.get('walkthru-lib', '1') === '1';
 function uiEditing(on) {
   if (!uiReady) return;
-  closePops(); if (on && MEAS.on) setMeasure(false); if (on) window.wtTrack?.('editor_opened');
+  closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
   if (on) renderChecks();
@@ -5229,7 +5111,7 @@ if (ST.get('walkthru-hint', '') === 'off') document.body.classList.add('hint-off
 addEventListener('keydown', e => {
   if (e.target.closest?.('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (k === 'escape') { if (popOpen) closePops(); else if (MEAS.on) setMeasure(false); else if (document.body.classList.contains('ui-hidden')) setUIHidden(false); else if (panel) closePanel(); return; }
+  if (k === 'escape') { const dlg = openDialog(); if (dlg) { dlg.hidden = true; return; } if (popOpen) closePops(); else if (MEAS.on) setMeasure(false); else if (document.body.classList.contains('ui-hidden')) setUIHidden(false); else if (panel) closePanel(); return; }
   if (mode === 'walk') return;
   if (k === '\\') return setUIHidden(!document.body.classList.contains('ui-hidden'));
   if (k === '?') return openPanel('help');
@@ -5250,14 +5132,25 @@ function uiSync() {
   $u('viewNow').textContent = mode === 'walk' ? (AV.third ? 'Character' : 'Walking') : VIEW_NAME[curView] || 'Custom';
   $u('charBtn').setAttribute('aria-pressed', String(mode === 'walk' && AV.third)); $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
   if (RS !== 'real') applyRS();
-  if (panel === 'nav') renderNav(); if (panel === 'info') renderInfo();
+  if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();
-  pricesChanged();
+}
+// Room labels never stack: bigger rooms keep theirs, labels that would overlap fade out until there is room.
+let declutterT = 0;
+function declutterLabels() {
+  const shown = labelObjs.filter(o => o.visible && o.element.isConnected && o.element.style.display !== 'none')
+    .sort((a, b) => (b.userData.dims ? b.userData.dims[1] * b.userData.dims[2] : 0) - (a.userData.dims ? a.userData.dims[1] * a.userData.dims[2] : 0));
+  const kept = [];
+  for (const o of shown) {
+    const r = o.element.getBoundingClientRect(), hit = kept.some(k => r.left < k.right + 4 && r.right > k.left - 4 && r.top < k.bottom + 3 && r.bottom > k.top - 3);
+    o.element.classList.toggle('lbl-off', hit); if (!hit) kept.push(r);
+  }
 }
 const uiClock = new THREE.Clock();
 (function tick() { // sun study: sweep the day while the play button is on
   const dt = Math.min(uiClock.getDelta(), .1);
   if (sunPlay) { let h = +$u('tod').value + dt * 1.4; if (h > 20) h = 6; $u('tod').value = h; setSun(h); }
+  if ((declutterT += dt) > .25) { declutterT = 0; if (showLabels) declutterLabels(); }
   requestAnimationFrame(tick);
 })();
 
@@ -5414,4 +5307,20 @@ function stopRec() { if (!REC) return; clearTimeout(REC.t); if (REC.spin !== nul
 $u('recBtn').onclick = () => startRec(0);
 $u('exVideo').onclick = () => startRec(0); $u('exFly').onclick = () => { if (mode === 'walk') goView(curView); startRec(12); };
 $u('exPano').onclick = panorama; $u('exPdf').onclick = planSheet;
+
+// ---------- a small 3D picture of the design for project cards ----------
+function captureThumb(W = 480, H = 300) {
+  const V = HOUSES[3].views.front; if (!V) return null;
+  const cam = new THREE.PerspectiveCamera(40, W / H, .5, 2600), keep = { pr: renderer.getPixelRatio(), labels: showLabels, view: curView };
+  const box = new THREE.Box3(); for (const g of [G3.main, G3.upper, G3.roof]) box.expandByObject(g); if (box.isEmpty()) return null;
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), dir = new THREE.Vector3(...V.pos).sub(new THREE.Vector3(...V.tgt)).setY(0).normalize();
+  const r = Math.max(sz.x, sz.z, sz.y * 1.6) * .5, dist = r / Math.tan(THREE.MathUtils.degToRad(20)) * 1.15; // fit the house in the 40° lens
+  cam.position.copy(c).addScaledVector(dir, dist).setY(c.y + dist * .38); cam.lookAt(c.x, c.y - sz.y * .1, c.z);
+  const trees = G3.trees.visible; G3.trees.visible = false;
+  if (curView !== 'front' && curView !== 'rear' && curView !== 'aerial') { curView = 'front'; applyVisibility(); }
+  G3.trees.visible = false; renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.render(scene, cam);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.getContext('2d').drawImage(renderer.domElement, 0, 0, W, H);
+  G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
+  return cv.toDataURL('image/jpeg', .72);
+}
 </script>

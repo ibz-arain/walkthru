@@ -139,7 +139,6 @@ async function settings() {
   const L = manage ? await api('GET', 'log?days=30').catch(() => null) : null;
   view.innerHTML = `<div class="wrap"><h1>Account</h1><p class="sub">${esc(ME.user.email)}${ME.org ? ` · ${esc(ME.org.name)} <span class="pill">${esc(ME.role)}</span>` : ''}</p>
   <section><header><h2>Profile</h2></header><div class="body"><form id="pf"><div class="row2"><label>Name <input name="name" value="${esc(ME.user.name)}" maxlength="80"></label><label>Email <input value="${esc(ME.user.email)}" disabled></label></div>
-    <label class="switch">Email me when customers comment or send changes <input type="checkbox" name="notify" ${ME.user.notify ? 'checked' : ''}></label>
     <p class="err"></p><div class="actions"><button class="btn btn-primary" type="submit">Save profile</button><span class="ok" id="pfOk"></span></div></form></div></section>
 
   ${ME.org ? `<section><header><h2>Workspace</h2><p>Projects, customer links and comments belong to the workspace.</p></header><div class="body">
@@ -166,7 +165,7 @@ async function settings() {
 
   <div class="actions"><button class="btn" id="out">Sign out</button></div></div>`;
 
-  bindForm('#pf', async v => { ME = await api('PATCH', 'auth', { name: v.name, notify: !!v.notify }); $('#pfOk').textContent = 'Saved'; });
+  bindForm('#pf', async v => { ME = await api('PATCH', 'auth', { name: v.name }); $('#pfOk').textContent = 'Saved'; });
   bindForm('#pw', async v => { await api('PATCH', 'auth', v); $('#pw').reset(); $('#pwOk').textContent = 'Password changed. Other devices were signed out.'; });
   $('#out').onclick = async () => { await api('POST', 'auth?action=logout'); location.href = '/'; };
   if (!ME.org) return;

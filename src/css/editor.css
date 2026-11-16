@@ -28,7 +28,8 @@
 .pe-zoom button + button{border-left:1px solid var(--rule)}
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
-#peSide{width:224px;flex:none;border-left:1px solid var(--rule);overflow:auto;padding:4px 0 16px;background:var(--paper);scrollbar-width:thin}
+#planEd:not(.has-sel) #peSide{display:none}
+#peSide{width:236px;flex:none;border-left:1px solid var(--rule);overflow:auto;padding:4px 0 16px;background:var(--paper);scrollbar-width:thin}
 .pe-empty{padding:18px 16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
 .pe-empty b{display:block;color:var(--ink);font-weight:500;margin-bottom:4px}
 .pe-empty p{margin:0}
@@ -76,8 +77,10 @@ body.editing #clHead{display:none!important}
 .st-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
 .st-card{background:var(--paper);border:1px solid var(--rule);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .15s,border-color .15s}
 button.st-card{font:inherit;color:inherit;text-align:left;padding:0;cursor:pointer}
-button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow)}
-.st-card canvas{display:block;width:100%;height:150px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+button.st-card{transition:box-shadow .2s,border-color .2s,transform .2s}
+button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.st-thumb{display:block;width:100%;height:170px;object-fit:cover;background:var(--paper-2);border-bottom:1px solid var(--rule)}
+.st-card canvas{display:block;width:100%;height:170px;background:var(--paper-2);border-bottom:1px solid var(--rule)}
 .st-meta{padding:14px 16px;display:grid;gap:3px}
 .st-meta h3{margin:0;font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-meta p{margin:0;color:var(--ink-2);font-size:13px}
@@ -94,11 +97,6 @@ button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow)}
 .st-modal h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
 .st-modal label{display:grid;gap:6px;font-size:12.5px;color:var(--ink-2);font-weight:500}
 .st-row{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
-.pl-modal{width:min(640px,calc(100vw - 32px))!important}
-.pl-scroll{max-height:56vh;overflow:auto;display:grid;gap:8px;padding-right:4px}
-.pl-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;align-items:end}
-.pl-row b{grid-column:1/-1;font-size:13px}.pl-row label{font-size:11.5px!important;gap:3px!important}.pl-row input{padding:6px 8px!important}
-.pl-add{display:grid;grid-template-columns:1fr 1.6fr 1fr auto;gap:6px}.pl-add input{padding:6px 8px!important}
 
 /* ---------- project / customer chrome ---------- */
 body.cl-on #designMenuBtn,body.cl-on #designMenu{display:none!important}
@@ -115,6 +113,7 @@ body.cl-customer #peResetBtn,body.cl-customer #peAutoBtn{display:none!important}
 body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs{margin:8px 8px 0;flex:none}
 #clSide .cl-tabs button{flex:1;padding:7px 6px}
+.linkish{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer}
 #clSide .cl-tabs .x{flex:none;padding:7px 9px}
 .cl-body{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;align-content:start;scrollbar-width:thin}
 .cl-foot{border-top:1px solid var(--rule);padding:12px;display:grid;gap:8px}

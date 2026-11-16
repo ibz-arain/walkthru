@@ -36,7 +36,8 @@ export default route({
       c.execute({ sql: 'SELECT version, note, created_at FROM versions WHERE project_id = ? ORDER BY version DESC', args: [p.id] }),
     ]);
     const bm = await getJSON(keys.version(p.id, p.version));
-    send(res, 200, { project: { ...p, summary: p.summary ? JSON.parse(p.summary) : null }, bm, shares: shares.rows.map(({ pass_hash, ...r }) => ({ ...r, has_pass: !!pass_hash })), role: g.w.role, versions: versions.rows,
+    const { thumb, ...pp } = p;
+    send(res, 200, { project: { ...pp, summary: p.summary ? JSON.parse(p.summary) : null }, bm, shares: shares.rows.map(({ pass_hash, ...r }) => ({ ...r, has_pass: !!pass_hash })), role: g.w.role, versions: versions.rows,
       comments: comments.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null })), events: events.rows.map(e => ({ ...e, detail: e.detail ? JSON.parse(e.detail) : null })) });
   },
   async PUT(req, res) {
@@ -46,6 +47,7 @@ export default route({
     const sets = [], args = [];
     for (const k of ['name', 'client', 'address', 'status']) if (typeof b[k] === 'string') { sets.push(`${k} = ?`); args.push(b[k].slice(0, 120)); }
     for (const k of ['summary', 'preview']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(JSON.stringify(b[k])); }
+    if (typeof b.thumb === 'string' && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(b.thumb) && b.thumb.length < 200000) { sets.push('thumb = ?'); args.push(b.thumb); }
     if (b.base_price !== undefined) { sets.push('base_price = ?'); args.push(b.base_price === null || b.base_price === '' ? null : Math.max(0, Math.round(+b.base_price || 0))); }
     sets.push('updated_at = ?'); args.push(now());
     await c.execute({ sql: `UPDATE projects SET ${sets.join(', ')} WHERE id = ?`, args: [...args, p.id] });

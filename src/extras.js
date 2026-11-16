@@ -147,3 +147,19 @@ function stopRec() { if (!REC) return; clearTimeout(REC.t); if (REC.spin !== nul
 $u('recBtn').onclick = () => startRec(0);
 $u('exVideo').onclick = () => startRec(0); $u('exFly').onclick = () => { if (mode === 'walk') goView(curView); startRec(12); };
 $u('exPano').onclick = panorama; $u('exPdf').onclick = planSheet;
+
+// ---------- a small 3D picture of the design for project cards ----------
+function captureThumb(W = 480, H = 300) {
+  const V = HOUSES[3].views.front; if (!V) return null;
+  const cam = new THREE.PerspectiveCamera(40, W / H, .5, 2600), keep = { pr: renderer.getPixelRatio(), labels: showLabels, view: curView };
+  const box = new THREE.Box3(); for (const g of [G3.main, G3.upper, G3.roof]) box.expandByObject(g); if (box.isEmpty()) return null;
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), dir = new THREE.Vector3(...V.pos).sub(new THREE.Vector3(...V.tgt)).setY(0).normalize();
+  const r = Math.max(sz.x, sz.z, sz.y * 1.6) * .5, dist = r / Math.tan(THREE.MathUtils.degToRad(20)) * 1.15; // fit the house in the 40° lens
+  cam.position.copy(c).addScaledVector(dir, dist).setY(c.y + dist * .38); cam.lookAt(c.x, c.y - sz.y * .1, c.z);
+  const trees = G3.trees.visible; G3.trees.visible = false;
+  if (curView !== 'front' && curView !== 'rear' && curView !== 'aerial') { curView = 'front'; applyVisibility(); }
+  G3.trees.visible = false; renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.render(scene, cam);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.getContext('2d').drawImage(renderer.domElement, 0, 0, W, H);
+  G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
+  return cv.toDataURL('image/jpeg', .72);
+}

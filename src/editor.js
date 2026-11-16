@@ -13,8 +13,8 @@ const S2W = (sx, sy) => [(sx - PE.ox) / PE.s, (sy - PE.oy) / PE.s];
 function peFit() {
   const rs = BM.rooms.length ? BM.rooms : [{ x: 0, z: 0, w: 40, d: 40 }], r = pc.getBoundingClientRect();
   const x0 = Math.min(...rs.map(q => q.x)), x1 = Math.max(...rs.map(q => q.x + q.w)), z0 = Math.min(...rs.map(q => q.z)), z1 = Math.max(...rs.map(q => q.z + q.d));
-  PE.s = Math.max(4, Math.min(30, Math.min((r.width - 60) / (x1 - x0 + 4), (r.height - 60) / (z1 - z0 + 4))));
-  PE.ox = (r.width - (x1 - x0) * PE.s) / 2 - x0 * PE.s; PE.oy = (r.height - (z1 - z0) * PE.s) / 2 - z0 * PE.s;
+  PE.s = Math.max(4, Math.min(30, Math.min((r.width - 150) / (x1 - x0 + 4), (r.height - 150) / (z1 - z0 + 4)))); // room for dimension strings
+  PE.ox = (r.width - (x1 - x0) * PE.s) / 2 - x0 * PE.s + 20; PE.oy = (r.height - (z1 - z0) * PE.s) / 2 - z0 * PE.s + 16;
 }
 function peSize() {
   const r = pc.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2), w = Math.round(r.width * d), h = Math.round(r.height * d);
@@ -309,7 +309,8 @@ function peAddStair(at) {
 function peInspector() {
   peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
-  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra); if (!q) return;
+  box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
+  document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
   document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));

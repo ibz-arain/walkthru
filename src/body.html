@@ -49,11 +49,13 @@
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.6 5.4 3.6 8.5s-1.1 5.9-3.6 8.5c-2.5-2.6-3.6-5.4-3.6-8.5s1.1-5.9 3.6-8.5z"/></symbol>
     <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8.5h5M9 13h6M9 16.5h6"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.2-3 7.4-7 8.5-4-1.1-7-4.3-7-8.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </defs>
 </svg>
 
 <div id="gateCover" aria-hidden="true"></div>
+<div id="fadeCut" aria-hidden="true"></div>
 <div id="stage"></div>
 <div id="labels"></div>
 <div id="loading">Loading playground…</div>
@@ -62,64 +64,79 @@
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
     <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
-    <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Designs"><svg class="ic"><use href="#i-house"/></svg><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Switch design"><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <span class="tb-sep" id="tbViewSep"></span>
   <div class="tb-g" id="tbView">
-    <button class="tb-b tb-wide" id="viewBtn" type="button" data-pop="viewPop" data-tip="Camera views (F, B, T, V)"><svg class="ic"><use href="#i-cam"/></svg><span class="tb-t" id="viewNow">Front</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b tb-wide" id="viewBtn" type="button" data-pop="viewPop" data-tip="Views and rooms"><svg class="ic"><use href="#i-cam"/></svg><span class="tb-t" id="viewNow">Front</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
     <div class="seg tb-seg" id="segLvl" aria-label="Floor">
-      <button type="button" data-view="B" data-tip="Basement (1)"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-view="M" data-tip="Main floor (2)"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-view="U" data-tip="2nd floor (3)"><span class="l">Upper</span><span class="s">U</span></button>
+      <button type="button" data-view="B" data-tip="See the basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-view="M" data-tip="See the main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-view="U" data-tip="See the upper floor"><span class="l">Upper</span><span class="s">U</span></button>
     </div>
   </div>
   <span class="tb-sep" id="tbModeSep"></span>
   <div class="tb-g" id="tbMode">
     <div class="seg tb-seg" id="segMode" role="group" aria-label="How to explore">
-      <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button>
+      <button type="button" data-mode="drone" data-tip="Look around the outside"><svg class="ic"><use href="#i-orbit"/></svg><span class="tb-t">Overview</span></button><button type="button" data-mode="walk" data-tip="Walk through at eye level"><svg class="ic"><use href="#i-walk"/></svg><span class="tb-t">Walk</span></button>
     </div>
-    <button class="tb-b" id="charBtn" type="button" data-pop="mePop" data-tip="Play as a person"><svg class="ic"><use href="#i-char"/></svg><svg class="ic chev"><use href="#i-chev"/></svg></button>
+    <button class="tb-b" id="charBtn" type="button" data-pop="mePop" data-tip="Walk as a person"><svg class="ic"><use href="#i-char"/></svg><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
   <div class="tb-g ed-only" id="tbEdit">
-    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">B</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit 2nd floor"><span class="l">2nd</span><span class="s">U</span></button></div>
+    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
-    <button class="tb-b" id="peLibBtn" type="button" data-tip="Room library" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg></button>
-    <button class="tb-b" id="peAutoBtn" type="button" data-pop="peAuto" data-tip="Auto layout"><svg class="ic"><use href="#i-wand"/></svg></button>
-    <button class="tb-b" id="peNoteBtn" type="button" data-tip="Add a note" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg></button>
-    <button class="tb-b" id="peDimBtn" type="button" data-tip="Draw a dimension line" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg></button>
-    <button class="tb-b" id="peGaps" type="button" data-tip="Close gaps between rooms"><svg class="ic"><use href="#i-gaps"/></svg></button>
-    <button class="tb-b" id="peTrace" type="button" hidden data-tip="Trace main floor into the basement"><svg class="ic"><use href="#i-trace"/></svg></button>
-    <button class="tb-b" id="pePlanBtn" type="button" data-pop="pePlanPop" data-tip="Plan settings: guide, roof, grid"><svg class="ic"><use href="#i-sliders"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span id="checkCount"></span></button>
-    <button class="tb-b" id="peResetBtn" type="button" data-pop="peResetPop" data-tip="Start over"><svg class="ic"><use href="#i-reset"/></svg></button>
-  </div>
-  <span class="tb-sep"></span>
-  <div class="tb-g" id="tbTools">
-    <button class="tb-b" id="measureBtn" type="button" data-tip="Measure (M)" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg></button>
-    <button class="tb-b" id="roofBtn" type="button" data-tip="Hide roof (H)" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg></button>
-    <button class="tb-b" id="shotBtn" type="button" data-tip="Save a screenshot (P)"><svg class="ic"><use href="#i-shot"/></svg></button>
-    <button class="tb-b" id="recBtn" type="button" data-tip="Record a video" aria-pressed="false"><svg class="ic"><use href="#i-rec"/></svg></button>
-    <button class="tb-b" id="fullBtn" type="button" data-tip="Full screen"><svg class="ic"><use href="#i-full"/></svg></button>
+    <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
+    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span class="tb-t">Checks</span><span id="checkCount"></span></button>
+    <button class="tb-b" id="edMoreBtn" type="button" data-pop="edMorePop" data-tip="More plan tools"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
-    <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Finishes"><svg class="ic"><use href="#i-palette"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="nav" data-tip="Go to a room"><svg class="ic"><use href="#i-pin"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="display" data-tip="Display, sun and camera"><svg class="ic"><use href="#i-sun"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="info" data-tip="Areas and estimate"><svg class="ic"><use href="#i-info"/></svg></button>
-    <button class="tb-b" type="button" data-panel-btn="export" data-tip="Export and import"><svg class="ic"><use href="#i-down"/></svg></button>
+    <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
-    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Project panel"><svg class="ic"><use href="#i-msg"/></svg><span id="clSideCount"></span></button>
+    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Versions and activity"><svg class="ic"><use href="#i-reset"/></svg><span class="tb-t">History</span><span id="clSideCount"></span></button>
+    <button class="tb-b" type="button" data-panel-btn="export" data-tip="Download images, PDFs and files"><svg class="ic"><use href="#i-down"/></svg><span class="tb-t">Export</span></button>
+    <button class="tb-b" id="moreBtn" type="button" data-pop="morePop" data-tip="More"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-sep"></span>
   <div class="tb-g">
     <button class="tb-b" id="acctBtn" type="button" data-pop="acctPop" hidden data-tip="Account"><svg class="ic"><use href="#i-user"/></svg></button>
-    <button class="tb-b" id="dockBtn" type="button" data-pop="dockPop" data-tip="Layout and theme"><svg class="ic"><use href="#i-layout"/></svg></button>
     <button class="tb-primary" id="editBtn" type="button" aria-pressed="false" hidden data-tip="Edit floor plan (E)"><svg class="ic"><use href="#i-pencil"/></svg><span class="tb-t" id="editLabel">Edit plan</span></button>
     <button class="tb-primary ed-only" id="peDone" type="button" data-tip="Back to 3D (E)"><svg class="ic"><use href="#i-check"/></svg><span class="tb-t">Done</span></button>
   </div>
 </header>
+
+<!-- "More" menus: everything occasional lives here instead of on the bar -->
+<div class="pop" id="morePop" hidden role="menu" aria-label="More">
+  <div class="menu">
+    <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
+    <button type="button" id="roofBtn" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg>Hide the roof<kbd>H</kbd></button>
+    <button type="button" data-panel-btn="display"><svg class="ic"><use href="#i-sun"/></svg>Lighting and display</button>
+    <button type="button" data-panel-btn="info"><svg class="ic"><use href="#i-info"/></svg>Areas and estimate</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="shotBtn"><svg class="ic"><use href="#i-shot"/></svg>Take a picture<kbd>P</kbd></button>
+    <button type="button" id="recBtn" aria-pressed="false"><svg class="ic"><use href="#i-rec"/></svg>Record a video</button>
+    <button type="button" id="fullBtn"><svg class="ic"><use href="#i-full"/></svg>Full screen</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="dockBtn" data-pop="dockPop"><svg class="ic"><use href="#i-layout"/></svg>Layout, units and theme</button>
+    <button type="button" id="helpBtn2"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts<kbd>?</kbd></button>
+  </div>
+</div>
+<div class="pop" id="edMorePop" hidden role="menu" aria-label="More plan tools">
+  <div class="menu">
+    <button type="button" id="peAutoBtn" data-pop="peAuto"><svg class="ic"><use href="#i-wand"/></svg>Lay out a house for me</button>
+    <button type="button" id="peNoteBtn" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg>Add a note</button>
+    <button type="button" id="peDimBtn" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg>Draw a dimension</button>
+    <button type="button" id="peGaps"><svg class="ic"><use href="#i-gaps"/></svg>Close gaps between rooms</button>
+    <button type="button" id="peTrace" hidden><svg class="ic"><use href="#i-trace"/></svg>Copy main floor to basement</button>
+  </div>
+  <div class="menu sepd">
+    <button type="button" id="pePlanBtn" data-pop="pePlanPop"><svg class="ic"><use href="#i-sliders"/></svg>Plan settings: roof, site, grid</button>
+    <button type="button" id="peResetBtn" data-pop="peResetPop"><svg class="ic"><use href="#i-reset"/></svg>Start over</button>
+  </div>
+</div>
 
 <!-- ===== Popovers ===== -->
 <div class="pop" id="designMenu" hidden role="dialog" aria-label="Designs">
@@ -156,6 +173,8 @@
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
   <div class="vgrid" id="segExt"><button type="button" data-view="front">Front</button><button type="button" data-view="rear">Rear</button><button type="button" data-view="aerial">Aerial</button><button type="button" data-view="left">Left</button><button type="button" data-view="right">Right</button><button type="button" data-view="top">Top</button></div>
+  <h6>Go to a room</h6>
+  <div id="navList" class="nav-mini"></div>
   <h6>Saved views <button class="mini" id="saveView" type="button"><svg class="ic"><use href="#i-plus"/></svg>Save current</button></h6>
   <div class="menu" id="savedViews"></div>
 </div>
@@ -246,10 +265,6 @@
     <header class="sp-h"><h2>Finishes</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b" id="finishBody"></div>
   </section>
-  <section class="sp" data-panel="nav" hidden>
-    <header class="sp-h"><h2>Go to</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
-    <div class="sp-b"><select id="goto" hidden></select><div id="navList"></div></div>
-  </section>
   <section class="sp" data-panel="display" hidden>
     <header class="sp-h"><h2>Display</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
@@ -276,9 +291,6 @@
     <div class="sp-b">
       <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
-      <h3>Estimate</h3>
-      <div class="est"><label class="fld"><span id="rateLbl">Cost per sq ft</span> <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
-      <div id="estOut" class="est-out"></div>
       <h3>Room schedule</h3>
       <div id="schedule"></div>
     </div>
@@ -286,6 +298,7 @@
   <section class="sp" data-panel="export" hidden>
     <header class="sp-h"><h2>Export</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
+      <select id="goto" hidden></select>
       <div class="menu big">
         <button type="button" id="exShot"><svg class="ic"><use href="#i-shot"/></svg><span>Screenshot</span></button>
         <button type="button" id="exShot2"><svg class="ic"><use href="#i-shot"/></svg><span>High-res render</span></button>
@@ -294,8 +307,6 @@
         <button type="button" id="exFly"><svg class="ic"><use href="#i-rec"/></svg><span>Fly-around video</span></button>
         <button type="button" id="exVideo"><svg class="ic"><use href="#i-rec"/></svg><span>Record a walkthrough</span></button>
         <button type="button" id="exPlan"><svg class="ic"><use href="#i-lib"/></svg><span>Floor plan image</span></button>
-        <button type="button" id="exSel"><svg class="ic"><use href="#i-pdf"/></svg><span>Selections sheet</span></button>
-        <button type="button" id="exSelCsv"><svg class="ic"><use href="#i-info"/></svg><span>Selections (CSV)</span></button>
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule</span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file</span></button>
         <button type="button" id="exImport"><svg class="ic"><use href="#i-up"/></svg><span>Import a design</span></button>
@@ -331,7 +342,7 @@
   <header class="st-top">
     <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
     <span class="st-user" id="stUser" hidden></span>
-    <div class="st-actions"><button class="btn st-ghost" id="stPrices" type="button" hidden>Price list</button><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
+    <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -369,7 +380,7 @@
   <div class="cl-foot" id="clFoot"></div>
 </aside>
 <div class="panel st-modal" id="clWelcome" hidden role="dialog" aria-label="Welcome"></div>
-<form class="panel st-modal pl-modal" id="priceForm" hidden onsubmit="return false" aria-label="Price list"></form>
+
 
 <!-- ===== HUD ===== -->
 <div class="panel" id="lockTip" hidden>Click to look around</div>

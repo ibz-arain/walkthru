@@ -45,7 +45,7 @@ document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnit
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
-  designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
+  designMenu: () => fillDesignMenu(), viewPop: () => { renderNav(); renderSaved(); }, mePop: () => syncMe(),
   dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
   pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
@@ -64,10 +64,18 @@ function placePop(el, btn) {
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-pop]'); if (b) { e.preventDefault(); openPop(b.dataset.pop, b); return; }
-  if (e.target.closest('#designMenu [data-house], #designMenu [data-design], #viewPop [data-view], #viewPop [data-saved]')) setTimeout(closePops, 0);
+  // picking something from a menu closes it (rows that open another menu don't)
+  if (e.target.closest('#designMenu [data-house], #designMenu [data-design], #viewPop [data-view], #viewPop [data-saved], #navList [data-go], .pop .menu button:not([data-pop]):not(.del):not(#designAdd)')) setTimeout(closePops, 0);
 });
 addEventListener('pointerdown', e => { if (popOpen && !e.target.closest('.pop, [data-pop]')) closePops(); }, true);
 addEventListener('resize', () => { closePops(); relayout(); });
+
+// ---------- dialogs: one at a time; Esc or a click outside closes them ----------
+const DIALOGS = ['stNewForm'];
+new MutationObserver(ms => { for (const m of ms) if (!m.target.hidden && DIALOGS.includes(m.target.id)) for (const id of DIALOGS) if (id !== m.target.id) $u(id).hidden = true; })
+  .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+const openDialog = () => DIALOGS.map($u).find(d => d && !d.hidden);
+addEventListener('pointerdown', e => { const d = openDialog(); if (d && !d.contains(e.target) && !e.target.closest('[data-pop], .pop, #stNew')) d.hidden = true; }, true);
 
 // ---------- tooltips ----------
 const tipEl = $u('tip'); let tipT = 0;
@@ -87,7 +95,7 @@ addEventListener('pointerdown', hideTip, true);
 
 // ---------- side panels ----------
 let panel = null;
-const PANEL_OPEN = { nav: () => renderNav(), info: () => renderInfo(), checks: () => renderChecks() };
+const PANEL_OPEN = { info: () => renderInfo(), checks: () => renderChecks() };
 function openPanel(name) {
   if (panel === name) return closePanel();
   if (!$u('clSide').hidden) toggleSide(false);
@@ -101,13 +109,13 @@ function closePanel() {
 }
 document.querySelectorAll('[data-panel-btn]').forEach(b => b.onclick = () => openPanel(b.dataset.panelBtn));
 document.querySelectorAll('#side [data-close]').forEach(b => b.onclick = closePanel);
-$u('helpBtn').onclick = () => { closePops(); openPanel('help'); };
+$u('helpBtn').onclick = $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 
 // ---------- navigate ----------
 let navKey = '';
 function renderNav() {
-  const sel = $u('goto'), key = curHouse + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
-  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<h4>${g.label}</h4>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}<small>${({ yard: 'outside', drive: 'outside' })[o.value] || ''}</small></button>`).join('')).join('');
+  const sel = $u('goto'), key = curHouse + ':' + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
+  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${g.label}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}</button>`).join('') + '</div>').join('');
   $u('navList').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sel.value = b.dataset.go; sel.dispatchEvent(new Event('change')); });
 }
 
@@ -126,15 +134,9 @@ const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = (A.above + A.base * bf) * (METRIC ? .092903 : 1) * rate;
-  $u('rateLbl').textContent = `Cost per ${U_AREA()}`;
-  $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Rough estimate.`;
   const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
-$u('rate').value = ST.get('walkthru-rate', 250);
-$u('rate').oninput = () => { ST.set('walkthru-rate', $u('rate').value); renderInfo(); };
-$u('bfac').onchange = renderInfo;
 
 // ---------- display: render style, layers, sun, camera ----------
 let RS = 'real';
@@ -269,7 +271,7 @@ $u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(l
 let libOn = ST.get('walkthru-lib', '1') === '1';
 function uiEditing(on) {
   if (!uiReady) return;
-  closePops(); if (on && MEAS.on) setMeasure(false); if (on) window.wtTrack?.('editor_opened');
+  closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
   if (on) renderChecks();
@@ -298,7 +300,7 @@ if (ST.get('walkthru-hint', '') === 'off') document.body.classList.add('hint-off
 addEventListener('keydown', e => {
   if (e.target.closest?.('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
-  if (k === 'escape') { if (popOpen) closePops(); else if (MEAS.on) setMeasure(false); else if (document.body.classList.contains('ui-hidden')) setUIHidden(false); else if (panel) closePanel(); return; }
+  if (k === 'escape') { const dlg = openDialog(); if (dlg) { dlg.hidden = true; return; } if (popOpen) closePops(); else if (MEAS.on) setMeasure(false); else if (document.body.classList.contains('ui-hidden')) setUIHidden(false); else if (panel) closePanel(); return; }
   if (mode === 'walk') return;
   if (k === '\\') return setUIHidden(!document.body.classList.contains('ui-hidden'));
   if (k === '?') return openPanel('help');
@@ -319,14 +321,25 @@ function uiSync() {
   $u('viewNow').textContent = mode === 'walk' ? (AV.third ? 'Character' : 'Walking') : VIEW_NAME[curView] || 'Custom';
   $u('charBtn').setAttribute('aria-pressed', String(mode === 'walk' && AV.third)); $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
   if (RS !== 'real') applyRS();
-  if (panel === 'nav') renderNav(); if (panel === 'info') renderInfo();
+  if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();
-  pricesChanged();
+}
+// Room labels never stack: bigger rooms keep theirs, labels that would overlap fade out until there is room.
+let declutterT = 0;
+function declutterLabels() {
+  const shown = labelObjs.filter(o => o.visible && o.element.isConnected && o.element.style.display !== 'none')
+    .sort((a, b) => (b.userData.dims ? b.userData.dims[1] * b.userData.dims[2] : 0) - (a.userData.dims ? a.userData.dims[1] * a.userData.dims[2] : 0));
+  const kept = [];
+  for (const o of shown) {
+    const r = o.element.getBoundingClientRect(), hit = kept.some(k => r.left < k.right + 4 && r.right > k.left - 4 && r.top < k.bottom + 3 && r.bottom > k.top - 3);
+    o.element.classList.toggle('lbl-off', hit); if (!hit) kept.push(r);
+  }
 }
 const uiClock = new THREE.Clock();
 (function tick() { // sun study: sweep the day while the play button is on
   const dt = Math.min(uiClock.getDelta(), .1);
   if (sunPlay) { let h = +$u('tod').value + dt * 1.4; if (h > 20) h = 6; $u('tod').value = h; setSun(h); }
+  if ((declutterT += dt) > .25) { declutterT = 0; if (showLabels) declutterLabels(); }
   requestAnimationFrame(tick);
 })();
 

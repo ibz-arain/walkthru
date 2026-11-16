@@ -22,7 +22,7 @@ async function cloudApi(method, path, data) {
 }
 
 // Forms here are handled in JS; never let the browser submit them (that would reload the page).
-document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome, #priceForm')) e.preventDefault(); }, true);
+document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome')) e.preventDefault(); }, true);
 
 // ---------- design helpers ----------
 const BEDS = new Set(['bedroom', 'primary', 'guest', 'nursery']);
@@ -102,14 +102,13 @@ async function studioHome() {
 function renderStudio() {
   const q = $c('stSearch').value.trim().toLowerCase(), list = stProjects.filter(p => !q || `${p.name} ${p.client || ''} ${p.address || ''}`.toLowerCase().includes(q));
   const tot = (k) => stProjects.reduce((a, p) => a + (p[k] || 0), 0);
-  $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> projects</span><span class="st-stat"><b>${tot('shares')}</b> customer links</span>` +
-    (tot('submitted') ? `<span class="st-stat chip alert"><b>${tot('submitted')}</b> waiting for review</span>` : '') + (tot('open_comments') ? `<span class="st-stat"><b>${tot('open_comments')}</b> open comments</span>` : '');
+  $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> project${stProjects.length === 1 ? '' : 's'}</span>`;
   $c('stEmpty').hidden = stProjects.length > 0;
-  $c('stList').innerHTML = list.map(p => `<button class="st-card" type="button" data-pid="${clEsc(p.id)}"><canvas aria-hidden="true"></canvas><div class="st-meta">
+  $c('stList').innerHTML = list.map(p => `<button class="st-card" type="button" data-pid="${clEsc(p.id)}">${p.thumb ? `<img class="st-thumb" src="${p.thumb}" alt="">` : '<canvas aria-hidden="true"></canvas>'}<div class="st-meta">
       <h3>${clEsc(p.name)}</h3><p>${clEsc([p.client, p.address].filter(Boolean).join(' · ') || 'No client yet')}</p><span class="st-spec">${clEsc(specLine(p.summary))}</span>
-      <div class="st-flags"><span class="chip ${clEsc(p.status)}">${clEsc(STATUS_NAME[p.status] || p.status)}</span>${p.submitted ? `<span class="chip alert">${p.submitted} to review</span>` : ''}${p.open_comments ? `<span class="chip">${p.open_comments} comment${p.open_comments>1?'s':''}</span>` : ''}<span class="chip">v${p.version}</span></div>
+      <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
       <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></button>`).join('');
-  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { drawPreview(b.querySelector('canvas'), list[i].preview); b.onclick = () => goRoute(`#admin/p/${b.dataset.pid}`); });
+  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview); b.onclick = () => goRoute(`#admin/p/${b.dataset.pid}`); });
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
@@ -227,12 +226,16 @@ async function openProject(id, keepView) {
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBack').hidden = false; $c('clBrand').textContent = `${CL.brand.name} · Studio`;
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; document.title = `${j.project.name} · ${CL.brand.name}`;
-  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ') || 'Add a client when you share it';
+  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ');
   setSave(`Saved · version ${j.project.version}`); banner(''); chrome(); renderPins();
-  if (first) CL.tab = j.shares.some(s => s.status === 'submitted') ? 'share' : 'share';
-  toggleSide(true); renderSide();
+  CL.tab = 'history'; toggleSide(false); renderSide();
   CL.poll = setInterval(refreshProject, 20000);
-  loadCatalog();
+  if (first) setTimeout(saveThumb, 2500);
+}
+let thumbAt = 0;
+async function saveThumb() {
+  if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
+  const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
 }
 async function refreshProject() {
   if (CL.route?.kind !== 'project' || document.hidden) return;
@@ -242,7 +245,7 @@ async function refreshProject() {
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
+    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
     catch (e) { setSave(`Not saved: ${e.message}`); }
   }, 800);
 }
@@ -270,60 +273,14 @@ const EV = {
   restored: e => ['', `Restored version ${e.detail?.from} as v${e.detail?.version}`], snapshot: e => ['', `Saved version ${e.detail?.version}: ${e.detail?.note}`],
 };
 function renderProjectSide() {
-  const P = CL.project, open = CL.comments.filter(c => c.author_role === 'customer' && !c.resolved).length, waiting = P.shares.filter(s => s.status === 'submitted').length;
-  sideTabs([['share', `Customers${waiting ? ` (${waiting})` : ''}`], ['comments', `Comments${open ? ` (${open})` : ''}`], ['pricing', 'Price'], ['activity', 'Activity'], ['versions', 'Versions']]);
-  $c('clSideCount').textContent = open ? open : '';
+  const P = CL.project;
+  sideTabs([['history', 'History']]);
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  if (CL.tab === 'share') {
-    B.innerHTML = `<div class="cl-sec">Share with a customer</div>
-      <form class="cl-form" id="shForm" onsubmit="return false"><label>Customer name <input id="shName" maxlength="80" placeholder="e.g. Jane Smith" required></label>
-      <label>Email (optional) <input id="shEmail" type="email" maxlength="120" placeholder="jane@example.com"></label>
-      <label>What they can do <select id="shAccess"><option value="view">Look around and comment</option><option value="finishes">Also choose finishes</option><option value="edit" selected>Also change the floor plan</option></select></label>
-      <label>Message (optional) <textarea id="shMsg" rows="2" placeholder="Here’s the first draft of your home. Have a look around and tell us what you think!"></textarea></label>
-      <div class="cl-2"><label>Link expires <select id="shExp"><option value="0">Never</option><option value="7">In 7 days</option><option value="30" selected>In 30 days</option><option value="90">In 90 days</option></select></label><label>Password (optional) <input id="shPass" type="text" autocomplete="off" maxlength="60" placeholder="None"></label></div>
-      <label class="cl-check"><input type="checkbox" id="shMail" checked> Email the link to the customer</label>
-      <button class="btn st-primary" type="submit" id="shGo">Create customer link</button></form>
-      <div class="cl-sec">Customer links</div>` + (P.shares.length ? P.shares.map(s => `<div class="cl-item${s.revoked ? ' res' : ''}" data-tok="${clEsc(s.token)}">
-        <h4><span>${clEsc(s.customer)}</span><span class="chip ${s.revoked ? '' : clEsc(s.status)}">${s.revoked ? 'Turned off' : clEsc(STATUS_NAME[s.status] || s.status)}</span></h4>
-        <small>${clEsc(ACCESS_NAME[s.access])} · ${s.opened_at ? 'opened ' + clAgo(s.opened_at) : 'not opened yet'}${s.updated_at ? ' · active ' + clAgo(s.updated_at) : ''}</small>
-        <small>${s.expires_at ? (s.expires_at < Date.now() ? '<b class="st-danger">Expired</b>' : 'Expires ' + new Date(s.expires_at).toLocaleDateString()) : 'Never expires'}${s.has_pass ? ' · password protected' : ''}${s.email ? ' · ' + clEsc(s.email) : ''}</small>
-        ${s.submit_note && s.status === 'submitted' ? `<p>“${clEsc(s.submit_note)}”</p>` : ''}
-        <div class="cl-link"><input readonly value="${clEsc(shareURL(s.token))}" aria-label="Customer link"><button class="btn" type="button" data-act="copy">Copy</button></div>
-        <div class="cl-acts">${s.has_copy ? `<button class="btn" type="button" data-act="view">View their version</button><button class="btn" type="button" data-act="accept">Accept changes</button>` : ''}
-          <a class="btn" href="${clEsc(shareURL(s.token))}" target="_blank" rel="noopener">Open as customer</a>
-          <select data-act="access" aria-label="Access">${Object.entries(ACCESS_NAME).map(([k, n]) => `<option value="${k}"${k === s.access ? ' selected' : ''}>${n}</option>`).join('')}</select>
-          <select data-act="exp" aria-label="Expiry"><option value="">Change expiry…</option><option value="0">Never expires</option><option value="7">7 more days</option><option value="30">30 more days</option><option value="90">90 more days</option></select>
-          <button class="btn" type="button" data-act="pass">${s.has_pass ? 'Change password' : 'Add password'}</button>
-          <button class="btn${s.revoked ? '' : ' st-danger'}" type="button" data-act="revoke">${s.revoked ? 'Turn back on' : 'Turn off'}</button></div></div>`).join('') : '<p class="cl-sub">No customer links yet.</p>');
-    $c('shForm').onsubmit = async () => {
-      const customer = $c('shName').value.trim(); if (!customer) return $c('shName').focus();
-      try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, customer, email: $c('shEmail').value.trim(), access: $c('shAccess').value, message: $c('shMsg').value.trim(), expiresDays: +$c('shExp').value, password: $c('shPass').value.trim(), sendEmail: $c('shMail').checked });
-        window.wtTrack?.('share_created', { access: $c('shAccess').value });
-        const mailed = j.mailed === 'sent' ? ' and emailed' : j.mailed === 'queued' ? ' (email queued: no mail provider set up)' : '';
-        try { await navigator.clipboard.writeText(shareURL(j.token)); setSave(`Link created${mailed}, copied`); } catch (e) { setSave(`Link created${mailed}`); }
-        await refreshProject(); renderSide(); } catch (e) { setSave(e.message); }
-    };
-    B.querySelectorAll('[data-tok]').forEach(el => { const tok = el.dataset.tok, s = P.shares.find(x => x.token === tok);
-      el.querySelector('[data-act="copy"]').onclick = async e => { el.querySelector('input').select(); try { await navigator.clipboard.writeText(shareURL(tok)); e.target.textContent = 'Copied'; } catch (er) { document.execCommand?.('copy'); e.target.textContent = 'Copied'; } setTimeout(() => e.target.textContent = 'Copy', 1500); };
-      el.querySelector('[data-act="view"]')?.addEventListener('click', () => viewCustomerVersion(tok));
-      el.querySelector('[data-act="accept"]')?.addEventListener('click', () => acceptShare(tok));
-      el.querySelector('[data-act="access"]').onchange = async e => { await cloudApi('PATCH', `share?token=${tok}`, { access: e.target.value }); s.access = e.target.value; setSave('Access updated'); };
-      el.querySelector('[data-act="exp"]').onchange = async e => { if (e.target.value === '') return; await cloudApi('PATCH', `share?token=${tok}`, { expiresDays: +e.target.value }); setSave('Expiry updated'); await refreshProject(); renderSide(); };
-      el.querySelector('[data-act="pass"]').onclick = async () => { const pw = prompt(s.has_pass ? 'New password for this link (leave empty to remove it)' : 'Password for this link'); if (pw === null) return; await cloudApi('PATCH', `share?token=${tok}`, { password: pw.trim() }); setSave(pw.trim() ? 'Password set. Share it with the customer separately.' : 'Password removed'); await refreshProject(); renderSide(); };
-      el.querySelector('[data-act="revoke"]').onclick = async () => { await cloudApi('PATCH', `share?token=${tok}`, { revoked: !s.revoked }); await refreshProject(); renderSide(); };
-    });
-  } else if (CL.tab === 'pricing') { B.innerHTML = priceSideHTML(true); wirePriceSide(true);
-  } else if (CL.tab === 'comments') {
-    B.innerHTML = CL.comments.length ? CL.comments.map(c => commentHTML(c, true)).join('') : '<p class="cl-sub">No comments yet. Customers can pin comments anywhere in the house.</p>';
-    wireComments(B, true); F.innerHTML = composerHTML(true); wireComposer(true, async () => { await refreshProject(); renderPins(); renderSide(); });
-  } else if (CL.tab === 'activity') {
-    B.innerHTML = P.events.length ? P.events.map(e => { const [ic, tx] = (EV[e.kind] || (() => ['•', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>';
-  } else {
-    B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this design as a version <input id="vsNote" maxlength="120" placeholder="e.g. Sent to client for first review"></label><button class="btn" type="submit">Save version</button></form>
-      <div class="cl-sec">History</div>` + P.versions.map(v => `<div class="cl-item"><h4><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''}</span><small>${clAgo(v.created_at)}</small></h4><p>${clEsc(v.note || '')}</p>${v.version !== P.project.version ? `<div class="cl-acts"><button class="btn" type="button" data-ver="${v.version}">Restore</button></div>` : ''}</div>`).join('');
-    $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'versions'; renderSide(); };
-    B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'versions'; renderSide(); });
-  }
+  B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this version <input id="vsNote" maxlength="120" placeholder="e.g. Sent for first review"></label><button class="btn" type="submit">Save version</button></form>
+    <div class="cl-sec">Versions</div>` + P.versions.map(v => `<div class="cl-ev ver"><i></i><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''} · ${clEsc(v.note || '')}${v.version !== P.project.version ? ` <button class="linkish" type="button" data-ver="${v.version}">Restore</button>` : ''}</span><small>${clAgo(v.created_at)}</small></div>`).join('')
+    + `<div class="cl-sec">Activity</div>` + (P.events.length ? P.events.map(e => { const [, tx] = (EV[e.kind] || (() => ['', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>');
+  $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); };
+  B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); });
 }
 
 // ---------- Customer link ----------
@@ -339,7 +296,6 @@ async function openShare(token) {
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
   if (!seen) welcome();
-  loadCatalog();
   CL.poll = setInterval(async () => { if (document.hidden) return; try { const r = await cloudApi('GET', `comments?token=${token}`); if (r.comments.length !== CL.comments.length) { CL.comments = r.comments; renderPins(); renderSide(); } } catch (e) { } }, 20000);
 }
 function shareStatus() {
@@ -355,7 +311,7 @@ function shareSave() {
 }
 function renderShareSide() {
   const s = CL.share, canSave = s.access !== 'view';
-  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ...(hasPricing() ? [['price', 'Price']] : []), ['send', 'Send'], ['help', 'How to']]);
+  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ['send', 'Send'], ['help', 'How to']]);
   $c('clSideCount').textContent = CL.comments.length || '';
   const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
   if (CL.tab === 'comments') {
@@ -363,7 +319,6 @@ function renderShareSide() {
       (CL.comments.length ? CL.comments.map(c => commentHTML(c, false)).join('') : '<p class="cl-sub">Questions or ideas? Pin a comment to any spot in the house and we’ll see exactly what you mean.</p>');
     wireComments(B, false); F.innerHTML = composerHTML(false);
     wireComposer(false, async () => { const r = await cloudApi('GET', `comments?token=${CL.route.token}`); CL.comments = r.comments; renderPins(); renderSide(); setSave('Comment posted'); });
-  } else if (CL.tab === 'price') { B.innerHTML = priceSideHTML(false); wirePriceSide(false);
   } else if (CL.tab === 'send') {
     const sent = s.status === 'submitted';
     B.innerHTML = `<p class="cl-sub">${canSave ? (s.changed ? 'Your version is saved. When you’re happy with it, send it over and we’ll review your changes and comments.' : 'You haven’t changed anything yet. You can still send your comments.') : 'Send your comments when you’re ready.'}</p>
@@ -402,7 +357,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Projects';
+  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg><span class="tb-t">Projects</span>'; sb.dataset.tip = 'All projects';
   sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();

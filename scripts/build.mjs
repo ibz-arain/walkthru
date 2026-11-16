@@ -11,7 +11,7 @@ import * as esbuild from 'esbuild';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url))); process.chdir(root);
 const read = f => readFileSync(f, 'utf8');
-const JS = ['core', 'walls', 'build', 'furniture', 'house2', 'car', 'builder', 'furnish3', 'editor', 'designer', 'app', 'designs', 'account', 'cloud', 'pricing', 'ui', 'extras'].map(n => `src/${n}.js`);
+const JS = ['core', 'walls', 'build', 'furniture', 'house2', 'car', 'builder', 'furnish3', 'editor', 'designer', 'app', 'designs', 'account', 'cloud', 'ui', 'extras'].map(n => `src/${n}.js`);
 const CSS = ['src/css/ui.css', 'src/css/editor.css'];
 const head = read('src/head.html'), body = read('src/body.html'), code = JS.map(read).join('\n'), css = CSS.map(read).join('\n');
 const hash = s => createHash('sha256').update(s).digest('hex').slice(0, 10);

@@ -304,7 +304,7 @@ function stepWalk(dt) {
   }
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
-  document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : 'Lot 49 · 39.62 m × 41.86 m';
+  document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
   drawMini(lv);
 }
 // drag to look
@@ -390,23 +390,23 @@ const FIN = [
 ];
 let saved = {}; try { saved = JSON.parse(localStorage.getItem('walkthru-finishes-v2') || '{}'); } catch (e) { }
 // Finishes belong to the design when it lives in the Studio (cloud.js sets finishHook); otherwise they're remembered in this browser.
-let finishHook = null, finishMute = false; const FIN_PICK = {}, FIN_CUR = {}; // FIN_CUR: what is picked now (index, or a hex for a custom colour)
+let finishHook = null, finishMute = false; const FIN_PICK = {};
 function applyFinishes(map) { finishMute = true; for (const k in FIN_PICK) FIN_PICK[k](map?.[k] ?? 0); finishMute = false; }
 const fb = document.getElementById('finishBody');
 for (const [sec, items] of FIN) {
   const h = document.createElement('div'); h.className = 'grp'; h.dataset.sec = sec; h.innerHTML = `<h3>${sec}</h3>`; fb.appendChild(h);
   for (const [key, label, opts, apply] of items) {
-    const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3 style="text-transform:none;letter-spacing:0;color:var(--ink)">${label}</h3>`;
+    const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3>${label}<span class="cur"></span></h3>`;
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
     // A custom colour (any hex) is stored as the string itself; the presets as their index.
-    const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Pick any colour'; custom.innerHTML = '<i></i>Custom<input type="color">';
+    const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Any colour'; custom.innerHTML = '<i></i><input type="color" aria-label="Any colour">';
     const pick = (i) => { const hex = typeof i === 'string' && /^#[0-9a-f]{6}$/i.test(i) ? i : null; if (!hex) i = Math.min(+i || 0, opts.length - 1);
       apply(hex || opts[i][1]); sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(!hex && i === j)));
+      g.querySelector('.cur').textContent = hex ? 'Custom colour' : opts[i][0];
       custom.setAttribute('aria-pressed', String(!!hex)); if (hex) { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
-      FIN_CUR[key] = hex || i; pricesChanged();
       if (finishHook) { if (!finishMute) finishHook(key, i); return; } saved[key] = i; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
-    opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i>${n}`; b.onclick = () => pick(i); sw.appendChild(b); });
+    opts.forEach(([n, c], i) => { const b = document.createElement('button'); b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${c}"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(i); sw.appendChild(b); });
     sw.appendChild(custom); custom.querySelector('input').oninput = e => pick(e.target.value);
     pick(saved[key] ?? 0);
   }
@@ -420,7 +420,7 @@ function setMode(m) {
   if (m === 'drone') { if (mode === 'walk') goView(curView); return; }
   if (mode === 'walk') setThird(m === 'char'); else enterWalk(HOUSES[curHouse].front, m === 'char');
 }
-document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { setMode(b.dataset.mode); b.blur(); });
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { const m = b.dataset.mode, cur = mode !== 'walk' ? 'drone' : AV.third ? 'char' : 'walk'; if (m !== cur && (m === 'drone' || cur === 'drone')) fadeCut(() => setMode(m)); else setMode(m); b.blur(); });
 document.querySelectorAll('#views button').forEach(b => b.addEventListener('click', () => b.blur()));
 const sel = document.getElementById('goto');
 function fillGoto() {
@@ -431,6 +431,7 @@ function fillGoto() {
 }
 sel.onchange = () => {
   const v = sel.value; sel.value = ''; sel.blur(); if (!v) return;
+  if (mode !== 'walk' && !sel._fading) return fadeCut(() => { sel._fading = true; sel.value = v; sel.onchange(); sel._fading = false; });
   const H = HOUSES[curHouse];
   const third = mode === 'walk' ? AV.third : groundMode === 'char';
   if (v === 'yard') return enterWalk(H.yard, third);
@@ -478,7 +479,7 @@ addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabH
 const tod = document.getElementById('tod'); tod.oninput = () => setSun(+tod.value);
 document.getElementById('optLabels').onchange = e => { showLabels = e.target.checked; applyVisibility(); };
 document.getElementById('optFurn').onchange = e => { showFurn = e.target.checked; applyVisibility(); };
-addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; updateViewOffset(); renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; updateViewOffset(true); renderer.setSize(innerWidth, innerHeight); labelRenderer.setSize(innerWidth, innerHeight); });
 
 // =====================================================================
 //  START
@@ -540,14 +541,21 @@ function updateViews3() {
 // While the floor plan editor covers the left side, shift the 3D picture so its centre sits in the visible right panel.
 function editorWidth() { return PE.open && innerWidth > 760 ? document.getElementById('planEd').getBoundingClientRect().width : 0; }
 // Keep the picture centred in the space the toolbar, editor and side panel leave free.
-function updateViewOffset() {
-  const E = editorWidth(), I = uiInsets(), x = (I.r + I.p - I.l - E) / 2, y = (I.b - I.t) / 2;
-  if (x || y) camera.setViewOffset(innerWidth, innerHeight, x, y, innerWidth, innerHeight); else camera.clearViewOffset();
-  camera.updateProjectionMatrix();
+// The picture glides to its new centre (instead of jumping) when panels open or close.
+const VO = { x: 0, y: 0, tx: 0, ty: 0, raf: 0 };
+function applyViewOffset() { if (Math.abs(VO.x) > .5 || Math.abs(VO.y) > .5) camera.setViewOffset(innerWidth, innerHeight, VO.x, VO.y, innerWidth, innerHeight); else camera.clearViewOffset(); camera.updateProjectionMatrix(); }
+function updateViewOffset(instant) {
+  const E = editorWidth(), I = uiInsets(); VO.tx = (I.r + I.p - I.l - E) / 2; VO.ty = (I.b - I.t) / 2;
+  if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { VO.x = VO.tx; VO.y = VO.ty; return applyViewOffset(); }
+  cancelAnimationFrame(VO.raf); const x0 = VO.x, y0 = VO.y, t0 = performance.now();
+  const step = t => { const k = Math.min(1, (t - t0) / 320), e = 1 - Math.pow(1 - k, 3); VO.x = x0 + (VO.tx - x0) * e; VO.y = y0 + (VO.ty - y0) * e; applyViewOffset(); if (k < 1) VO.raf = requestAnimationFrame(step); };
+  VO.raf = requestAnimationFrame(step);
 }
+// A quick crossfade hides the camera cut when switching between overview and walking.
+function fadeCut(fn) { const f = document.getElementById('fadeCut'); if (!f || matchMedia('(prefers-reduced-motion: reduce)').matches) return fn(); f.classList.add('on'); setTimeout(() => { fn(); requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('on'))); }, 160); }
 rebuildHouse3();
 setHouse(startHouse, true); goView('front', true); syncModes();
-document.getElementById('loading').remove();
+{ const ld = document.getElementById('loading'); ld.classList.add('done'); setTimeout(() => ld.remove(), 450); }
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);

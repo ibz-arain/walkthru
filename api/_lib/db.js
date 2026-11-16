@@ -50,7 +50,7 @@ const SCHEMA = [
 const COLUMNS = [
   ['projects', 'org_id TEXT'], ['projects', 'created_by TEXT'],
   ['shares', 'expires_at INTEGER'], ['shares', 'pass_hash TEXT'],
-  ['projects', 'base_price INTEGER'],
+  ['projects', 'base_price INTEGER'], ['projects', 'thumb TEXT'],
 ];
 
 export async function db() {
