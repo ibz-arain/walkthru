@@ -5230,6 +5230,36 @@ function drawSheetPlan(lv, W, H) {
   dimChains(g, P, lv, '#444');
   return { url: c.toDataURL('image/png'), scale: s };
 }
+// ---------- elevations: orthographic clay renders of each face, on white, with a ground line ----------
+function captureElevations(W = 1400, H = 560) {
+  const keep = { rs: RS, view: curView, sky: sky.visible, bg: scene.background, fog: scene.fog, site: G3.site.visible, trees: G3.trees.visible, base: G3.basement.visible, furnB: G3.furnB.visible, labels: showLabels, pr: renderer.getPixelRatio(), roof: showRoof };
+  if (mode === 'walk') goView(curView, true);
+  showRoof = true; showLabels = false; curView = 'front'; applyVisibility(); setRender('clay');
+  scene.background = new THREE.Color('#ffffff'); G3.site.visible = G3.trees.visible = G3.basement.visible = G3.furnB.visible = false;
+  const box = new THREE.Box3(); for (const g of [G3.main, G3.upper, G3.roof]) box.expandByObject(g);
+  const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), top = box.max.y, out = [];
+  renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+  for (const [name, dx, dz] of [['Front', 0, -1], ['Rear', 0, 1], ['Left', -1, 0], ['Right', 1, 0]]) {
+    const span = dx ? sz.z : sz.x, ht = top + 2, aspect = W / H;
+    let hw = Math.max(span / 2 + 4, (ht / 2 + 2) * aspect); const hh = hw / aspect;
+    const cam = new THREE.OrthographicCamera(-hw, hw, hh, -hh, .1, 2000);
+    cam.position.set(c.x + dx * 400, hh - 3, c.z + dz * 400); cam.lookAt(c.x, hh - 3, c.z); cam.updateProjectionMatrix();
+    renderer.render(scene, cam);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.drawImage(renderer.domElement, 0, 0, W, H);
+    const gy = H * (1 - (0 + 3) / (2 * hh)); // grade line (y = 0) in pixels
+    g.strokeStyle = '#111'; g.lineWidth = 2.5; g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke();
+    g.fillStyle = '#fff'; g.fillRect(0, gy + 1.5, W, H - gy);
+    g.fillStyle = '#111'; g.font = '600 13px Inter, sans-serif'; g.fillText(`${name} elevation`, 14, H - 14);
+    g.font = '11px "JetBrains Mono", monospace'; g.fillStyle = '#555';
+    const pxPerFt = H / (2 * hh); for (const [lbl, y] of [['Main floor', MF], ['2nd floor', UF], ['Top of roof', top]]) { if (lbl === '2nd floor' && !BM.rooms.some(r => r.level === 'U')) continue; const py = gy - y * pxPerFt; g.setLineDash([6, 4]); g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(W - 210, py); g.lineTo(W - 10, py); g.stroke(); g.setLineDash([]); g.fillText(`${lbl} ${ftin(y)}`, W - 205, py - 4); }
+    out.push({ name, url: cv.toDataURL('image/png'), scale: pxPerFt });
+  }
+  renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false);
+  setRender(keep.rs); scene.background = keep.bg; scene.fog = keep.fog; sky.visible = keep.sky;
+  G3.site.visible = keep.site; G3.trees.visible = keep.trees; G3.basement.visible = keep.base; G3.furnB.visible = keep.furnB; showLabels = keep.labels; showRoof = keep.roof; curView = keep.view; applyVisibility();
+  return out;
+}
+
 function planSheet() {
   if (curHouse !== 3) return toast('Open a design (or Sample 3) to print its plan');
   const win = window.open('', '_blank'); if (!win) return toast('Allow pop-ups to open the plan sheet');
@@ -5238,14 +5268,17 @@ function planSheet() {
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>
-      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
+      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length + 2}</b></div></footer>
       <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
+  const elev = captureElevations(), total = levels.length + 2;
+  const elevPages = [elev.slice(0, 2), elev.slice(2)].map((pair, i) => `<section class="sheet">${pair.map(e => `<img src="${e.url}" alt="${e.name} elevation" style="margin-bottom:6px">`).join('')}<footer><div><b>${esc(name)}</b><span>Elevations</span></div><div><span>Views</span><b>${pair.map(e => e.name).join(' / ')}</b></div>
+      <div><span>Scale</span><b class="bar"><i style="width:${SCALE_BAR()[0] * pair[0].scale}px"></i>${SCALE_BAR()[1]}</b></div><div><span>Height</span><b>${ftin(MF)} main floor</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${levels.length + i + 1} of ${total}</b></div></footer></section>`).join('');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
     .sheet img{display:block;width:100%} footer{display:grid;grid-template-columns:2fr repeat(5,1fr);border-top:1.5px solid #111;margin-top:6px} footer div{padding:6px 8px;border-left:1px solid #111;display:flex;flex-direction:column} footer div:first-child{border-left:0}
     footer span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666} footer b{font-size:12px} .bar{display:flex;align-items:center;gap:4px} .bar i{display:inline-block;height:4px;background:#111}
     .fine{font-size:9px;color:#666;margin:6px 0 0} .tools{text-align:center;margin:16px} .tools button{font:500 14px Inter,sans-serif;padding:10px 16px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer} @media print{.tools{display:none}}
-    </style></head><body><div class="tools"><button onclick="print()">Save as PDF or print</button></div>${pages}</body></html>`);
+    </style></head><body><div class="tools"><button onclick="print()">Save as PDF or print</button></div>${pages}${elevPages}</body></html>`);
   win.document.close(); window.wtTrack?.('plan_sheet');
 }
 
