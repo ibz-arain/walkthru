@@ -57,7 +57,7 @@ function placeItems() {
   const furn = { B: G3.furnB, M: G3.furnM, U: G3.furnU };
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
-    const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2;
+    const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
     const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
     furn[it.level].add(g);
   }

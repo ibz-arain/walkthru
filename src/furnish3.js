@@ -81,9 +81,9 @@ function furnishRoom(F, r, y) {
   }
   if (t === 'kitchen') {
     const shape = W >= 12 && D >= 10 ? v : v === 2 ? 0 : v;
-    lowerCab(F, [x0 + .3, x1 - .3, z0 + .25, z0 + 2.25], y, 's'); upperCab(F, [x0 + .3, x1 - 3.6, z0 + .25, z0 + 1.35], y + 4.6, y + 7.6);
+    lowerCab(F, [x0 + .3, x1 - 3.45, z0 + .25, z0 + 2.25], y, 's'); upperCab(F, [x0 + .3, x0 + 2.35, z0 + .25, z0 + 1.35], y + 4.6, y + 7.6); upperCab(F, [x0 + 4.55, x1 - 3.6, z0 + .25, z0 + 1.35], y + 4.6, y + 7.6); // cabinets stop at the fridge and either side of the hood
     bx(F, [x1 - 3.4, x1 - .3, z0 + .25, z0 + 2.4], y, y + 7.2, M.steel, { solid: true }); sink(F, cx - 1, z0 + 1.2, y + 3.14);
-    bx(F, [x0 + 2.2, x0 + 4.7, z0 + .25, z0 + 2.25], y + 3.0, y + 3.1, M.black); bx(F, [x0 + 2.4, x0 + 4.5, z0 + .25, z0 + 1.3], y + 6.2, y + 8.4, M.steel);
+    bx(F, [x0 + 2.2, x0 + 4.7, z0 + .3, z0 + 2.2], y + 3.13, y + 3.17, M.black); bx(F, [x0 + 2.4, x0 + 4.5, z0 + .25, z0 + 1.3], y + 6.2, y + 8.4, M.steel);
     if (shape >= 1 && D >= 8) lowerCab(F, [x0 + .25, x0 + 2.25, z0 + 2.25, Math.min(z1 - 2.5, z0 + 9)], y, 'e');                 // L
     if (shape === 2 && D >= 9) lowerCab(F, [x1 - 2.25, x1 - .25, z0 + 2.4, Math.min(z1 - 2.5, z0 + 8)], y, 'w');                // U
     if (W >= 11 && D >= 12) { const iw = Math.min(8, W - 7); lowerCab(F, [cx - iw / 2, cx + iw / 2, cz + .4, cz + 3.4], y, 'n'); bx(F, [cx - iw / 2 - .2, cx + iw / 2 + .2, cz + .2, cz + 4.4], y + 3, y + 3.15, M.counter, { solid: true });

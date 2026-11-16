@@ -111,6 +111,8 @@ function roofLevel(parent, o) {
   const mesh = (arr, mat, uvs) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); if (uvs) g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); else g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(arr.length / 3 * 2).fill(0), 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
   mesh(pos, M.roof, uv); if (under.length) mesh(under, M.soffit);
+  // a second skin a hair below the first: the long merged strips meet at T-junctions, and this hides the hairline cracks there
+  const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, M.roof, uv).castShadow = false;
 
   // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
   const fas = [], FT = .22, FB = .75;
@@ -121,7 +123,10 @@ function roofLevel(parent, o) {
     q([x0, h0 + .1, z0], [o0[0], h0 + .1, o0[1]], [o1[0], h1 + .1, o1[1]], [x1, h1 + .1, z1]);
     q([x0, h0 - FB, z0], [x1, h1 - FB, z1], [o1[0], h1 - FB, o1[1]], [o0[0], h0 - FB, o0[1]]);
   };
-  const outside = (i, j) => !(i >= 0 && j >= 0 && i < NX && j < NZ) || (!draw[j * NX + i] && !hole[j * NX + i]);
+  // edges against the storey above (within a few inches of its walls) get no fascia: it would poke out past the wall ends
+  const nearHole = new Uint8Array(C), R3 = 3;
+  for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) if (hole[j * NX + i]) for (let dj = -R3; dj <= R3; dj++) for (let di = -R3; di <= R3; di++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < NX && jj < NZ) nearHole[jj * NX + ii] = 1; }
+  const outside = (i, j) => !(i >= 0 && j >= 0 && i < NX && j < NZ) || (!draw[j * NX + i] && !nearHole[j * NX + i]);
   // horizontal edges (along x) at node row j, and vertical edges (along z) at node column i; merged while the slope stays the same
   for (let j = 0; j <= NZ; j++) for (const side of [-1, 1]) {
     let s = null; const end = (i) => { if (s) { ribbon(X(s.i0), Z(j), X(i), Z(j), hAt(s.i0, j), hAt(i, j), 0, side); s = null; } };
