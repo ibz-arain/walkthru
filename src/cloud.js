@@ -95,7 +95,9 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 let stProjects = [];
 async function studioHome() {
   document.title = 'Projects · Demo';
-  $c('stNew').hidden = ACC.role === 'viewer'; $c('stOut').hidden = !ACC.user;
+  $c('stNew').hidden = ACC.role === 'viewer'; $c('stAvatar').hidden = !ACC.user;
+  if (ACC.user) { const u = ACC.user; $c('stInit').textContent = (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    $c('stName').textContent = u.name || u.email; $c('stMail').textContent = u.email; $c('stOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }
   try { const j = await cloudApi('GET', 'projects'); stProjects = j.projects; $c('stKey').hidden = true; $c('stHead').hidden = false; renderStudio(); }
   catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyAlt').hidden = !CL.locked; $c('stSignIn').href = `/account#login?next=${encodeURIComponent('/playground#admin')}`; $c('stSignUp').href = `/account#signup?next=${encodeURIComponent('/playground#admin')}`; } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
 }
@@ -112,6 +114,10 @@ function renderStudio() {
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
+const stMenu = open => { $c('stMenu').hidden = !open; $c('stAvatar').setAttribute('aria-expanded', String(open)); };
+$c('stAvatar').onclick = e => { e.stopPropagation(); stMenu($c('stMenu').hidden); };
+addEventListener('pointerdown', e => { if (!$c('stMenu').hidden && !e.target.closest('.st-acct')) stMenu(false); });
+addEventListener('keydown', e => { if (e.key === 'Escape') stMenu(false); });
 $c('stOut').onclick = async () => { await fetch('/api/auth?action=logout', { method: 'POST' }).catch(() => { }); location.href = '/'; };
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {

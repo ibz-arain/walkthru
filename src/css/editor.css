@@ -51,7 +51,7 @@ body.editing #hint{display:none}
 
 /* ---------- Studio dashboard ---------- */
 #studio{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;font-size:14px}
-.st-top{position:sticky;top:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:54px;margin:10px 10px 0;padding:0 10px 0 18px;background:var(--glass);-webkit-border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
+.st-top{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:60px;padding:0 max(24px,env(safe-area-inset-left,0px));background:var(--bg);border-bottom:1px solid var(--rule)}
 .st-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none}.st-brand b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
@@ -149,3 +149,14 @@ body.editing .cl-save{display:none}
 @media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]) .tb-t{display:none}}
 @media (max-width:1180px){#segMode .tb-t,#viewNow{display:none} .cl-title{max-width:150px}}
 @media (max-width:900px){#tbView .tb-t,#designNow{display:none} #segLvl .l{display:none} #segLvl .s{display:inline}}
+
+/* Studio account menu */
+.st-acct{position:relative}
+.st-av{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer}
+.st-av .avatar{width:30px;height:30px;font-size:11.5px}
+.st-av:hover .avatar,.st-av[aria-expanded="true"] .avatar{box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--ink-3)}
+.st-menu{position:absolute;right:0;top:calc(100% + 8px);width:240px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--shadow-lg);padding:6px;z-index:5;animation:popin .16s cubic-bezier(.2,.8,.2,1)}
+.st-who{display:flex;flex-direction:column;gap:1px;padding:8px 10px 10px;margin-bottom:4px;border-bottom:1px solid var(--rule)}
+.st-who b{font-size:13.5px;font-weight:600}.st-who span{font-size:12px;color:var(--ink-2)}.st-org{margin-top:4px;color:var(--ink-3)!important}
+.st-menu a,.st-menu button{display:block;width:100%;text-align:left;font:13px var(--f-ui);color:var(--ink);background:none;border:0;border-radius:7px;padding:8px 10px;cursor:pointer;text-decoration:none}
+.st-menu a:hover,.st-menu button:hover{background:var(--paper-2)}

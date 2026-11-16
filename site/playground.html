@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.9e6610de51.js">
-<link rel="stylesheet" href="/assets/playground.52d82fbe5f.css">
+<link rel="modulepreload" href="/assets/playground.c735fda44a.js">
+<link rel="stylesheet" href="/assets/playground.cd69cd96b2.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -364,7 +364,10 @@
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
     <a class="st-brand" href="/"><b>Demo</b></a>
-    <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button><button class="btn st-ghost" id="stOut" type="button">Sign out</button></div>
+    <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button>
+      <div class="st-acct"><button class="st-av" id="stAvatar" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar" id="stInit"></span></button>
+        <div class="st-menu" id="stMenu" hidden role="menu"><div class="st-who"><b id="stName"></b><span id="stMail"></span><span id="stOrg" class="st-org"></span></div>
+          <a href="/account" role="menuitem">Account and team</a><button type="button" id="stOut" role="menuitem">Sign out</button></div></div></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -417,5 +420,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.9e6610de51.js"></script>
+<script type="module" src="/assets/playground.c735fda44a.js"></script>
 </html>
