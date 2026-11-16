@@ -32,12 +32,25 @@ const CATALOG = {
   plant: ['Plant', 1.6, 1.6, '#4f7a37', (g, y) => plant(g, 0, 0, y, NIL)],
   lamp: ['Floor lamp', 1.2, 1.2, '#2a2b2c', (g, y) => floorLamp(g, 0, 0, y)],
   piano: ['Piano', 5, 2.2, '#1b1c1e', (g, y) => { box(g, -2.5, 2.5, y, y + 4.2, -1.1, .2, M.black, { solid: true }); box(g, -2.5, 2.5, y + 2.3, y + 2.6, .2, 1.1, M.black); box(g, -2.3, 2.3, y + 2.6, y + 2.7, .3, 1, M.porcelain); }],
+  // ----- kitchen: cabinets and appliances (back against a wall on −z, doors facing +z) -----
+  base: ['Base cabinets', 4, 2, '#f2f2ef', (g, y, it) => { const w = (it?.w || 4) / 2; lowerCab(g, [-w, w, -1, 1], y, 's'); }],
+  sinkbase: ['Sink cabinet', 3, 2, '#f2f2ef', (g, y, it) => { const w = (it?.w || 3) / 2; lowerCab(g, [-w, w, -1, 1], y, 's'); sink(g, 0, .05, y + 3.13); }],
+  upper: ['Upper cabinets', 4, 1.1, '#e6e6e2', (g, y, it) => { const w = (it?.w || 4) / 2; upperCab(g, [-w, w, -.55, .55], y + 4.6, y + 7.4); for (let x = -w + 1; x < w - .1; x += 1) box(g, x - .02, x + .02, y + 4.65, y + 7.35, .55, .57, M.black, { cast: false }); }],
+  tall: ['Pantry cabinet', 2, 2, '#f2f2ef', (g, y, it) => { const w = (it?.w || 2) / 2; box(g, -w, w, y, y + 7.5, -1, 1, M.cab, { solid: true }); box(g, -.02, .02, y + .3, y + 7.3, 1, 1.02, M.black, { cast: false }); }],
+  corner: ['Corner cabinet', 3, 3, '#f2f2ef', (g, y) => { lowerCab(g, [-1.5, 1.5, -1.5, -.5], y, 's'); lowerCab(g, [-1.5, -.5, -.5, 1.5], y, 'e'); }],
+  fridge: ['Refrigerator', 3, 2.6, '#c9ccd0', (g, y) => { box(g, -1.5, 1.5, y, y + 5.9, -1.3, 1.3, M.steel, { solid: true }); box(g, -.03, .03, y + 2, y + 5.8, 1.3, 1.33, M.black, { cast: false }); for (const x of [-.25, .25]) box(g, x - .04, x + .04, y + 3.2, y + 4.8, 1.33, 1.42, M.black); }],
+  range: ['Range, 30"', 2.5, 2.2, '#2d2f33', (g, y) => { box(g, -1.25, 1.25, y, y + 3, -1.1, 1.1, M.steel, { solid: true }); box(g, -1.2, 1.2, y + 3, y + 3.06, -1.05, 1.05, M.black); for (const [x, z] of [[-.6, -.5], [.6, -.5], [-.6, .45], [.6, .45]]) cyl(g, x, z, .32, y + 3.06, y + 3.1, M.metal, 20); box(g, -1.05, 1.05, y + .6, y + 2.3, 1.1, 1.13, M.black, { cast: false }); }],
+  hood: ['Range hood', 2.5, 1.7, '#b9bdc1', (g, y) => { box(g, -1.25, 1.25, y + 5.4, y + 5.8, -.85, .85, M.steel); box(g, -.45, .45, y + 5.8, y + 8.6, -.85, -.1, M.steel); }],
+  dishwasher: ['Dishwasher', 2, 2, '#c9ccd0', (g, y) => { box(g, -1, 1, y + .3, y + 2.9, -1, 1, M.steel, { solid: true }); box(g, -1, 1, y + 2.9, y + 3.03, -1, 1.08, M.counter); box(g, -.7, .7, y + 2.5, y + 2.58, 1, 1.08, M.black); }],
+  walloven: ['Wall ovens', 2.5, 2.2, '#2d2f33', (g, y) => { box(g, -1.25, 1.25, y, y + 7.5, -1.1, 1.1, M.cab, { solid: true }); for (const yy of [2.2, 4.4]) box(g, -1.05, 1.05, y + yy, y + yy + 1.9, 1.1, 1.13, M.tv, { cast: false }); }],
+  microwave: ['Microwave, built-in', 2, 1.4, '#2d2f33', (g, y) => { box(g, -1, 1, y + 4.6, y + 6, -.7, .7, M.tv); }],
   hottub: ['Hot tub', 7, 7, '#7cc3dc', (g, y) => { box(g, -3.5, 3.5, y, y + 3, -3.5, 3.5, M.deck, { solid: true }); box(g, -3, 3, y + 2.9, y + 2.95, -3, 3, M.water); }],
   bbq: ['Grill', 4, 2, '#2d2f33', (g, y) => { box(g, -2, 2, y, y + 3, -1, 1, M.metal, { solid: true }); box(g, -1.6, 1.6, y + 3, y + 3.6, -.8, .8, M.black); }],
 };
 const ITEM_GROUPS = [['Living', ['sofa', 'loveseat', 'armchair', 'coffee', 'tvunit', 'rug', 'piano']], ['Bedroom', ['queen', 'king', 'single', 'crib', 'dresser', 'wardrobe']],
-  ['Kitchen & dining', ['dining6', 'round4', 'island']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Outdoor', ['hottub', 'bbq']]];
-const itemDims = it => { const c = CATALOG[it.kind]; return it.rot % 2 ? [c[2], c[1]] : [c[1], c[2]]; };
+  ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Outdoor', ['hottub', 'bbq']]];
+const RESIZABLE = new Set(['base', 'sinkbase', 'upper', 'tall']), WALL_ITEMS = new Set(['base', 'sinkbase', 'upper', 'tall', 'corner', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'wardrobe', 'dresser', 'bookcase', 'tvunit', 'vanity', 'toilet', 'washer', 'tub', 'piano', 'desk']);
+const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it.rot % 2 ? [c[2], w] : [w, c[2]]; };
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
@@ -45,7 +58,7 @@ function placeItems() {
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2;
-    const before = walkables.length; c[4](g, LV_Y[it.level] + (it.level === 'M' ? 0 : 0)); walkables.splice(before);
+    const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
     furn[it.level].add(g);
   }
 }
@@ -94,7 +107,7 @@ function peToolDown(e, sx, sy, wx, wz) {
 function peToolMove(e, wx, wz) {
   const D = PE.drag; if (!D) return false;
   if (D.kind === 'dimNew') { let x = snapToWalls(wx, 'x', .8), z = snapToWalls(wz, 'z', .8); if (Math.abs(x - D.x1) > Math.abs(z - D.z1)) z = D.z1; else x = D.x1; D.x2 = x; D.z2 = z; peDraw(); return true; }
-  if (D.kind === 'itemMove') { D.it.x = snapH(wx - D.dx); D.it.z = snapH(wz - D.dz); peDraw(); return true; }
+  if (D.kind === 'itemMove') { D.it.x = snapH(wx - D.dx); D.it.z = snapH(wz - D.dz); if (WALL_ITEMS.has(D.it.kind) && !e.altKey) snapToWall(D.it); peDraw(); return true; }
   if (D.kind === 'noteMove') { D.n.x = snapH(wx - D.dx); D.n.z = snapH(wz - D.dz); peDraw(); return true; }
   return false;
 }
@@ -161,8 +174,9 @@ function peExtraInspector() {
   if (it) {
     const c = CATALOG[it.kind], [w, d] = itemDims(it); el.hidden = false;
     el.innerHTML = `<h3>${c[0]} <span class="pe-area">${ftin(w)} × ${ftin(d)}</span></h3><label class="fld">Swap for <select id="ixKind">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}" ${k === it.kind ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-      <div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
+      ${RESIZABLE.has(it.kind) ? `<label class="fld"><span>Width (${U_LEN()})</span> <input id="ixW" type="number" step="any" value="${toDisp(it.w || c[1])}"></label>` : ''}<div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
     el.querySelector('#ixKind').onchange = e => { pushHist(); it.kind = e.target.value; planChanged(); };
+    el.querySelector('#ixW')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= 16)) return; pushHist(); it.w = snapH(v); planChanged(); });
     el.querySelector('#ixRot').onclick = () => { pushHist(); it.rot = ((it.rot || 0) + 1) % 4; planChanged(); };
     el.querySelector('#ixDup').onclick = () => { pushHist(); const c2 = { ...it, id: BID++, x: it.x + 2, z: it.z + 2 }; BM.items.push(c2); selectX({ kind: 'item', id: c2.id }); planChanged(); };
     el.querySelector('#ixDel').onclick = deleteSel; return true;
@@ -359,4 +373,16 @@ function roomFinishPanel() {
   el.querySelector('#rfSide').onchange = e => set(f => f.accent = e.target.value ? { side: e.target.value, color: f.accent?.color || '#2f3b52' } : null);
   el.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => set(f => f.accent = { ...f.accent, color: b.dataset.ra }));
   el.querySelector('#raC')?.addEventListener('change', e => set(f => f.accent = { ...f.accent, color: e.target.value }));
+}
+
+// Wall pieces (cabinets, appliances, wardrobes…) slide their back against the nearest wall and turn to face the room.
+function snapToWall(it, reach = 1.6) {
+  const depth = CATALOG[it.kind][2], rooms = BM.rooms.filter(r => r.level === it.level && !RT[r.type]?.outdoor); let best = null;
+  for (const r of rooms) for (const e of edgesOf(r)) {
+    const horiz = e.axis === 'x', along = horiz ? it.x : it.z; if (along < e.a - .5 || along > e.b + .5) continue;
+    const inside = { n: 1, s: -1, w: 1, e: -1 }[e.side], want = e.c + inside * (INT / 2 + depth / 2), gap = Math.abs((horiz ? it.z : it.x) - want);
+    if (gap < reach && (!best || gap < best.gap)) best = { gap, horiz, want, rot: { n: 0, s: 2, w: 3, e: 1 }[e.side] };
+  }
+  if (!best) return;
+  it.rot = best.rot; if (best.horiz) it.z = +best.want.toFixed(2); else it.x = +best.want.toFixed(2);
 }
