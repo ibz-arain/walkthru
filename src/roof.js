@@ -21,7 +21,8 @@ function roofLevel(parent, o) {
   const ov = o.ov, style = o.style, ex = r => [r[0] - ov, r[1] + ov, r[2] - ov, r[3] + ov];
   const drawn = o.eaves.map(ex), field = drawn.concat(o.inner || [], (o.inner || []).map(ex), o.solid || []);
   if (!drawn.length) return null;
-  const all = field.concat(drawn), M0 = 2;
+  // gables run the slope on past a wing's end, so the grid needs room out there (half the widest wing is enough)
+  const all = field.concat(drawn), M0 = style === 'gable' ? Math.ceil(Math.max(...drawn.map(r => Math.min(r[1] - r[0], r[3] - r[2]))) / 2 / RG) + 4 : 2;
   const X0 = Math.floor(Math.min(...all.map(r => r[0])) / RG) * RG - M0 * RG, Z0 = Math.floor(Math.min(...all.map(r => r[2])) / RG) * RG - M0 * RG;
   const NX = Math.ceil((Math.max(...all.map(r => r[1])) - X0) / RG) + M0, NZ = Math.ceil((Math.max(...all.map(r => r[3])) - Z0) / RG) + M0;
   const C = (NX) * (NZ), occ = new Uint8Array(C), draw = new Uint8Array(C), wall = new Uint8Array(C), hole = new Uint8Array(C);
@@ -38,14 +39,15 @@ function roofLevel(parent, o) {
   if (style === 'gable') {
     const cellOcc = (x, z) => { const i = Math.floor((x - X0) / RG), j = Math.floor((z - Z0) / RG); return i >= 0 && j >= 0 && i < NX && j < NZ && occ[j * NX + i]; };
     const openRun = (pts) => pts.filter(([x, z]) => !cellOcc(x, z)).length >= pts.length * .5; // at least half the end is open to the outside
+    const sideRun = (r, side) => { const pts = [], X = side === 'w' || side === 'e', at = { w: r[0], e: r[1], n: r[2], s: r[3] }[side], o = side === 'w' || side === 'n' ? -RG * 1.5 : RG * 1.5;
+      for (let t = (X ? r[2] : r[0]) + RG / 2; t < (X ? r[3] : r[1]); t += RG) pts.push(X ? [at + o, t] : [t, at + o]); return pts; };
+    const extFor = (r, side, len) => ({ w: [r[0] - len, r[0], r[2], r[3]], e: [r[1], r[1] + len, r[2], r[3]], n: [r[0], r[1], r[2] - len, r[2]], s: [r[0], r[1], r[3], r[3] + len] })[side];
     for (const r of drawn) {
-      const w = r[1] - r[0], d = r[3] - r[2], alongX = w >= d, ext = 60;
-      const ends = alongX ? [['w', r[0]], ['e', r[1]]] : [['n', r[2]], ['s', r[3]]];
-      for (const [side, at] of ends) {
-        const pts = []; for (let t = (alongX ? r[2] : r[0]) + RG / 2; t < (alongX ? r[3] : r[1]); t += RG) pts.push(alongX ? [side === 'w' ? at - RG / 2 : at + RG / 2, t] : [t, side === 'n' ? at - RG / 2 : at + RG / 2]);
-        if (!openRun(pts)) continue;
-        gableEnds.push(alongX ? [side === 'w' ? at - ext : at, side === 'w' ? at : at + ext, r[2], r[3]] : [r[0], r[1], side === 'n' ? at - ext : at, side === 'n' ? at : at + ext]);
-      }
+      const w = r[1] - r[0], d = r[3] - r[2], open = s => openRun(sideRun(r, s)), attached = ['n', 's', 'e', 'w'].filter(s => !open(s));
+      // a wing joined to the house on one side only: its gable faces the other way (a front gable on a bump-out)
+      if (attached.length === 1) { const end = { n: 's', s: 'n', e: 'w', w: 'e' }[attached[0]], across = end === 'n' || end === 's' ? w : d; gableEnds.push(extFor(r, end, across / 2 + 1)); continue; }
+      const alongX = w >= d;
+      for (const side of alongX ? ['w', 'e'] : ['n', 's']) if (open(side)) gableEnds.push(extFor(r, side, Math.min(w, d) / 2 + 1));
     }
   }
   // distance (in cells) from each grid node to the eave line
@@ -112,7 +114,7 @@ function roofLevel(parent, o) {
     const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
   mesh(pos, M.roof, uv); if (under.length) mesh(under, M.soffit);
   // a second skin a hair below the first: the long merged strips meet at T-junctions, and this hides the hairline cracks there
-  const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, M.roof, uv).castShadow = false;
+  const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, M.roof, uv); // casts shadow too, so sunlight can't leak through those cracks either
 
   // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
   const fas = [], FT = .22, FB = .75;
@@ -148,7 +150,7 @@ function roofLevel(parent, o) {
     if (a && !b && wallOut(i, j - 1) || b && !a && wallOut(i, j)) { const h0 = hAt(i, j), h1 = hAt(i + 1, j); if (Math.max(h0, h1) > o.plate + .05) tallEdges.push([X(i), Z(j), X(i + 1), Z(j), h0, h1]); } }
   for (let i = 0; i <= NX; i++) for (let j = 0; j < NZ; j++) { const a = i < NX && wall[j * NX + i], b = i > 0 && wall[j * NX + i - 1];
     if (a && !b && wallOut(i - 1, j) || b && !a && wallOut(i, j)) { const h0 = hAt(i, j), h1 = hAt(i, j + 1); if (Math.max(h0, h1) > o.plate + .05) tallEdges.push([X(i), Z(j), X(i), Z(j + 1), h0, h1]); } }
-  for (const [x0, z0, x1, z1, h0, h1] of tallEdges) { const b = o.plate - .2, t0 = Math.max(b, h0 - .05), t1 = Math.max(b, h1 - .05);
+  for (const [x0, z0, x1, z1, h0, h1] of tallEdges) { const b = o.plate - .2, t0 = Math.max(b, h0 + .02), t1 = Math.max(b, h1 + .02); // tucked up under the roof, so no light slips between
     for (const v of [[x0, b, z0], [x1, b, z1], [x1, t1, z1], [x0, b, z0], [x1, t1, z1], [x0, t0, z0], [x1, b, z1], [x0, b, z0], [x0, t0, z0], [x1, b, z1], [x0, t0, z0], [x1, t1, z1]]) gw.push(...v);
     const a0 = x0 === x1 ? z0 : x0, a1 = x0 === x1 ? z1 : x1; // walls run along x or z: u is the distance along them
     for (const v of [[a0, b], [a1, b], [a1, t1], [a0, b], [a1, t1], [a0, t0], [a1, b], [a0, b], [a0, t0], [a1, b], [a0, t0], [a1, t1]]) gu.push(v[0], v[1]); }

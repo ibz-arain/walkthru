@@ -163,3 +163,21 @@ function captureThumb(W = 480, H = 300) {
   G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
   return cv.toDataURL('image/jpeg', .72);
 }
+
+// TEMP-CAPTURE (removed after use)
+window.__cap = async (name, W, H, kind = '3d', q = .9) => {
+  let url;
+  if (kind === 'plan') {
+    const st = pc.getAttribute('style') || ''; pc.setAttribute('style', `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:9999`);
+    peSize(); peFit(); peDraw(); await new Promise(r => setTimeout(r, 50)); peDraw();
+    const c = document.createElement('canvas'); c.width = pc.width; c.height = pc.height; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(pc, 0, 0); url = c.toDataURL('image/jpeg', q);
+    pc.setAttribute('style', st); peSize(); peFit(); peDraw();
+  } else {
+    const tv = G3.trees.visible; if (window.__noTrees) G3.trees.visible = false;
+    const pr = renderer.getPixelRatio(), asp = camera.aspect; renderer.setPixelRatio(1); renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+    camera.clearViewOffset?.(); renderer.render(scene, camera); url = renderer.domElement.toDataURL('image/jpeg', q);
+    renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); camera.aspect = asp; camera.updateProjectionMatrix(); updateViewOffset?.(); G3.trees.visible = tv;
+  }
+  const r = await fetch(`/api/devshot?name=${name}`, { method: 'POST', body: url, headers: { 'content-type': 'text/plain' } }); return r.status;
+};
+window.__view = (pos, tgt, fov) => { if (fov) { camera.fov = fov; camera.updateProjectionMatrix(); } camera.position.set(...pos); controls.target.set(...tgt); controls.update(); }; // TEMP-CAPTURE
