@@ -106,11 +106,43 @@ function renderStudio() {
   const tot = (k) => stProjects.reduce((a, p) => a + (p[k] || 0), 0);
   $c('stStats').innerHTML = `<span class="st-stat"><b>${stProjects.length}</b> project${stProjects.length === 1 ? '' : 's'}</span>`;
   $c('stEmpty').hidden = stProjects.length > 0;
-  $c('stList').innerHTML = list.map(p => `<button class="st-card" type="button" data-pid="${clEsc(p.id)}">${p.thumb ? `<img class="st-thumb" src="${p.thumb}" alt="">` : '<canvas aria-hidden="true"></canvas>'}<div class="st-meta">
-      <h3>${clEsc(p.name)}</h3><p>${clEsc([p.client, p.address].filter(Boolean).join(' · ') || 'No client yet')}</p><span class="st-spec">${clEsc(specLine(p.summary))}</span>
+  $c('stList').innerHTML = list.map(p => { const sub = [p.client, p.address].filter(Boolean).join(' · ') || 'No client yet';
+    return `<div class="st-card" role="link" tabindex="0" data-pid="${clEsc(p.id)}" aria-label="${clEsc(p.name)}">${p.thumb ? `<img class="st-thumb" src="${p.thumb}" alt="">` : '<canvas aria-hidden="true"></canvas>'}
+      <button class="st-more" type="button" aria-label="Project options" aria-haspopup="menu" data-tip="Options"><svg class="ic"><use href="#i-dots"/></svg></button>
+      <div class="st-meta">
+      <h3 title="${clEsc(p.name)}">${clEsc(p.name)}</h3><p title="${clEsc(sub)}">${clEsc(sub)}</p><span class="st-spec">${clEsc(specLine(p.summary))}</span>
       <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
-      <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></button>`).join('');
-  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview); b.onclick = () => goRoute(`#admin/p/${b.dataset.pid}`); });
+      <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></div>`; }).join('');
+  $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview);
+    const open = () => { if (!b.querySelector('.st-rename')) goRoute(`#admin/p/${b.dataset.pid}`); };
+    b.onclick = e => { if (!e.target.closest('.st-more, .st-cmenu, .st-rename')) open(); };
+    b.onkeydown = e => { if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } };
+    b.querySelector('.st-more').onclick = e => { e.stopPropagation(); stCardMenu(b, list[i]); }; });
+}
+// ⋯ on a project card: rename in place, or delete
+function stCardMenu(card, p) {
+  const had = card.querySelector('.st-cmenu'); document.querySelectorAll('.st-cmenu').forEach(m => m.remove()); document.querySelectorAll('.st-card.menu-open').forEach(c => c.classList.remove('menu-open')); if (had) return;
+  const m = document.createElement('div'); m.className = 'st-cmenu'; m.setAttribute('role', 'menu');
+  m.innerHTML = '<button type="button" role="menuitem" data-a="rename">Rename</button><button type="button" role="menuitem" data-a="delete" class="danger">Delete</button>';
+  card.appendChild(m); card.classList.add('menu-open');
+  const close = () => { m.remove(); card.classList.remove('menu-open'); removeEventListener('pointerdown', away, true); };
+  const away = e => { if (!e.target.closest('.st-cmenu, .st-more')) close(); }; addEventListener('pointerdown', away, true);
+  m.querySelector('[data-a="rename"]').onclick = e => { e.stopPropagation(); close(); stRename(card, p); };
+  let armed = 0;
+  m.querySelector('[data-a="delete"]').onclick = async e => { e.stopPropagation();
+    if (Date.now() - armed > 3000) { armed = Date.now(); e.target.textContent = 'Click again to delete'; return; }
+    close(); try { await cloudApi('DELETE', `project?id=${encodeURIComponent(p.id)}`); stProjects = stProjects.filter(x => x.id !== p.id); renderStudio(); toast('Project deleted'); }
+    catch (er) { toast(er.status === 403 ? 'Only workspace owners can delete projects' : 'Couldn’t delete the project'); } };
+}
+function stRename(card, p) {
+  const h = card.querySelector('h3'), inp = document.createElement('input'); inp.className = 'st-rename'; inp.value = p.name; inp.maxLength = 80; inp.setAttribute('aria-label', 'Project name');
+  h.replaceWith(inp); inp.focus(); inp.select(); let done = false;
+  const finish = async save => { if (done) return; done = true; const name = inp.value.trim();
+    if (save && name && name !== p.name) { const old = p.name; p.name = name; renderStudio();
+      try { await cloudApi('PUT', `project?id=${encodeURIComponent(p.id)}`, { name }); } catch (er) { p.name = old; renderStudio(); toast('Couldn’t rename the project'); } }
+    else renderStudio(); };
+  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); };
+  inp.onblur = () => finish(true); inp.onclick = e => e.stopPropagation();
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
