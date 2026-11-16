@@ -262,6 +262,7 @@ body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden 
   .tb-t{max-width:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:var(--il);top:var(--it);bottom:var(--ib);width:min(66vw,1120px);z-index:12;background:var(--paper);border-right:1px solid var(--rule);display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
 .pe-body{flex:1;display:flex;min-height:0}
@@ -988,6 +989,7 @@ function boxAN(parent, horiz, sa, sb, ya, yb, na, nb, mat, o) {
   return horiz ? box(parent, sa, sb, ya, yb, na, nb, mat, o) : box(parent, na, nb, ya, yb, sa, sb, mat, o);
 }
 
+
 // ---------- Walls with openings ----------
 // out: which face is exterior ('-x','+x','-z','+z'); ops: {c,w,b,h,k,sw,hinge}
 const FACE = { '+x': 0, '-x': 1, '+z': 4, '-z': 5 };
@@ -1176,6 +1178,7 @@ function flight(parent, xa, xb, z0, z1, yb, yt, n) {
     box(parent, Math.min(s0, s1) - .01, Math.max(s0, s1) + .01, top - .72, top - .55, z0 - .01, z1 + .01, M.white, { cast: false });
   }
 }
+
 
 // =====================================================================
 //  BASEMENT  (A-2.01 foundation plan)
@@ -1421,6 +1424,7 @@ function tree(x, z, s = 1, par = trees) {
 }
 [[-40, -60, 1.2], [-15, -64, 1], [60, -38, 1.1], [68, 52, 1.2], [-46, 56, 1], [25, 55, 1.3], [-48, -20, 1], [44, 54, .9], [-10, 58, .9], [40, -32, .9]].forEach(t => tree(...t));
 
+
 // =====================================================================
 //  FURNITURE & FIXTURES (positions follow the symbols drawn on the plans)
 // =====================================================================
@@ -1628,6 +1632,7 @@ function tv(p, r, y0, y1) { bx(p, r, y0, y1, M.tv); }
   shelving(F, [29.5, 52.5, 31.0, 32.6], y, 's'); shelving(F, [44, 52.5, 39.0, 40.6], y, 'n');
   bx(F, [10.8, 20.8, -5.2, -4.0], y, y + 6, M.oak, { solid: true });
 }
+
 
 // =====================================================================
 //  HOUSE 2 — a separate design in the French-modern style of the reference photo.
@@ -1925,6 +1930,7 @@ const ROOMS2 = [
 ];
 const OUTLINE2 = { M: [P2M.map(([x, z]) => [x, z + OZ]), P2G.map(([x, z]) => [x, z + OZ])], U: [P2U.map(([x, z]) => [x, z + OZ])] };
 
+
 // =====================================================================
 //  Grey Model 3-style sedan parked on each driveway (≈15'-8" long, 6'-1" wide, 4'-8" tall)
 //  Built along +x (nose) — rotate the returned group to park it.
@@ -1977,6 +1983,7 @@ function parkSedan(parent, x, z, yaw) {
 parkSedan(G.site, 66, 8.25, Math.PI);
 // House 2: front driveway, nose toward the street-facing garage door
 parkSedan(G2.site, 41.5, -34, -Math.PI / 2);
+
 
 // =====================================================================
 //  BUILDER — "My Design": an editable house made of rooms.
@@ -2593,6 +2600,7 @@ function autoLayout({ beds = 3, baths = 2, garage = 2, storeys = 2, office = tru
   BM = normalizeStairs({ roof: BM.roof || 'hip', rooms });
 }
 
+
 // =====================================================================
 //  MY DESIGN — furniture. Several layouts per room type, picked per room (Shuffle changes it),
 //  laid out in the room's own frame so the whole layout can be rotated (↻) away from doors.
@@ -2757,6 +2765,7 @@ function furnish(F, r, y, zones = []) {
   F.add(best.g); walkables.push(...best.g.userData.walk);
 }
 function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); }
+
 
 // =====================================================================
 //  FLOOR PLAN EDITOR (2D) — drag walls, move rooms, add / resize / delete, auto-layout.
@@ -3174,6 +3183,7 @@ addEventListener('resize', () => { if (PE.open) peSize(); });
 window.__pe = { PE, get BM() { return BM; } };
 window.__pe.planLevel = planLevel;
 
+
 // =====================================================================
 //  DESIGNER TOOLS — furniture you place by hand, notes, dimension lines, multi-select (align, copy, paste),
 //  mirror, door and window sizes, roof style and pitch, and site settings. Everything lives in BM:
@@ -3452,6 +3462,7 @@ addEventListener('keydown', e => {
   else if (!mod && e.key.startsWith('Arrow') && PE.multi.size > 1) { e.preventDefault(); e.stopImmediatePropagation(); const st = e.shiftKey ? 2 : .5; pushHist();
     for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0)).toFixed(2); } planChanged(); }
 }, true);
+
 
 // =====================================================================
 //  LIGHT, SKY
@@ -4035,6 +4046,7 @@ renderer.setAnimationLoop(() => {
   renderer.render(scene, camera); labelRenderer.render(scene, camera);
 });
 
+
 // =====================================================================
 //  DESIGNS — several saved My Design plans: + makes a new one, ▾ switches, renames, duplicates, deletes.
 // =====================================================================
@@ -4076,6 +4088,7 @@ document.getElementById('designDel').onclick = e => { // two clicks: confirm ins
 designLabel();
 // On House 3 the edit button copies the plan into your designs first, so House 3 itself never changes.
 document.getElementById('editBtn').addEventListener('click', e => { if (curHouse === 1 && !PE.open) { e.stopImmediatePropagation(); newDesign('permit'); curDesign().name = 'Sample 1 copy'; designLabel(); saveBM(); openEditor(true); return; } if (!H3P) return; e.stopImmediatePropagation(); newDesign('campana'); openEditor(true); }, true);
+
 
 // =====================================================================
 //  ACCOUNT — who is signed in, the toolbar account menu, and syncing "My designs" to the account.
@@ -4153,6 +4166,7 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
   catch (e) { return; } // no API (e.g. the single-file build): stay local, hide the menu
   accRender(); if (ACC.user) pullDesigns();
 })();
+
 
 // =====================================================================
 //  CLOUD — Studio (admin) and customer links, backed by the /api functions (Turso + object storage).
@@ -4556,6 +4570,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
 
+
 // =====================================================================
 //  UI SHELL — dockable toolbar, popovers, one side panel at a time, and the viewer tools
 //  (render styles, measure, sun study, saved views, export / import, areas & estimate, shortcuts).
@@ -4866,6 +4881,7 @@ const uiClock = new THREE.Clock();
 setDock(['top', 'bottom', 'left', 'right'].includes(ST.get('walkthru-dock', 'top')) ? ST.get('walkthru-dock', 'top') : 'top');
 press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer');
 uiReady = true; uiSync(); uiEditing(PE.open); updateViewOffset();
+
 
 // =====================================================================
 //  EXTRAS — your own textures on finishes, a printable PDF plan sheet, 360° panoramas, and video recording.

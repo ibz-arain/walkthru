@@ -4,10 +4,12 @@
 
 ## How it works
 
-The site has two pages, both built from `src/` by `build.sh`:
+The site is built from `src/` by `npm run build` (`scripts/build.mjs`):
 
 - `/` — landing page (`src/landing.html` → `site/index.html`)
-- `/playground` — the 3D player, floor plan editor and Studio (`src/head.html` + `src/css/*.css` + `src/body.html` + `src/*.js` → `site/playground.html`). `src/ui.js` holds the dockable toolbar, popovers, side panels and viewer tools (render styles, measure, sun study, saved views, export/import, areas and estimate, keyboard shortcuts).
+- `/playground` — the 3D player, floor plan editor and Studio (`src/head.html` + `src/css/*.css` + `src/body.html` + `src/*.js`). The JS is bundled with three.js and minified by esbuild into `site/assets/playground.<hash>.js` (cached for a year); `walkthru.html` is still produced as a single-file copy that loads three.js from a CDN.
+- `/account`, `/terms`, `/privacy` — sign-in and settings, and the legal pages (`src/account.html`, `src/pages/`). **Have a lawyer review the terms and privacy text before launch.**
+- Designer extras live in `src/designer.js` (furniture, notes, dimensions, multi-select, mirror, door/window sizes, roof style and pitch, site) and `src/extras.js` (photo textures, PDF plan sheet, 360° panorama, video). `src/ui.js` holds the dockable toolbar, popovers, side panels and viewer tools (render styles, measure, sun study, saved views, export/import, areas and estimate, keyboard shortcuts).
 
 When served with the API, the playground has two extra sides:
 
@@ -41,7 +43,7 @@ npm test           # API tests against a throwaway database
 
 1. `turso db create home-studio` → `turso db show home-studio --url` and `turso db tokens create home-studio`
 2. In Vercel, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_KEY`, `BRAND_NAME` (see `.env.example`).
-3. Run `./build.sh`, then deploy (`npx vercel --prod`). Tables are created on the first request.
+3. Run `npm install && npm run build`, then deploy (`npx vercel --prod`). Tables (and new columns) are created on the first request.
 
 ## Where things live
 
@@ -50,8 +52,13 @@ npm test           # API tests against a throwaway database
   The default `db` driver keeps them in a Turso `blobs` table. To switch to S3 / R2 / GCS / Vercel Blob, add a driver with `put`, `get`, `del` and set `BLOB_DRIVER`. Nothing else changes.
 - **API** — `api/health`, `api/projects`, `api/project`, `api/share`, `api/comments` (5 functions, inside Vercel's free-tier limit).
 
+## Not built yet
+
+- Angled or curved walls: rooms are rectangles (join several for L-shapes).
+- Changing storey and ceiling heights: they are fixed for every design.
+- Editing Sample 2: it is a hand-built model, not a floor plan.
+- Billing, and a builder product catalogue shared across a workspace (photo textures are per browser).
+
 ## Demo limits (on purpose, for now)
 
-- One shared studio key, no user accounts or companies yet.
 - Customer links are bearer links: anyone with the URL can open them (they can be turned off from the studio).
-- No emails yet: the studio sees new activity on the dashboard and in each project's Activity tab.
