@@ -8,7 +8,7 @@ The site is built from `src/` by `npm run build` (`scripts/build.mjs`):
 
 - `/` — landing page (`src/landing.html` → `site/index.html`)
 - `/playground` — the 3D player, floor plan editor and Studio (`src/head.html` + `src/css/*.css` + `src/body.html` + `src/*.js`). The JS is bundled with three.js and minified by esbuild into `site/assets/playground.<hash>.js` (cached for a year); `walkthru.html` is still produced as a single-file copy that loads three.js from a CDN.
-- `/account`, `/terms`, `/privacy` — sign-in and settings, and the legal pages (`src/account.html`, `src/pages/`). **Have a lawyer review the terms and privacy text before launch.**
+- `/account` — sign-in, sign-up and settings (`src/account.html`).
 - Designer extras live in `src/designer.js` (furniture, notes, dimensions, multi-select, mirror, door/window sizes, roof style and pitch, site) and `src/extras.js` (photo textures, PDF plan sheet, 360° panorama, video). `src/ui.js` holds the dockable toolbar, popovers, side panels and viewer tools (render styles, measure, sun study, saved views, export/import, areas and estimate, keyboard shortcuts).
 
 When served with the API, the playground has two extra sides:

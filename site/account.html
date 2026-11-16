@@ -103,11 +103,9 @@ function login() {
   authCard('Sign in', '', `<form id="f">
     <label>Email <input name="email" type="email" autocomplete="email" required autofocus></label>
     <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-    <p class="err"></p><button class="btn btn-primary" type="submit">Sign in</button>
-    <button class="link" type="button" id="forgot">Forgot your password?</button></form>`,
+    <p class="err"></p><button class="btn btn-primary" type="submit">Sign in</button></form>`,
     ME.signups ? `New here? <a href="#signup?next=${n}">Create an account</a>` : '');
   bindForm('#f', async v => { await api('POST', 'auth?action=login', v); track('login'); location.href = nextUrl(); });
-  $('#forgot').onclick = () => { location.hash = `#forgot?next=${n}`; };
 }
 function signup(invite) {
   if (!invite && !ME.signups) return authCard('Sign-ups are closed', 'Ask your team for an invite.', '<a class="btn btn-primary" href="#login" style="width:100%">Sign in</a>');
@@ -118,15 +116,9 @@ function signup(invite) {
     <label>Password <input name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters"></label>
     ${invite ? '' : '<label>Company or workspace name <input name="workspace" maxlength="80" placeholder="e.g. Lakeview Homes"></label>'}
     <p class="err"></p><button class="btn btn-primary" type="submit">${invite ? 'Create account and join' : 'Create account'}</button>
-    <p class="sub" style="margin:0;font-size:12px">By continuing you agree to the <a href="/terms">Terms</a> and <a href="/privacy">Privacy policy</a>.</p></form>`,
+</form>`,
     `Already have an account? <a href="#login${invite ? `?next=${encodeURIComponent('/account#invite/' + invite)}` : `?next=${n}`}">Sign in</a>`);
   bindForm('#f', async v => { await api('POST', 'auth?action=signup', { ...v, invite }); track('signup', { invite: !!invite }); location.href = invite ? '/playground#admin' : nextUrl(); });
-}
-function forgot() {
-  authCard('Reset your password', 'We’ll email you a link to choose a new one.', `<form id="f">
-    <label>Email <input name="email" type="email" autocomplete="email" required autofocus></label>
-    <p class="err"></p><button class="btn btn-primary" type="submit">Send reset link</button></form>`, `<a href="#login">Back to sign in</a>`);
-  bindForm('#f', async v => { await api('POST', 'auth?action=forgot', v); $('#f').innerHTML = '<p class="ok">If there’s an account for that email, a reset link is on its way. It works for one hour.</p>'; });
 }
 function reset(token) {
   authCard('Choose a new password', 'This signs you out everywhere else.', `<form id="f">
@@ -195,7 +187,7 @@ async function route() {
   if (h.startsWith('reset/')) return reset(h.slice(6));
   if (h.startsWith('invite/')) return invite(h.slice(7));
   if (ME.user) { if (h === 'login' || h === 'signup') return void (location.href = nextUrl()); return settings(); }
-  if (h === 'signup') return signup(); if (h === 'forgot') return forgot();
+  if (h === 'signup') return signup();
   return login();
 }
 addEventListener('hashchange', route); route();
