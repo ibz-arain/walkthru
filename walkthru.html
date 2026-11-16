@@ -315,6 +315,7 @@ body.editing #clHead{display:none!important}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
 .st-user{margin-left:auto;margin-right:12px;font-size:13px;color:var(--ink-2)}
+.link-btn{background:none;border:0;padding:4px 0 0;color:var(--ink-2);font:13px var(--f-ui);cursor:pointer;text-decoration:underline;text-underline-offset:2px;justify-self:center}.link-btn:hover{color:var(--ink)}
 .st-keyform details{display:grid;gap:8px}.st-keyform summary{cursor:pointer;color:var(--ink-2);font-size:13px;margin-bottom:8px}.st-keyform .btn{text-decoration:none}
 .cl-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cl-check{display:flex!important;align-items:center;gap:8px;grid-template-columns:none!important}.cl-check input{width:auto}
 .st-primary{background:var(--primary)!important;color:var(--primary-ink)!important;border:1px solid var(--primary)!important;border-radius:var(--r-sm)!important;font-weight:500!important;padding:8px 14px!important}
@@ -530,7 +531,7 @@ body.cl-pinning #stage{cursor:crosshair}
 <div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
   <div id="accIn" hidden>
     <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
-    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Studio projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
+    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
   </div>
   <div id="accOut">
     <h6>Save your work</h6>
@@ -712,9 +713,10 @@ body.cl-pinning #stage{cursor:crosshair}
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
-      <h2>Sign in to the Studio</h2><p>Projects, customer links and comments live in your team’s workspace.</p>
+      <h2>Sign in to see your projects</h2><p>Your projects, customer links and comments live in your team’s workspace.</p>
       <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
       <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
+      <button class="link-btn" id="stTry" type="button">Or try the playground without an account</button>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>
@@ -4165,6 +4167,9 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
   try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }
   catch (e) { return; } // no API (e.g. the single-file build): stay local, hide the menu
   accRender(); if (ACC.user) pullDesigns();
+  // Signed-in people start on their Projects page; the bare playground is one click away from there.
+  let sandbox = false; try { sandbox = sessionStorage.getItem('wt-sandbox') === '1'; } catch (e) { }
+  if (ACC.user && !sandbox && (location.hash === '' || location.hash === '#')) location.hash = '#admin';
 })();
 
 
@@ -4282,7 +4287,9 @@ function renderStudio() {
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
-$c('stDemo').onclick = () => { location.hash = ''; };
+// The playground on its own (no project). Remembered for this tab, so signed-in people aren't sent back to Projects.
+const toSandbox = () => { try { sessionStorage.setItem('wt-sandbox', '1'); } catch (e) { } location.hash = ''; };
+$c('stDemo').onclick = toSandbox; $c('stTry').onclick = toSandbox;
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
   $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');
@@ -4565,7 +4572,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Studio: projects and customer links';
+  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Projects';
   sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();

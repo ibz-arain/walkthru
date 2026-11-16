@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <script src="/track.js" defer></script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.8669ce0ea1.js">
-<link rel="stylesheet" href="/assets/playground.dc018dc107.css">
+<link rel="modulepreload" href="/assets/playground.b8ae01810d.js">
+<link rel="stylesheet" href="/assets/playground.1cdcd1f034.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -145,7 +145,7 @@
 <div class="pop" id="acctPop" hidden role="dialog" aria-label="Account">
   <div id="accIn" hidden>
     <div class="acc-head"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="acc-org"></span></div>
-    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Studio projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
+    <div class="menu"><button type="button" id="accStudio"><svg class="ic"><use href="#i-studio"/></svg>Projects</button><button type="button" id="accSettings"><svg class="ic"><use href="#i-sliders"/></svg>Account and team</button><button type="button" id="accOutBtn"><svg class="ic"><use href="#i-x"/></svg>Sign out</button></div>
   </div>
   <div id="accOut">
     <h6>Save your work</h6>
@@ -327,9 +327,10 @@
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
-      <h2>Sign in to the Studio</h2><p>Projects, customer links and comments live in your team’s workspace.</p>
+      <h2>Sign in to see your projects</h2><p>Your projects, customer links and comments live in your team’s workspace.</p>
       <a class="btn st-primary" id="stSignIn" href="/account#login">Sign in</a><a class="btn st-ghost" id="stSignUp" href="/account#signup">Create an account</a>
       <details id="stKeyAlt" hidden><summary>Use a studio key instead</summary><input id="stKeyIn" type="password" autocomplete="current-password" placeholder="Studio key" aria-label="Studio key"><button class="btn st-ghost" id="stKeyGo" type="submit">Continue with key</button></details><p class="st-err" id="stKeyErr"></p>
+      <button class="link-btn" id="stTry" type="button">Or try the playground without an account</button>
     </form>
     <div class="st-head" id="stHead"><h1>Projects</h1><div class="st-stats" id="stStats"></div><input id="stSearch" type="search" placeholder="Search projects or clients" aria-label="Search projects"></div>
     <div id="stList" class="st-grid"></div>
@@ -382,5 +383,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.8669ce0ea1.js"></script>
+<script type="module" src="/assets/playground.b8ae01810d.js"></script>
 </html>

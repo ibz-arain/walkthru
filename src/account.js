@@ -74,4 +74,7 @@ accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=log
   try { const me = await accApi('GET', 'auth'); ACC.user = me.user; ACC.org = me.org; ACC.role = me.role; accEl('acctBtn').hidden = false; }
   catch (e) { return; } // no API (e.g. the single-file build): stay local, hide the menu
   accRender(); if (ACC.user) pullDesigns();
+  // Signed-in people start on their Projects page; the bare playground is one click away from there.
+  let sandbox = false; try { sandbox = sessionStorage.getItem('wt-sandbox') === '1'; } catch (e) { }
+  if (ACC.user && !sandbox && (location.hash === '' || location.hash === '#')) location.hash = '#admin';
 })();

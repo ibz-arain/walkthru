@@ -73,7 +73,7 @@ section > header p{margin:2px 0 0;color:var(--ink-2);font-size:13px}
 <body>
 <header class="top">
   <a class="brand" href="/"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z"/></svg></span>Walkthru</a>
-  <nav><a class="btn btn-sm" href="/playground">Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Studio</a></nav>
+  <nav><a class="btn btn-sm" href="/playground">Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Projects</a></nav>
 </header>
 
 <main id="view"></main>
@@ -88,7 +88,7 @@ async function api(method, path, data) {
   return j;
 }
 const params = () => new URLSearchParams(location.hash.split('?')[1] || '');
-const nextUrl = () => { const n = params().get('next'); return n && n.startsWith('/') && !n.startsWith('//') ? n : '/playground'; };
+const nextUrl = () => { const n = params().get('next'); return n && n.startsWith('/') && !n.startsWith('//') ? n : '/playground#admin'; };
 const track = (name, detail) => window.wtTrack?.(name, detail);
 let ME = { user: null };
 

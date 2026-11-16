@@ -113,7 +113,9 @@ function renderStudio() {
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
-$c('stDemo').onclick = () => { location.hash = ''; };
+// The playground on its own (no project). Remembered for this tab, so signed-in people aren't sent back to Projects.
+const toSandbox = () => { try { sessionStorage.setItem('wt-sandbox', '1'); } catch (e) { } location.hash = ''; };
+$c('stDemo').onclick = toSandbox; $c('stTry').onclick = toSandbox;
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
   $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');
@@ -396,7 +398,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Studio: projects and customer links';
+  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg>'; sb.dataset.tip = 'Projects';
   sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
