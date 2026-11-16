@@ -131,6 +131,7 @@ function peDrawExtras(s) {
   // several rooms selected
   if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); } px.setLineDash([]); }
   px.restore();
+  if (PE.autoDims !== false) dimChains(px, W2S, PE.lv, css('--ink-2'));
 }
 function drawDim(d, sel) {
   const [a, b] = W2S(d.x1, d.z1), [c, e] = W2S(d.x2, d.z2), L = Math.hypot(d.x2 - d.x1, d.z2 - d.z1); if (L < .1) return;
@@ -147,7 +148,7 @@ function peExtraInspector() {
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
-    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${sf.toLocaleString()} sf</span></h3>
+    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${fmtArea(sf)}</span></h3>
       <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3)">Align</h3><div class="seg full pe-wm al"><button data-al="l" title="Left edges">Left</button><button data-al="cx" title="Centres, left to right">Centre</button><button data-al="r" title="Right edges">Right</button></div>
       <div class="seg full pe-wm al"><button data-al="t" title="Front edges">Front</button><button data-al="cz" title="Centres, front to back">Middle</button><button data-al="b" title="Back edges">Back</button></div>
       <div class="pe-row"><button class="btn" data-al="w">Same width</button><button class="btn" data-al="d">Same depth</button></div>
@@ -229,14 +230,14 @@ function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
   const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' ? 'door' : null;
   if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
-  const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph) => `<label class="fld" for="${id}">${label} <input id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${v ?? ''}" placeholder="${ph}"></label>`;
+  const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
-    <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto') : ''}${num('opW', 'Width (ft)', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height (ft)', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill (ft)', o.sill, 0, 6, .5, '2.3') : ''}</div>
+    <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto', false) : ''}${num('opW', 'Width', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill', o.sill, 0, 6, .5, '2.3') : ''}</div>
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
     <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
-  for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : +i.value); }
+  for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : k === 'n' ? +i.value : +fromDisp(+i.value).toFixed(3)); }
   const p = el.querySelector('#opP'); if (p) { p.oninput = () => { BM.ops = BM.ops || {}; BM.ops[opKey()] = { ...(BM.ops[opKey()] || {}), pos: +p.value / 100 }; peDraw(); clearTimeout(p.t); p.t = setTimeout(() => planChanged(false), 200); }; p.onpointerdown = () => pushHist(); }
   el.querySelector('#opReset').onclick = () => { pushHist(); if (BM.ops) delete BM.ops[opKey()]; planChanged(); };
 }
@@ -245,9 +246,9 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
   <h6>Site</h6>
-  <label class="fld">Distance to the street (ft) <input id="stSet" type="number" min="15" max="200" step="1" placeholder="48"></label>
-  <div class="pe-wd"><label class="fld">Lot width (ft) <input id="stLW" type="number" min="30" max="400" step="1" placeholder="None"></label><label class="fld">Lot depth (ft) <input id="stLD" type="number" min="30" max="600" step="1" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld">Shift on lot (ft) <input id="stOX" type="number" min="-100" max="100" step="1" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <label class="fld">Distance to the street (<span class="u-len">ft</span>) <input id="stSet" type="number" step="any"></label>
+  <div class="pe-wd"><label class="fld">Lot width (<span class="u-len">ft</span>) <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld">Lot depth (<span class="u-len">ft</span>) <input id="stLD" type="number" step="any" placeholder="None"></label></div>
+  <div class="pe-wd"><label class="fld">Shift on lot (<span class="u-len">ft</span>) <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -255,11 +256,11 @@ roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHis
 function syncPlanPop() {
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
-  const S = BM.site || {}; for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] ?? ''; }
+  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
-for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = +e.target.value; planChanged(false); };
+for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
 
 // ---------- keys ----------
@@ -277,3 +278,28 @@ addEventListener('keydown', e => {
   else if (!mod && e.key.startsWith('Arrow') && PE.multi.size > 1) { e.preventDefault(); e.stopImmediatePropagation(); const st = e.shiftKey ? 2 : .5; pushHist();
     for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0)).toFixed(2); } planChanged(); }
 }, true);
+
+// ---------- automatic dimension strings: room-by-room chains on the top and left, overall size outside them ----------
+function dimChains(g, P, lv, col) {
+  const rs = BM.rooms.filter(r => r.level === lv && !RT[r.type]?.outdoor); if (!rs.length) return;
+  const x0 = Math.min(...rs.map(r => r.x)), x1 = Math.max(...rs.map(r => r.x + r.w)), z0 = Math.min(...rs.map(r => r.z)), z1 = Math.max(...rs.map(r => r.z + r.d));
+  const uniq = a => [...new Set(a.map(v => +v.toFixed(2)))].sort((p, q) => p - q);
+  const xs = uniq([x0, x1, ...rs.filter(r => r.z - z0 < .6).flatMap(r => [r.x, r.x + r.w])]), zs = uniq([z0, z1, ...rs.filter(r => r.x - x0 < .6).flatMap(r => [r.z, r.z + r.d])]);
+  g.save(); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1; g.font = '500 10px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const [ax, ay] = P(x0, z0), [bx, by] = P(x1, z1);
+  const run = (horiz, stops, off) => { // one chain of dimensions `off` pixels outside the plan
+    const at = horiz ? ay - off : ax - off;
+    g.beginPath(); const p0 = horiz ? P(stops[0], z0)[0] : P(x0, stops[0])[1], p1 = horiz ? P(stops.at(-1), z0)[0] : P(x0, stops.at(-1))[1];
+    if (horiz) { g.moveTo(p0, at); g.lineTo(p1, at); } else { g.moveTo(at, p0); g.lineTo(at, p1); }
+    for (const v of stops) { const q = horiz ? P(v, z0)[0] : P(x0, v)[1]; if (horiz) { g.moveTo(q, at - 4); g.lineTo(q, at + 4); g.moveTo(q - 3, at + 3); g.lineTo(q + 3, at - 3); } else { g.moveTo(at - 4, q); g.lineTo(at + 4, q); g.moveTo(at - 3, q + 3); g.lineTo(at + 3, q - 3); } }
+    g.stroke();
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = horiz ? P(stops[i], z0)[0] : P(x0, stops[i])[1], b = horiz ? P(stops[i + 1], z0)[0] : P(x0, stops[i + 1])[1], t = ftin(stops[i + 1] - stops[i]);
+      if (Math.abs(b - a) < g.measureText(t).width + 6) continue;
+      g.save(); if (horiz) g.translate((a + b) / 2, at - 8); else { g.translate(at - 8, (a + b) / 2); g.rotate(-Math.PI / 2); } g.fillText(t, 0, 0); g.restore();
+    }
+  };
+  if (xs.length > 2) run(true, xs, 18); run(true, [x0, x1], xs.length > 2 ? 40 : 18);
+  if (zs.length > 2) run(false, zs, 18); run(false, [z0, z1], zs.length > 2 ? 40 : 18);
+  g.restore();
+}

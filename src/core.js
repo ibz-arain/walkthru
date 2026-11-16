@@ -5,6 +5,14 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
+// ---------- Units: everything is stored in feet; these only change what people see and type ----------
+var METRIC = false; try { METRIC = localStorage.getItem('walkthru-units') === 'metric'; } catch (e) { }
+const ftin = v => { if (METRIC) { const m = v * .3048; return Math.abs(m) < 1 ? `${Math.round(m * 100)} cm` : `${m.toFixed(2)} m`; } const t = Math.round(v * 12); return `${Math.floor(t / 12)}'-${t % 12}"`; };
+const fmtArea = sf => METRIC ? `${(sf * .092903).toLocaleString(undefined, { maximumFractionDigits: sf * .0929 < 100 ? 1 : 0 })} m²` : `${Math.round(sf).toLocaleString()} sf`;
+const U_LEN = () => METRIC ? 'm' : 'ft', U_AREA = () => METRIC ? 'm²' : 'sq ft';
+const toDisp = ft => METRIC ? +(ft * .3048).toFixed(2) : +(+ft).toFixed(2), fromDisp = v => METRIC ? v / .3048 : v;
+const SCALE_BAR = () => METRIC ? [3 / .3048, '3 m'] : [10, "10'"];
+
 // ---------- Levels (feet, grade = 0) from wall section A-2.01 ----------
 const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;
 const UZ = 2.54; // 2nd floor plan is set back 2'-6½" from the main front wall

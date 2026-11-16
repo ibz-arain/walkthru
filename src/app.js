@@ -63,13 +63,12 @@ const ROOMS = [
   ['Cold Cellar', 'B', [[10.3, 21.1, -5.6, 0.3]], [15.6, -1.0, 0]],
 ];
 const LEVEL_Y = { B: BF, M: MF, U: UF };
-const ftin = v => { const t = Math.round(v * 12); return `${Math.floor(t / 12)}'-${t % 12}"`; };
 const labelObjs = [];
 const LEVEL_Y2 = { M: MF2, U: UF2 };
 for (const [house, list, LY] of [[1, ROOMS, LEVEL_Y], [2, ROOMS2, LEVEL_Y2]]) for (const [name, lv, rs] of list) {
   const r = rs[0], el = document.createElement('div'); el.className = 'lbl';
   el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-  const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
+  const o = new CSS2DObject(el); o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
   o.userData.lv = lv; o.userData.house = house; scene.add(o); labelObjs.push(o);
 }
 
@@ -523,7 +522,7 @@ function rebuildHouse3() {
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; scene.add(o); labelObjs.push(o); }
+    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
   updateViews3();
   if (curHouse === 3) { applyVisibility(); fillGoto(); }
   renderer.shadowMap.needsUpdate = true;

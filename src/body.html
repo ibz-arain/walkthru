@@ -160,6 +160,8 @@
 <div class="pop" id="dockPop" hidden role="dialog" aria-label="Layout">
   <h6>Toolbar position</h6>
   <div class="dock-grid"><button type="button" data-dock="top"><i class="dk dk-top"></i>Top</button><button type="button" data-dock="bottom"><i class="dk dk-bottom"></i>Bottom</button><button type="button" data-dock="left"><i class="dk dk-left"></i>Left</button><button type="button" data-dock="right"><i class="dk dk-right"></i>Right</button></div>
+  <h6>Units</h6>
+  <div class="seg full"><button type="button" data-units="imperial">Feet &amp; inches</button><button type="button" data-units="metric">Metric</button></div>
   <h6>Theme</h6>
   <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   <div class="menu" style="margin-top:8px"><button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface <kbd>\</kbd></button><button type="button" id="helpBtn"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts <kbd>?</kbd></button></div>
@@ -172,6 +174,7 @@
   <h6>Show</h6>
   <label class="sw-row">Grid <input type="checkbox" id="peGridT" checked><span class="tg"></span></label>
   <label class="sw-row">Room dimensions <input type="checkbox" id="peDimsT" checked><span class="tg"></span></label>
+  <label class="sw-row">Dimension strings <input type="checkbox" id="peChainT" checked><span class="tg"></span></label>
   <label class="sw-row">Room areas <input type="checkbox" id="peAreaT"><span class="tg"></span></label>
 </div>
 <div class="pop" id="peResetPop" hidden role="dialog" aria-label="Start over">
@@ -215,7 +218,7 @@
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW">Width (ft) <input id="peSW" type="number" min="3" max="10" step="0.5"></label>
+        <label class="fld" for="peSW">Width (<span class="u-len">ft</span>) <input id="peSW" type="number" min="3" max="10" step="any"></label>
         <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <div class="pe-row"><button class="btn" id="peSRot" type="button">Rotate</button><button class="btn" id="peSAuto" type="button">Auto direction</button><button class="btn danger" id="peSDel" type="button">Delete</button></div>
         <p id="peSNote" class="pe-note"></p>
@@ -224,7 +227,7 @@
         <h3>Room <span id="peArea" class="pe-area"></span></h3>
         <label class="fld" for="peName">Name <input id="peName" type="text"></label>
         <label class="fld" for="peType">Type <select id="peType"></select></label>
-        <div class="pe-wd"><label class="fld" for="peW">Width (ft) <input id="peW" type="number" min="3" max="120" step="0.5"></label><label class="fld" for="peD">Depth (ft) <input id="peD" type="number" min="3" max="120" step="0.5"></label></div>
+        <div class="pe-wd"><label class="fld" for="peW">Width (<span class="u-len">ft</span>) <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD">Depth (<span class="u-len">ft</span>) <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
         <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
@@ -271,7 +274,7 @@
       <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
       <h3>Estimate</h3>
-      <div class="est"><label class="fld">Cost per sq ft <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
+      <div class="est"><label class="fld"><span id="rateLbl">Cost per sq ft</span> <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
       <div id="estOut" class="est-out"></div>
       <h3>Room schedule</h3>
       <div id="schedule"></div>

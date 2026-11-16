@@ -33,13 +33,21 @@ function setTheme(t) {
 function relayout() { updateViewOffset(); if (PE.open) requestAnimationFrame(() => peSize()); }
 document.querySelectorAll('[data-dock]').forEach(b => b.onclick = () => setDock(b.dataset.dock));
 document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
+// Units: lengths and areas everywhere switch at once; the design itself is always stored in feet.
+function setUnits(u) {
+  METRIC = u === 'metric'; ST.set('walkthru-units', u); press('[data-units]', 'units', u);
+  document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
+  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${n}<small>${ftin(w)} × ${ftin(d)}</small>`; }
+  if (PE.open) { peInspector(); peDraw(); } if (popOpen === 'pePlanPop') syncPlanPop(); uiSync(); renderInfo();
+}
+document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnits(b.dataset.units));
 
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
-  dockPop: () => { press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
-  pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
+  dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
+  pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
 function openPop(id, btn) {
   if (popOpen === id) return closePops();
@@ -114,11 +122,12 @@ function areaData() {
   const baths = names.filter(n => /bath|ensuite/i.test(n)).length + names.filter(n => /powder/i.test(n)).length * .5;
   return { lv, above: living('M') + living('U'), base: living('B'), beds, baths };
 }
-const fmtSf = v => Math.round(v).toLocaleString() + ' sf';
+const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = A.above * rate + A.base * rate * bf;
+  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = (A.above + A.base * bf) * (METRIC ? .092903 : 1) * rate;
+  $u('rateLbl').textContent = `Cost per ${U_AREA()}`;
   $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Rough estimate.`;
   const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
@@ -238,7 +247,7 @@ $u('shotBtn').onclick = () => shot(1); $u('exShot').onclick = () => shot(1); $u(
 $u('exPlan').onclick = () => { if (!PE.open) return toast('Open the floor plan editor first'); download(pc.toDataURL('image/png'), `${slug()}-plan-${PE.lv}.png`); toast('Floor plan saved'); };
 $u('exCsv').onclick = () => {
   const A = areaData(), LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  const rows = [['Level', 'Room', 'Area (sf)'], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, Math.round(s)]))];
+  const rows = [['Level', 'Room', `Area (${METRIC ? 'm²' : 'sf'})`], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, METRIC ? +(s * .092903).toFixed(1) : Math.round(s)]))];
   downloadText(rows.map(r => r.map(c => /[",]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(',')).join('\n'), `${slug()}-rooms.csv`, 'text/csv'); toast('Room schedule saved');
 };
 $u('exJson').onclick = () => {
@@ -273,6 +282,7 @@ $u('peFind').oninput = e => {
 $u('peGridT').onchange = e => { PE.grid = e.target.checked; peDraw(); };
 $u('peDimsT').onchange = e => { PE.dims = e.target.checked; peDraw(); };
 $u('peAreaT').onchange = e => { PE.areas = e.target.checked; peDraw(); };
+$u('peChainT').onchange = e => { PE.autoDims = e.target.checked; peDraw(); };
 $u('peZoomIn').onclick = () => peZoom(1.2); $u('peZoomOut').onclick = () => peZoom(1 / 1.2); $u('peZoomFit').onclick = () => { peFit(); peDraw(); };
 
 // ---------- misc tools ----------
@@ -319,5 +329,5 @@ const uiClock = new THREE.Clock();
 })();
 
 setDock(['top', 'bottom', 'left', 'right'].includes(ST.get('walkthru-dock', 'top')) ? ST.get('walkthru-dock', 'top') : 'top');
-press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe();
+press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe(); document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
 uiReady = true; uiSync(); uiEditing(PE.open); updateViewOffset();

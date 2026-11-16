@@ -62,7 +62,7 @@ function peDraw() {
     }
     if (overlaps(q)) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.setLineDash([4, 3]); px.strokeRect(a + 2, b + 2, q.w * s - 4, q.d * s - 4); px.setLineDash([]); }
     if (q.w * s > 44 && q.d * s > 26) { px.fillStyle = '#18181b'; px.font = `500 ${Math.max(10, Math.min(14, s * 1.1))}px Inter, system-ui, sans-serif`; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2 - 7);
-      px.font = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`; px.fillStyle = '#5b5b66'; const sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && `${Math.round(q.w * q.d)} sf`].filter(Boolean).join(' · '); if (sub) px.fillText(sub, a + q.w * s / 2, b + q.d * s / 2 + 8);
+      px.font = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`; px.fillStyle = '#5b5b66'; const sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && fmtArea(q.w * q.d)].filter(Boolean).join(' · '); if (sub) px.fillText(sub, a + q.w * s / 2, b + q.d * s / 2 + 8);
       if (q.tall && q.level === 'M') { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above', a + q.w * s / 2, b + q.d * s / 2 + 21); } }
   }
   // walls + openings from the same generator the 3D uses
@@ -117,14 +117,14 @@ function peDraw() {
     px.fillStyle = css('--ink-2'); px.font = '12px Inter, system-ui, sans-serif';
     px.fillText(PE.lv === 'B' ? 'The dashed outline is your main floor. Click Trace main floor to dig under it, or add rooms from the list.' : 'Pick a room type from the list to start this floor.', W / 2, H / 2 + 10); }
   // scale bar
-  px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const bar = 10 * s; px.fillRect(14, H - 58, bar, 3); px.fillText("10'", 18 + bar, H - 56);
+  px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const [bft, blab] = SCALE_BAR(), bar = bft * s; px.fillRect(14, H - 58, bar, 3); px.fillText(blab, 18 + bar, H - 56);
   peDrawExtras(s);
   peStatus();
 }
 const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
 function peStatus() {
   const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + q.w * q.d, 0));
-  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${sf.toLocaleString()} sf`;
+  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
   const z = document.getElementById('peZoomV'); if (z) z.textContent = Math.round(PE.s / 10 * 100) + '%';
 }
 function peZoom(k) { const r = pc.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2, [wx, wz] = S2W(cx, cy); PE.s = Math.max(3, Math.min(40, PE.s * k)); PE.ox = cx - wx * PE.s; PE.oy = cy - wz * PE.s; peDraw(); }
@@ -290,7 +290,7 @@ document.querySelectorAll('[data-wm]').forEach(b => b.onclick = () => { const w 
 document.getElementById('peGaps').onclick = () => { pushHist(); const n = closeGaps(BM.rooms.filter(r => r.level === PE.lv).map(r => r.id)); toast(n ? `Closed ${n} gap${n > 1 ? 's' : ''}` : 'No gaps found'); planChanged(); };
 function peStairPanel() {
   const S = (BM.stairs || []).find(o => o.id === PE.selStair), el = document.getElementById('peStair'); el.hidden = !S; if (!S) return;
-  const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = S.W;
+  const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
   document.getElementById('peSShape').hidden = S.level === 'B';
   const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
@@ -300,7 +300,7 @@ document.getElementById('peSRot').onclick = () => { const S = curStair(); if (!S
 document.getElementById('peSAuto').onclick = () => { const S = curStair(); if (!S) return; pushHist(); delete S.dir; planChanged(); };
 document.getElementById('peSDel').onclick = () => peDeleteStair();
 document.querySelectorAll('[data-sshape]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.sshape === 'auto') delete S.shape; else S.shape = b.dataset.sshape; if (S.shape && S.shape !== 'straight' && S.W < 5.5) S.W = 6; planChanged(); });
-document.getElementById('peSW').onchange = e => { const S = curStair(), v = parseFloat(e.target.value); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
 function peDeleteStair() { const i = (BM.stairs || []).findIndex(o => o.id === PE.selStair); if (i < 0) return; pushHist(); BM.stairs.splice(i, 1); PE.selStair = null; planChanged(); }
 function peAddStair(at) {
   pushHist(); if (PE.lv === 'U') { PE.lv = 'M'; peLvlButtons(); if (curHouse === 3) goView('M'); }
@@ -313,9 +313,9 @@ function peInspector() {
   peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra); if (!q) return;
-  document.getElementById('peArea').textContent = `${Math.round(q.w * q.d).toLocaleString()} sf`;
+  document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
-  set('peName', rname(q)); set('peType', q.type); set('peW', q.w); set('peD', q.d);
+  set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
   document.getElementById('peCeilWrap').hidden = q.level !== 'M'; set('peCeil', q.tall ? 'tall' : 'std');
   const sn = document.getElementById('peStairNote'), st = q.type === 'stairs' ? stairStatus(q) : null;
   if (!st && q.tall && q.level === 'M' && !isTall(q)) { sn.hidden = false; sn.textContent = 'Double height needs open space above it: move or shrink the 2nd-floor rooms over this room.'; }
@@ -325,7 +325,7 @@ function peInspector() {
 document.getElementById('peName').oninput = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; q.name = e.target.value; planChanged(); };
 document.getElementById('peCeil').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); if (e.target.value === 'tall') q.tall = true; else delete q.tall; planChanged(); };
 document.getElementById('peType').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.type = e.target.value; delete q.name; planChanged(); };
-for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = parseFloat(e.target.value); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
+for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = fromDisp(parseFloat(e.target.value)); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
 document.getElementById('peDup').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); const c = { ...q, id: BID++, x: q.x + q.w }; delete c.group; BM.rooms.push(c); PE.sel = c.id; planChanged(); };
 document.getElementById('peDel').onclick = () => peDelete();
 document.getElementById('peRot').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.rot = ((q.rot || 0) + 1) % 4; planChanged(); };

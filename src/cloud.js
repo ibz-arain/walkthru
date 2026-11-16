@@ -35,7 +35,7 @@ function summarize(bm) {
   }
   return { beds, baths, sf: Math.round(sf), storeys: rs.some(r => r.level === 'U') ? 2 : 1, basement: rs.some(r => r.level === 'B'), garage: Math.round(garage / 250) };
 }
-const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, `${s.sf.toLocaleString()} sf`, s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
+const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, fmtArea(s.sf), s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
 const previewOf = bm => (bm.rooms || []).filter(r => r.level === 'M').map(r => [r.x, r.z, r.w, r.d, (RT[r.type] || {}).color || '#ddd']);
 function drawPreview(cv, prev) {
   const W = cv.width = cv.clientWidth * 2 || 520, H = cv.height = 300, g = cv.getContext('2d');

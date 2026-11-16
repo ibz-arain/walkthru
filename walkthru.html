@@ -570,6 +570,8 @@ body.cl-pinning #stage{cursor:crosshair}
 <div class="pop" id="dockPop" hidden role="dialog" aria-label="Layout">
   <h6>Toolbar position</h6>
   <div class="dock-grid"><button type="button" data-dock="top"><i class="dk dk-top"></i>Top</button><button type="button" data-dock="bottom"><i class="dk dk-bottom"></i>Bottom</button><button type="button" data-dock="left"><i class="dk dk-left"></i>Left</button><button type="button" data-dock="right"><i class="dk dk-right"></i>Right</button></div>
+  <h6>Units</h6>
+  <div class="seg full"><button type="button" data-units="imperial">Feet &amp; inches</button><button type="button" data-units="metric">Metric</button></div>
   <h6>Theme</h6>
   <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   <div class="menu" style="margin-top:8px"><button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface <kbd>\</kbd></button><button type="button" id="helpBtn"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts <kbd>?</kbd></button></div>
@@ -582,6 +584,7 @@ body.cl-pinning #stage{cursor:crosshair}
   <h6>Show</h6>
   <label class="sw-row">Grid <input type="checkbox" id="peGridT" checked><span class="tg"></span></label>
   <label class="sw-row">Room dimensions <input type="checkbox" id="peDimsT" checked><span class="tg"></span></label>
+  <label class="sw-row">Dimension strings <input type="checkbox" id="peChainT" checked><span class="tg"></span></label>
   <label class="sw-row">Room areas <input type="checkbox" id="peAreaT"><span class="tg"></span></label>
 </div>
 <div class="pop" id="peResetPop" hidden role="dialog" aria-label="Start over">
@@ -625,7 +628,7 @@ body.cl-pinning #stage{cursor:crosshair}
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW">Width (ft) <input id="peSW" type="number" min="3" max="10" step="0.5"></label>
+        <label class="fld" for="peSW">Width (<span class="u-len">ft</span>) <input id="peSW" type="number" min="3" max="10" step="any"></label>
         <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <div class="pe-row"><button class="btn" id="peSRot" type="button">Rotate</button><button class="btn" id="peSAuto" type="button">Auto direction</button><button class="btn danger" id="peSDel" type="button">Delete</button></div>
         <p id="peSNote" class="pe-note"></p>
@@ -634,7 +637,7 @@ body.cl-pinning #stage{cursor:crosshair}
         <h3>Room <span id="peArea" class="pe-area"></span></h3>
         <label class="fld" for="peName">Name <input id="peName" type="text"></label>
         <label class="fld" for="peType">Type <select id="peType"></select></label>
-        <div class="pe-wd"><label class="fld" for="peW">Width (ft) <input id="peW" type="number" min="3" max="120" step="0.5"></label><label class="fld" for="peD">Depth (ft) <input id="peD" type="number" min="3" max="120" step="0.5"></label></div>
+        <div class="pe-wd"><label class="fld" for="peW">Width (<span class="u-len">ft</span>) <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD">Depth (<span class="u-len">ft</span>) <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
         <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
@@ -681,7 +684,7 @@ body.cl-pinning #stage{cursor:crosshair}
       <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
       <h3>Estimate</h3>
-      <div class="est"><label class="fld">Cost per sq ft <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
+      <div class="est"><label class="fld"><span id="rateLbl">Cost per sq ft</span> <span class="money"><input id="rate" type="number" min="50" max="2000" step="10" value="250"></span></label><label class="fld">Basement factor <select id="bfac"><option value="0">Not counted</option><option value="0.4" selected>40%</option><option value="0.6">60%</option><option value="1">100%</option></select></label></div>
       <div id="estOut" class="est-out"></div>
       <h3>Room schedule</h3>
       <div id="schedule"></div>
@@ -797,6 +800,14 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+// ---------- Units: everything is stored in feet; these only change what people see and type ----------
+var METRIC = false; try { METRIC = localStorage.getItem('walkthru-units') === 'metric'; } catch (e) { }
+const ftin = v => { if (METRIC) { const m = v * .3048; return Math.abs(m) < 1 ? `${Math.round(m * 100)} cm` : `${m.toFixed(2)} m`; } const t = Math.round(v * 12); return `${Math.floor(t / 12)}'-${t % 12}"`; };
+const fmtArea = sf => METRIC ? `${(sf * .092903).toLocaleString(undefined, { maximumFractionDigits: sf * .0929 < 100 ? 1 : 0 })} m²` : `${Math.round(sf).toLocaleString()} sf`;
+const U_LEN = () => METRIC ? 'm' : 'ft', U_AREA = () => METRIC ? 'm²' : 'sq ft';
+const toDisp = ft => METRIC ? +(ft * .3048).toFixed(2) : +(+ft).toFixed(2), fromDisp = v => METRIC ? v / .3048 : v;
+const SCALE_BAR = () => METRIC ? [3 / .3048, '3 m'] : [10, "10'"];
 
 // ---------- Levels (feet, grade = 0) from wall section A-2.01 ----------
 const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;
@@ -2852,7 +2863,7 @@ function peDraw() {
     }
     if (overlaps(q)) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.setLineDash([4, 3]); px.strokeRect(a + 2, b + 2, q.w * s - 4, q.d * s - 4); px.setLineDash([]); }
     if (q.w * s > 44 && q.d * s > 26) { px.fillStyle = '#18181b'; px.font = `500 ${Math.max(10, Math.min(14, s * 1.1))}px Inter, system-ui, sans-serif`; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2 - 7);
-      px.font = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`; px.fillStyle = '#5b5b66'; const sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && `${Math.round(q.w * q.d)} sf`].filter(Boolean).join(' · '); if (sub) px.fillText(sub, a + q.w * s / 2, b + q.d * s / 2 + 8);
+      px.font = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`; px.fillStyle = '#5b5b66'; const sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && fmtArea(q.w * q.d)].filter(Boolean).join(' · '); if (sub) px.fillText(sub, a + q.w * s / 2, b + q.d * s / 2 + 8);
       if (q.tall && q.level === 'M') { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above', a + q.w * s / 2, b + q.d * s / 2 + 21); } }
   }
   // walls + openings from the same generator the 3D uses
@@ -2907,14 +2918,14 @@ function peDraw() {
     px.fillStyle = css('--ink-2'); px.font = '12px Inter, system-ui, sans-serif';
     px.fillText(PE.lv === 'B' ? 'The dashed outline is your main floor. Click Trace main floor to dig under it, or add rooms from the list.' : 'Pick a room type from the list to start this floor.', W / 2, H / 2 + 10); }
   // scale bar
-  px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const bar = 10 * s; px.fillRect(14, H - 58, bar, 3); px.fillText("10'", 18 + bar, H - 56);
+  px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const [bft, blab] = SCALE_BAR(), bar = bft * s; px.fillRect(14, H - 58, bar, 3); px.fillText(blab, 18 + bar, H - 56);
   peDrawExtras(s);
   peStatus();
 }
 const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
 function peStatus() {
   const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + q.w * q.d, 0));
-  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${sf.toLocaleString()} sf`;
+  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
   const z = document.getElementById('peZoomV'); if (z) z.textContent = Math.round(PE.s / 10 * 100) + '%';
 }
 function peZoom(k) { const r = pc.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2, [wx, wz] = S2W(cx, cy); PE.s = Math.max(3, Math.min(40, PE.s * k)); PE.ox = cx - wx * PE.s; PE.oy = cy - wz * PE.s; peDraw(); }
@@ -3080,7 +3091,7 @@ document.querySelectorAll('[data-wm]').forEach(b => b.onclick = () => { const w 
 document.getElementById('peGaps').onclick = () => { pushHist(); const n = closeGaps(BM.rooms.filter(r => r.level === PE.lv).map(r => r.id)); toast(n ? `Closed ${n} gap${n > 1 ? 's' : ''}` : 'No gaps found'); planChanged(); };
 function peStairPanel() {
   const S = (BM.stairs || []).find(o => o.id === PE.selStair), el = document.getElementById('peStair'); el.hidden = !S; if (!S) return;
-  const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = S.W;
+  const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
   document.getElementById('peSShape').hidden = S.level === 'B';
   const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
@@ -3090,7 +3101,7 @@ document.getElementById('peSRot').onclick = () => { const S = curStair(); if (!S
 document.getElementById('peSAuto').onclick = () => { const S = curStair(); if (!S) return; pushHist(); delete S.dir; planChanged(); };
 document.getElementById('peSDel').onclick = () => peDeleteStair();
 document.querySelectorAll('[data-sshape]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.sshape === 'auto') delete S.shape; else S.shape = b.dataset.sshape; if (S.shape && S.shape !== 'straight' && S.W < 5.5) S.W = 6; planChanged(); });
-document.getElementById('peSW').onchange = e => { const S = curStair(), v = parseFloat(e.target.value); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
 function peDeleteStair() { const i = (BM.stairs || []).findIndex(o => o.id === PE.selStair); if (i < 0) return; pushHist(); BM.stairs.splice(i, 1); PE.selStair = null; planChanged(); }
 function peAddStair(at) {
   pushHist(); if (PE.lv === 'U') { PE.lv = 'M'; peLvlButtons(); if (curHouse === 3) goView('M'); }
@@ -3103,9 +3114,9 @@ function peInspector() {
   peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra); if (!q) return;
-  document.getElementById('peArea').textContent = `${Math.round(q.w * q.d).toLocaleString()} sf`;
+  document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
-  set('peName', rname(q)); set('peType', q.type); set('peW', q.w); set('peD', q.d);
+  set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
   document.getElementById('peCeilWrap').hidden = q.level !== 'M'; set('peCeil', q.tall ? 'tall' : 'std');
   const sn = document.getElementById('peStairNote'), st = q.type === 'stairs' ? stairStatus(q) : null;
   if (!st && q.tall && q.level === 'M' && !isTall(q)) { sn.hidden = false; sn.textContent = 'Double height needs open space above it: move or shrink the 2nd-floor rooms over this room.'; }
@@ -3115,7 +3126,7 @@ function peInspector() {
 document.getElementById('peName').oninput = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; q.name = e.target.value; planChanged(); };
 document.getElementById('peCeil').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); if (e.target.value === 'tall') q.tall = true; else delete q.tall; planChanged(); };
 document.getElementById('peType').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.type = e.target.value; delete q.name; planChanged(); };
-for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = parseFloat(e.target.value); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
+for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = fromDisp(parseFloat(e.target.value)); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
 document.getElementById('peDup').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); const c = { ...q, id: BID++, x: q.x + q.w }; delete c.group; BM.rooms.push(c); PE.sel = c.id; planChanged(); };
 document.getElementById('peDel').onclick = () => peDelete();
 document.getElementById('peRot').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.rot = ((q.rot || 0) + 1) % 4; planChanged(); };
@@ -3338,6 +3349,7 @@ function peDrawExtras(s) {
   // several rooms selected
   if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); } px.setLineDash([]); }
   px.restore();
+  if (PE.autoDims !== false) dimChains(px, W2S, PE.lv, css('--ink-2'));
 }
 function drawDim(d, sel) {
   const [a, b] = W2S(d.x1, d.z1), [c, e] = W2S(d.x2, d.z2), L = Math.hypot(d.x2 - d.x1, d.z2 - d.z1); if (L < .1) return;
@@ -3354,7 +3366,7 @@ function peExtraInspector() {
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
-    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${sf.toLocaleString()} sf</span></h3>
+    el.innerHTML = `<h3>${multi.length} rooms <span class="pe-area">${fmtArea(sf)}</span></h3>
       <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3)">Align</h3><div class="seg full pe-wm al"><button data-al="l" title="Left edges">Left</button><button data-al="cx" title="Centres, left to right">Centre</button><button data-al="r" title="Right edges">Right</button></div>
       <div class="seg full pe-wm al"><button data-al="t" title="Front edges">Front</button><button data-al="cz" title="Centres, front to back">Middle</button><button data-al="b" title="Back edges">Back</button></div>
       <div class="pe-row"><button class="btn" data-al="w">Same width</button><button class="btn" data-al="d">Same depth</button></div>
@@ -3436,14 +3448,14 @@ function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
   const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' ? 'door' : null;
   if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
-  const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph) => `<label class="fld" for="${id}">${label} <input id="${id}" type="number" min="${min}" max="${max}" step="${step}" value="${v ?? ''}" placeholder="${ph}"></label>`;
+  const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
-    <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto') : ''}${num('opW', 'Width (ft)', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height (ft)', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill (ft)', o.sill, 0, 6, .5, '2.3') : ''}</div>
+    <div class="pe-wd">${kind === 'window' ? num('opN', 'How many', o.n, 1, 8, 1, 'Auto', false) : ''}${num('opW', 'Width', o.w, kind === 'door' ? 2 : 1.5, Math.floor(L), .5, kind === 'door' ? (w.ext ? '3' : '2.67') : 'Auto')}${num('opH', 'Height', o.h, kind === 'door' ? 6 : 1, 9.5, .5, kind === 'door' ? '6.67' : 'Auto')}${kind === 'window' ? num('opS', 'Sill', o.sill, 0, 6, .5, '2.3') : ''}</div>
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
     <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
-  for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : +i.value); }
+  for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : k === 'n' ? +i.value : +fromDisp(+i.value).toFixed(3)); }
   const p = el.querySelector('#opP'); if (p) { p.oninput = () => { BM.ops = BM.ops || {}; BM.ops[opKey()] = { ...(BM.ops[opKey()] || {}), pos: +p.value / 100 }; peDraw(); clearTimeout(p.t); p.t = setTimeout(() => planChanged(false), 200); }; p.onpointerdown = () => pushHist(); }
   el.querySelector('#opReset').onclick = () => { pushHist(); if (BM.ops) delete BM.ops[opKey()]; planChanged(); };
 }
@@ -3452,9 +3464,9 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
   <h6>Site</h6>
-  <label class="fld">Distance to the street (ft) <input id="stSet" type="number" min="15" max="200" step="1" placeholder="48"></label>
-  <div class="pe-wd"><label class="fld">Lot width (ft) <input id="stLW" type="number" min="30" max="400" step="1" placeholder="None"></label><label class="fld">Lot depth (ft) <input id="stLD" type="number" min="30" max="600" step="1" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld">Shift on lot (ft) <input id="stOX" type="number" min="-100" max="100" step="1" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <label class="fld">Distance to the street (<span class="u-len">ft</span>) <input id="stSet" type="number" step="any"></label>
+  <div class="pe-wd"><label class="fld">Lot width (<span class="u-len">ft</span>) <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld">Lot depth (<span class="u-len">ft</span>) <input id="stLD" type="number" step="any" placeholder="None"></label></div>
+  <div class="pe-wd"><label class="fld">Shift on lot (<span class="u-len">ft</span>) <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -3462,11 +3474,11 @@ roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHis
 function syncPlanPop() {
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
-  const S = BM.site || {}; for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] ?? ''; }
+  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
-for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = +e.target.value; planChanged(false); };
+for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
 
 // ---------- keys ----------
@@ -3484,6 +3496,31 @@ addEventListener('keydown', e => {
   else if (!mod && e.key.startsWith('Arrow') && PE.multi.size > 1) { e.preventDefault(); e.stopImmediatePropagation(); const st = e.shiftKey ? 2 : .5; pushHist();
     for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0)).toFixed(2); } planChanged(); }
 }, true);
+
+// ---------- automatic dimension strings: room-by-room chains on the top and left, overall size outside them ----------
+function dimChains(g, P, lv, col) {
+  const rs = BM.rooms.filter(r => r.level === lv && !RT[r.type]?.outdoor); if (!rs.length) return;
+  const x0 = Math.min(...rs.map(r => r.x)), x1 = Math.max(...rs.map(r => r.x + r.w)), z0 = Math.min(...rs.map(r => r.z)), z1 = Math.max(...rs.map(r => r.z + r.d));
+  const uniq = a => [...new Set(a.map(v => +v.toFixed(2)))].sort((p, q) => p - q);
+  const xs = uniq([x0, x1, ...rs.filter(r => r.z - z0 < .6).flatMap(r => [r.x, r.x + r.w])]), zs = uniq([z0, z1, ...rs.filter(r => r.x - x0 < .6).flatMap(r => [r.z, r.z + r.d])]);
+  g.save(); g.strokeStyle = col; g.fillStyle = col; g.lineWidth = 1; g.font = '500 10px "JetBrains Mono", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const [ax, ay] = P(x0, z0), [bx, by] = P(x1, z1);
+  const run = (horiz, stops, off) => { // one chain of dimensions `off` pixels outside the plan
+    const at = horiz ? ay - off : ax - off;
+    g.beginPath(); const p0 = horiz ? P(stops[0], z0)[0] : P(x0, stops[0])[1], p1 = horiz ? P(stops.at(-1), z0)[0] : P(x0, stops.at(-1))[1];
+    if (horiz) { g.moveTo(p0, at); g.lineTo(p1, at); } else { g.moveTo(at, p0); g.lineTo(at, p1); }
+    for (const v of stops) { const q = horiz ? P(v, z0)[0] : P(x0, v)[1]; if (horiz) { g.moveTo(q, at - 4); g.lineTo(q, at + 4); g.moveTo(q - 3, at + 3); g.lineTo(q + 3, at - 3); } else { g.moveTo(at - 4, q); g.lineTo(at + 4, q); g.moveTo(at - 3, q + 3); g.lineTo(at + 3, q - 3); } }
+    g.stroke();
+    for (let i = 0; i < stops.length - 1; i++) {
+      const a = horiz ? P(stops[i], z0)[0] : P(x0, stops[i])[1], b = horiz ? P(stops[i + 1], z0)[0] : P(x0, stops[i + 1])[1], t = ftin(stops[i + 1] - stops[i]);
+      if (Math.abs(b - a) < g.measureText(t).width + 6) continue;
+      g.save(); if (horiz) g.translate((a + b) / 2, at - 8); else { g.translate(at - 8, (a + b) / 2); g.rotate(-Math.PI / 2); } g.fillText(t, 0, 0); g.restore();
+    }
+  };
+  if (xs.length > 2) run(true, xs, 18); run(true, [x0, x1], xs.length > 2 ? 40 : 18);
+  if (zs.length > 2) run(false, zs, 18); run(false, [z0, z1], zs.length > 2 ? 40 : 18);
+  g.restore();
+}
 
 
 // =====================================================================
@@ -3550,13 +3587,12 @@ const ROOMS = [
   ['Cold Cellar', 'B', [[10.3, 21.1, -5.6, 0.3]], [15.6, -1.0, 0]],
 ];
 const LEVEL_Y = { B: BF, M: MF, U: UF };
-const ftin = v => { const t = Math.round(v * 12); return `${Math.floor(t / 12)}'-${t % 12}"`; };
 const labelObjs = [];
 const LEVEL_Y2 = { M: MF2, U: UF2 };
 for (const [house, list, LY] of [[1, ROOMS, LEVEL_Y], [2, ROOMS2, LEVEL_Y2]]) for (const [name, lv, rs] of list) {
   const r = rs[0], el = document.createElement('div'); el.className = 'lbl';
   el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-  const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
+  const o = new CSS2DObject(el); o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
   o.userData.lv = lv; o.userData.house = house; scene.add(o); labelObjs.push(o);
 }
 
@@ -4010,7 +4046,7 @@ function rebuildHouse3() {
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; scene.add(o); labelObjs.push(o); }
+    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
   updateViews3();
   if (curHouse === 3) { applyVisibility(); fillGoto(); }
   renderer.shadowMap.needsUpdate = true;
@@ -4212,7 +4248,7 @@ function summarize(bm) {
   }
   return { beds, baths, sf: Math.round(sf), storeys: rs.some(r => r.level === 'U') ? 2 : 1, basement: rs.some(r => r.level === 'B'), garage: Math.round(garage / 250) };
 }
-const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, `${s.sf.toLocaleString()} sf`, s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
+const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, fmtArea(s.sf), s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
 const previewOf = bm => (bm.rooms || []).filter(r => r.level === 'M').map(r => [r.x, r.z, r.w, r.d, (RT[r.type] || {}).color || '#ddd']);
 function drawPreview(cv, prev) {
   const W = cv.width = cv.clientWidth * 2 || 520, H = cv.height = 300, g = cv.getContext('2d');
@@ -4615,13 +4651,21 @@ function setTheme(t) {
 function relayout() { updateViewOffset(); if (PE.open) requestAnimationFrame(() => peSize()); }
 document.querySelectorAll('[data-dock]').forEach(b => b.onclick = () => setDock(b.dataset.dock));
 document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => setTheme(b.dataset.themeSet));
+// Units: lengths and areas everywhere switch at once; the design itself is always stored in feet.
+function setUnits(u) {
+  METRIC = u === 'metric'; ST.set('walkthru-units', u); press('[data-units]', 'units', u);
+  document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
+  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${n}<small>${ftin(w)} × ${ftin(d)}</small>`; }
+  if (PE.open) { peInspector(); peDraw(); } if (popOpen === 'pePlanPop') syncPlanPop(); uiSync(); renderInfo();
+}
+document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnits(b.dataset.units));
 
 // ---------- popovers ----------
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => renderSaved(), mePop: () => syncMe(),
-  dockPop: () => { press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
-  pePlanPop: () => { $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
+  dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
+  pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
 function openPop(id, btn) {
   if (popOpen === id) return closePops();
@@ -4696,11 +4740,12 @@ function areaData() {
   const baths = names.filter(n => /bath|ensuite/i.test(n)).length + names.filter(n => /powder/i.test(n)).length * .5;
   return { lv, above: living('M') + living('U'), base: living('B'), beds, baths };
 }
-const fmtSf = v => Math.round(v).toLocaleString() + ' sf';
+const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = A.above * rate + A.base * rate * bf;
+  const rate = +$u('rate').value || 0, bf = +$u('bfac').value, cost = (A.above + A.base * bf) * (METRIC ? .092903 : 1) * rate;
+  $u('rateLbl').textContent = `Cost per ${U_AREA()}`;
   $u('estOut').innerHTML = `<b>$${Math.round(cost / 1000).toLocaleString()}k</b>${fmtSf(A.above)} × $${rate}${A.base && bf ? ` + basement at ${bf * 100}%` : ''}. Rough estimate.`;
   const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
@@ -4820,7 +4865,7 @@ $u('shotBtn').onclick = () => shot(1); $u('exShot').onclick = () => shot(1); $u(
 $u('exPlan').onclick = () => { if (!PE.open) return toast('Open the floor plan editor first'); download(pc.toDataURL('image/png'), `${slug()}-plan-${PE.lv}.png`); toast('Floor plan saved'); };
 $u('exCsv').onclick = () => {
   const A = areaData(), LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  const rows = [['Level', 'Room', 'Area (sf)'], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, Math.round(s)]))];
+  const rows = [['Level', 'Room', `Area (${METRIC ? 'm²' : 'sf'})`], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, METRIC ? +(s * .092903).toFixed(1) : Math.round(s)]))];
   downloadText(rows.map(r => r.map(c => /[",]/.test(c) ? `"${String(c).replace(/"/g, '""')}"` : c).join(',')).join('\n'), `${slug()}-rooms.csv`, 'text/csv'); toast('Room schedule saved');
 };
 $u('exJson').onclick = () => {
@@ -4855,6 +4900,7 @@ $u('peFind').oninput = e => {
 $u('peGridT').onchange = e => { PE.grid = e.target.checked; peDraw(); };
 $u('peDimsT').onchange = e => { PE.dims = e.target.checked; peDraw(); };
 $u('peAreaT').onchange = e => { PE.areas = e.target.checked; peDraw(); };
+$u('peChainT').onchange = e => { PE.autoDims = e.target.checked; peDraw(); };
 $u('peZoomIn').onclick = () => peZoom(1.2); $u('peZoomOut').onclick = () => peZoom(1 / 1.2); $u('peZoomFit').onclick = () => { peFit(); peDraw(); };
 
 // ---------- misc tools ----------
@@ -4901,7 +4947,7 @@ const uiClock = new THREE.Clock();
 })();
 
 setDock(['top', 'bottom', 'left', 'right'].includes(ST.get('walkthru-dock', 'top')) ? ST.get('walkthru-dock', 'top') : 'top');
-press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe();
+press('[data-rs]', 'rs', 'real'); press('[data-season]', 'season', 'summer'); syncMe(); document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
 uiReady = true; uiSync(); uiEditing(PE.open); updateViewOffset();
 
 
@@ -4961,6 +5007,7 @@ function drawSheetPlan(lv, W, H) {
     g.font = `${Math.max(7, Math.min(10, s * .8))}px "JetBrains Mono", monospace`; g.fillStyle = '#555'; g.fillText(`${ftin(q.w)} × ${ftin(q.d)}`, a, b + 6); }
   for (const d of (BM.dims || []).filter(i => i.level === lv)) { const [a, b] = P(d.x1, d.z1), [c2, e] = P(d.x2, d.z2); g.strokeStyle = '#c2410c'; g.lineWidth = .8; g.beginPath(); g.moveTo(a, b); g.lineTo(c2, e); g.stroke(); g.fillStyle = '#c2410c'; g.font = '600 9px "JetBrains Mono", monospace'; g.fillText(ftin(Math.hypot(d.x2 - d.x1, d.z2 - d.z1)), (a + c2) / 2, (b + e) / 2 - 7); }
   for (const n of (BM.notes || []).filter(i => i.level === lv)) { const [a, b] = P(n.x, n.z); g.fillStyle = '#111'; g.beginPath(); g.arc(a, b, 2.5, 0, 7); g.fill(); g.textAlign = 'left'; g.font = 'italic 9px Inter, sans-serif'; g.fillText(n.text, a + 6, b - 6); g.textAlign = 'center'; }
+  dimChains(g, P, lv, '#444');
   return { url: c.toDataURL('image/png'), scale: s };
 }
 function planSheet() {
@@ -4969,9 +5016,9 @@ function planSheet() {
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-  const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), bar = 10 * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
-    return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${sf.toLocaleString()} sf</b></div>
-      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>10'</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
+  const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
+    return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>
+      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
       <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}

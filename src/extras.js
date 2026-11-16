@@ -55,6 +55,7 @@ function drawSheetPlan(lv, W, H) {
     g.font = `${Math.max(7, Math.min(10, s * .8))}px "JetBrains Mono", monospace`; g.fillStyle = '#555'; g.fillText(`${ftin(q.w)} × ${ftin(q.d)}`, a, b + 6); }
   for (const d of (BM.dims || []).filter(i => i.level === lv)) { const [a, b] = P(d.x1, d.z1), [c2, e] = P(d.x2, d.z2); g.strokeStyle = '#c2410c'; g.lineWidth = .8; g.beginPath(); g.moveTo(a, b); g.lineTo(c2, e); g.stroke(); g.fillStyle = '#c2410c'; g.font = '600 9px "JetBrains Mono", monospace'; g.fillText(ftin(Math.hypot(d.x2 - d.x1, d.z2 - d.z1)), (a + c2) / 2, (b + e) / 2 - 7); }
   for (const n of (BM.notes || []).filter(i => i.level === lv)) { const [a, b] = P(n.x, n.z); g.fillStyle = '#111'; g.beginPath(); g.arc(a, b, 2.5, 0, 7); g.fill(); g.textAlign = 'left'; g.font = 'italic 9px Inter, sans-serif'; g.fillText(n.text, a + 6, b - 6); g.textAlign = 'center'; }
+  dimChains(g, P, lv, '#444');
   return { url: c.toDataURL('image/png'), scale: s };
 }
 function planSheet() {
@@ -63,9 +64,9 @@ function planSheet() {
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-  const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), bar = 10 * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
-    return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${sf.toLocaleString()} sf</b></div>
-      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>10'</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
+  const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
+    return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>
+      <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length}</b></div></footer>
       <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
