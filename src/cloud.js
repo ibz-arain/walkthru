@@ -119,31 +119,46 @@ function renderStudio() {
     b.onkeydown = e => { if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } };
     b.querySelector('.st-more').onclick = e => { e.stopPropagation(); stCardMenu(b, list[i]); }; });
 }
-// ⋯ on a project card: rename in place, or delete
+// ⋯ on a project card: edit its details, or delete it
 function stCardMenu(card, p) {
   const had = card.querySelector('.st-cmenu'); document.querySelectorAll('.st-cmenu').forEach(m => m.remove()); document.querySelectorAll('.st-card.menu-open').forEach(c => c.classList.remove('menu-open')); if (had) return;
   const m = document.createElement('div'); m.className = 'st-cmenu'; m.setAttribute('role', 'menu');
-  m.innerHTML = '<button type="button" role="menuitem" data-a="rename">Rename</button><button type="button" role="menuitem" data-a="delete" class="danger">Delete</button>';
+  m.innerHTML = '<button type="button" role="menuitem" data-a="edit">Edit details</button><button type="button" role="menuitem" data-a="delete" class="danger">Delete</button>';
   card.appendChild(m); card.classList.add('menu-open');
   const close = () => { m.remove(); card.classList.remove('menu-open'); removeEventListener('pointerdown', away, true); };
   const away = e => { if (!e.target.closest('.st-cmenu, .st-more')) close(); }; addEventListener('pointerdown', away, true);
-  m.querySelector('[data-a="rename"]').onclick = e => { e.stopPropagation(); close(); stRename(card, p); };
-  let armed = 0;
-  m.querySelector('[data-a="delete"]').onclick = async e => { e.stopPropagation();
-    if (Date.now() - armed > 3000) { armed = Date.now(); e.target.textContent = 'Click again to delete'; return; }
-    close(); try { await cloudApi('DELETE', `project?id=${encodeURIComponent(p.id)}`); stProjects = stProjects.filter(x => x.id !== p.id); renderStudio(); toast('Project deleted'); }
-    catch (er) { toast(er.status === 403 ? 'Only workspace owners can delete projects' : 'Couldn’t delete the project'); } };
+  m.querySelector('[data-a="edit"]').onclick = e => { e.stopPropagation(); close(); stEdit(p); };
+  m.querySelector('[data-a="delete"]').onclick = e => { e.stopPropagation(); close(); stDelete(p); };
 }
-function stRename(card, p) {
-  const h = card.querySelector('h3'), inp = document.createElement('input'); inp.className = 'st-rename'; inp.value = p.name; inp.maxLength = 80; inp.setAttribute('aria-label', 'Project name');
-  h.replaceWith(inp); inp.focus(); inp.select(); let done = false;
-  const finish = async save => { if (done) return; done = true; const name = inp.value.trim();
-    if (save && name && name !== p.name) { const old = p.name; p.name = name; renderStudio();
-      try { await cloudApi('PUT', `project?id=${encodeURIComponent(p.id)}`, { name }); } catch (er) { p.name = old; renderStudio(); toast('Couldn’t rename the project'); } }
-    else renderStudio(); };
-  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); };
-  inp.onblur = () => finish(true); inp.onclick = e => e.stopPropagation();
+let stEditing = null;
+async function stEdit(p) {
+  stEditing = { p, bm: null }; $c('seName').value = p.name; $c('seLW').value = $c('seLD').value = ''; $c('seErr').textContent = '';
+  document.querySelectorAll('#stEditForm .u-len').forEach(e => e.textContent = U_LEN());
+  const lot = document.querySelector('#stEditForm .sn-lot'); lot.dataset.loading = ''; $c('stEditForm').hidden = false; $c('seName').focus(); $c('seName').select();
+  try { const j = await cloudApi('GET', `project?id=${encodeURIComponent(p.id)}`); if (stEditing?.p !== p) return; stEditing.bm = j.bm; const S = j.bm?.site || {};
+    if (S.lotW) $c('seLW').value = +toDisp(S.lotW).toFixed(2); if (S.lotD) $c('seLD').value = +toDisp(S.lotD).toFixed(2); }
+  catch (e) { $c('seErr').textContent = 'Couldn’t load the lot size.'; } finally { delete lot.dataset.loading; }
 }
+$c('seCancel').onclick = () => { $c('stEditForm').hidden = true; stEditing = null; };
+$c('stEditForm').onsubmit = async () => {
+  const E = stEditing; if (!E) return; const name = $c('seName').value.trim(); if (!name) { $c('seErr').textContent = 'Give the project a name.'; return; }
+  const lw = parseFloat($c('seLW').value), ld = parseFloat($c('seLD').value);
+  if ((lw > 0) !== (ld > 0)) { $c('seErr').textContent = 'Enter both the width and depth of the lot, or leave both empty.'; return; }
+  const body = { name };
+  if (E.bm) { const site = { ...(E.bm.site || {}) }; if (lw > 0) { site.lotW = +fromDisp(lw).toFixed(2); site.lotD = +fromDisp(ld).toFixed(2); } else { delete site.lotW; delete site.lotD; }
+    if (JSON.stringify(site) !== JSON.stringify(E.bm.site || {})) body.bm = { ...E.bm, site }; }
+  $c('seGo').disabled = true;
+  try { await cloudApi('PUT', `project?id=${encodeURIComponent(E.p.id)}`, body); E.p.name = name; $c('stEditForm').hidden = true; stEditing = null; renderStudio(); }
+  catch (e) { $c('seErr').textContent = e.message || 'Couldn’t save.'; } finally { $c('seGo').disabled = false; }
+};
+let stDeleting = null;
+function stDelete(p) { stDeleting = p; $c('sdName').textContent = p.name; $c('sdErr').textContent = ''; $c('stDelForm').hidden = false; $c('sdCancel').focus(); }
+$c('sdCancel').onclick = () => { $c('stDelForm').hidden = true; stDeleting = null; };
+$c('stDelForm').onsubmit = async () => {
+  const p = stDeleting; if (!p) return; $c('sdGo').disabled = true;
+  try { await cloudApi('DELETE', `project?id=${encodeURIComponent(p.id)}`); stProjects = stProjects.filter(x => x.id !== p.id); $c('stDelForm').hidden = true; stDeleting = null; renderStudio(); toast('Project deleted'); }
+  catch (e) { $c('sdErr').textContent = e.status === 403 ? 'Only workspace owners can delete projects.' : 'Couldn’t delete the project.'; } finally { $c('sdGo').disabled = false; }
+};
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
 const stMenu = open => { $c('stMenu').hidden = !open; $c('stAvatar').setAttribute('aria-expanded', String(open)); };

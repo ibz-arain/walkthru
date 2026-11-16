@@ -411,7 +411,8 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .chip.shared,.chip.sent{background:rgba(59,91,253,.1);color:#3b5bfd}.chip.opened{background:rgba(14,116,144,.1);color:#0e7490}
 .chip.editing{background:rgba(202,138,4,.12);color:#a16207}.chip.submitted,.chip.alert{background:rgba(220,38,38,.1);color:#dc2626}.chip.accepted,.chip.ok{background:rgba(22,163,74,.1);color:#15803d}
 .st-keyform{max-width:360px;margin:48px auto;padding:24px;gap:12px}.st-keyform h2{margin:0;font-size:17px;font-weight:600}.st-keyform p{margin:0;color:var(--ink-2)}
-.st-err{color:var(--danger);min-height:1em;margin:0;font-size:12.5px}
+.st-err{color:var(--danger);margin:0;font-size:12.5px}
+.st-err:empty{display:none}
 .st-empty{color:var(--ink-2);text-align:center;padding:56px 20px;border:1px dashed var(--rule-2);border-radius:12px}
 .st-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;width:min(420px,calc(100vw - 32px));padding:22px;display:grid;gap:14px;box-shadow:var(--shadow-lg),0 0 0 100vmax rgba(9,9,11,.4);background:var(--paper)!important;border-radius:14px}
 .st-modal h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
@@ -533,6 +534,10 @@ body.editing .cl-save{display:none}
 .sn-in{position:relative;display:block}
 .sn-in input{width:100%;box-sizing:border-box;padding-right:34px!important}
 .sn-in i{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:12px var(--f-ui);font-style:normal;color:var(--ink-3);pointer-events:none}
+
+.st-modal .st-msg{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.5}.st-modal .st-msg b{color:var(--ink);font-weight:600;word-break:break-word}
+#stDelForm .btn.st-danger{background:#e5484d;border-color:#e5484d;color:#fff!important}#stDelForm .btn.st-danger:hover{background:#d93d42}
+.sn-lot[data-loading] input{opacity:.5}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -898,8 +903,23 @@ body.editing .cl-save{display:none}
     <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
       <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="snLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="snLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
     </fieldset>
-    <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
     <p class="st-err" id="snErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
+  </form>
+  <form id="stEditForm" class="panel st-modal" hidden onsubmit="return false">
+    <h2>Project details</h2>
+    <label>Project name <input id="seName" required maxlength="80" autocomplete="off"></label>
+    <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
+      <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="seLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="seLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
+    </fieldset>
+    <p class="st-err" id="seErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="seCancel" type="button">Cancel</button><button class="btn st-primary" id="seGo" type="submit">Save</button></div>
+  </form>
+  <form id="stDelForm" class="panel st-modal" hidden onsubmit="return false">
+    <h2>Delete project?</h2>
+    <p class="st-msg"><b id="sdName"></b> and all its versions will be deleted. This can’t be undone.</p>
+    <p class="st-err" id="sdErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="sdCancel" type="button">Cancel</button><button class="btn st-danger" id="sdGo" type="submit">Delete project</button></div>
   </form>
 </section>
 
@@ -4948,31 +4968,46 @@ function renderStudio() {
     b.onkeydown = e => { if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } };
     b.querySelector('.st-more').onclick = e => { e.stopPropagation(); stCardMenu(b, list[i]); }; });
 }
-// ⋯ on a project card: rename in place, or delete
+// ⋯ on a project card: edit its details, or delete it
 function stCardMenu(card, p) {
   const had = card.querySelector('.st-cmenu'); document.querySelectorAll('.st-cmenu').forEach(m => m.remove()); document.querySelectorAll('.st-card.menu-open').forEach(c => c.classList.remove('menu-open')); if (had) return;
   const m = document.createElement('div'); m.className = 'st-cmenu'; m.setAttribute('role', 'menu');
-  m.innerHTML = '<button type="button" role="menuitem" data-a="rename">Rename</button><button type="button" role="menuitem" data-a="delete" class="danger">Delete</button>';
+  m.innerHTML = '<button type="button" role="menuitem" data-a="edit">Edit details</button><button type="button" role="menuitem" data-a="delete" class="danger">Delete</button>';
   card.appendChild(m); card.classList.add('menu-open');
   const close = () => { m.remove(); card.classList.remove('menu-open'); removeEventListener('pointerdown', away, true); };
   const away = e => { if (!e.target.closest('.st-cmenu, .st-more')) close(); }; addEventListener('pointerdown', away, true);
-  m.querySelector('[data-a="rename"]').onclick = e => { e.stopPropagation(); close(); stRename(card, p); };
-  let armed = 0;
-  m.querySelector('[data-a="delete"]').onclick = async e => { e.stopPropagation();
-    if (Date.now() - armed > 3000) { armed = Date.now(); e.target.textContent = 'Click again to delete'; return; }
-    close(); try { await cloudApi('DELETE', `project?id=${encodeURIComponent(p.id)}`); stProjects = stProjects.filter(x => x.id !== p.id); renderStudio(); toast('Project deleted'); }
-    catch (er) { toast(er.status === 403 ? 'Only workspace owners can delete projects' : 'Couldn’t delete the project'); } };
+  m.querySelector('[data-a="edit"]').onclick = e => { e.stopPropagation(); close(); stEdit(p); };
+  m.querySelector('[data-a="delete"]').onclick = e => { e.stopPropagation(); close(); stDelete(p); };
 }
-function stRename(card, p) {
-  const h = card.querySelector('h3'), inp = document.createElement('input'); inp.className = 'st-rename'; inp.value = p.name; inp.maxLength = 80; inp.setAttribute('aria-label', 'Project name');
-  h.replaceWith(inp); inp.focus(); inp.select(); let done = false;
-  const finish = async save => { if (done) return; done = true; const name = inp.value.trim();
-    if (save && name && name !== p.name) { const old = p.name; p.name = name; renderStudio();
-      try { await cloudApi('PUT', `project?id=${encodeURIComponent(p.id)}`, { name }); } catch (er) { p.name = old; renderStudio(); toast('Couldn’t rename the project'); } }
-    else renderStudio(); };
-  inp.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); };
-  inp.onblur = () => finish(true); inp.onclick = e => e.stopPropagation();
+let stEditing = null;
+async function stEdit(p) {
+  stEditing = { p, bm: null }; $c('seName').value = p.name; $c('seLW').value = $c('seLD').value = ''; $c('seErr').textContent = '';
+  document.querySelectorAll('#stEditForm .u-len').forEach(e => e.textContent = U_LEN());
+  const lot = document.querySelector('#stEditForm .sn-lot'); lot.dataset.loading = ''; $c('stEditForm').hidden = false; $c('seName').focus(); $c('seName').select();
+  try { const j = await cloudApi('GET', `project?id=${encodeURIComponent(p.id)}`); if (stEditing?.p !== p) return; stEditing.bm = j.bm; const S = j.bm?.site || {};
+    if (S.lotW) $c('seLW').value = +toDisp(S.lotW).toFixed(2); if (S.lotD) $c('seLD').value = +toDisp(S.lotD).toFixed(2); }
+  catch (e) { $c('seErr').textContent = 'Couldn’t load the lot size.'; } finally { delete lot.dataset.loading; }
 }
+$c('seCancel').onclick = () => { $c('stEditForm').hidden = true; stEditing = null; };
+$c('stEditForm').onsubmit = async () => {
+  const E = stEditing; if (!E) return; const name = $c('seName').value.trim(); if (!name) { $c('seErr').textContent = 'Give the project a name.'; return; }
+  const lw = parseFloat($c('seLW').value), ld = parseFloat($c('seLD').value);
+  if ((lw > 0) !== (ld > 0)) { $c('seErr').textContent = 'Enter both the width and depth of the lot, or leave both empty.'; return; }
+  const body = { name };
+  if (E.bm) { const site = { ...(E.bm.site || {}) }; if (lw > 0) { site.lotW = +fromDisp(lw).toFixed(2); site.lotD = +fromDisp(ld).toFixed(2); } else { delete site.lotW; delete site.lotD; }
+    if (JSON.stringify(site) !== JSON.stringify(E.bm.site || {})) body.bm = { ...E.bm, site }; }
+  $c('seGo').disabled = true;
+  try { await cloudApi('PUT', `project?id=${encodeURIComponent(E.p.id)}`, body); E.p.name = name; $c('stEditForm').hidden = true; stEditing = null; renderStudio(); }
+  catch (e) { $c('seErr').textContent = e.message || 'Couldn’t save.'; } finally { $c('seGo').disabled = false; }
+};
+let stDeleting = null;
+function stDelete(p) { stDeleting = p; $c('sdName').textContent = p.name; $c('sdErr').textContent = ''; $c('stDelForm').hidden = false; $c('sdCancel').focus(); }
+$c('sdCancel').onclick = () => { $c('stDelForm').hidden = true; stDeleting = null; };
+$c('stDelForm').onsubmit = async () => {
+  const p = stDeleting; if (!p) return; $c('sdGo').disabled = true;
+  try { await cloudApi('DELETE', `project?id=${encodeURIComponent(p.id)}`); stProjects = stProjects.filter(x => x.id !== p.id); $c('stDelForm').hidden = true; stDeleting = null; renderStudio(); toast('Project deleted'); }
+  catch (e) { $c('sdErr').textContent = e.status === 403 ? 'Only workspace owners can delete projects.' : 'Couldn’t delete the project.'; } finally { $c('sdGo').disabled = false; }
+};
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
 const stMenu = open => { $c('stMenu').hidden = !open; $c('stAvatar').setAttribute('aria-expanded', String(open)); };
@@ -5304,7 +5339,7 @@ addEventListener('pointerdown', e => { if (popOpen && !e.target.closest('.pop, [
 addEventListener('resize', () => { closePops(); relayout(); });
 
 // ---------- dialogs: one at a time; Esc or a click outside closes them ----------
-const DIALOGS = ['stNewForm'];
+const DIALOGS = ['stNewForm', 'stEditForm', 'stDelForm'];
 new MutationObserver(ms => { for (const m of ms) if (!m.target.hidden && DIALOGS.includes(m.target.id)) for (const id of DIALOGS) if (id !== m.target.id) $u(id).hidden = true; })
   .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 const openDialog = () => DIALOGS.map($u).find(d => d && !d.hidden);

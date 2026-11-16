@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.b842fdbda8.js">
-<link rel="stylesheet" href="/assets/playground.e26cc3dc97.css">
+<link rel="modulepreload" href="/assets/playground.882d1ade55.js">
+<link rel="stylesheet" href="/assets/playground.8b7cc95827.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -377,8 +377,23 @@
     <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
       <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="snLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="snLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
     </fieldset>
-    <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
     <p class="st-err" id="snErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="snCancel" type="button">Cancel</button><button class="btn st-primary" id="snGo" type="submit">Create project</button></div>
+  </form>
+  <form id="stEditForm" class="panel st-modal" hidden onsubmit="return false">
+    <h2>Project details</h2>
+    <label>Project name <input id="seName" required maxlength="80" autocomplete="off"></label>
+    <fieldset class="sn-lot"><legend>Lot size <span>optional</span></legend>
+      <div class="sn-wd"><label><span>Width</span><span class="sn-in"><input id="seLW" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot width"><i class="u-len">ft</i></span></label><b aria-hidden="true">×</b><label><span>Depth</span><span class="sn-in"><input id="seLD" type="number" min="10" max="2000" step="any" inputmode="decimal" aria-label="Lot depth"><i class="u-len">ft</i></span></label></div>
+    </fieldset>
+    <p class="st-err" id="seErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="seCancel" type="button">Cancel</button><button class="btn st-primary" id="seGo" type="submit">Save</button></div>
+  </form>
+  <form id="stDelForm" class="panel st-modal" hidden onsubmit="return false">
+    <h2>Delete project?</h2>
+    <p class="st-msg"><b id="sdName"></b> and all its versions will be deleted. This can’t be undone.</p>
+    <p class="st-err" id="sdErr"></p>
+    <div class="st-row"><button class="btn st-ghost" id="sdCancel" type="button">Cancel</button><button class="btn st-danger" id="sdGo" type="submit">Delete project</button></div>
   </form>
 </section>
 
@@ -406,5 +421,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.b842fdbda8.js"></script>
+<script type="module" src="/assets/playground.882d1ade55.js"></script>
 </html>

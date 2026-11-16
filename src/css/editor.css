@@ -90,7 +90,8 @@
 .chip.shared,.chip.sent{background:rgba(59,91,253,.1);color:#3b5bfd}.chip.opened{background:rgba(14,116,144,.1);color:#0e7490}
 .chip.editing{background:rgba(202,138,4,.12);color:#a16207}.chip.submitted,.chip.alert{background:rgba(220,38,38,.1);color:#dc2626}.chip.accepted,.chip.ok{background:rgba(22,163,74,.1);color:#15803d}
 .st-keyform{max-width:360px;margin:48px auto;padding:24px;gap:12px}.st-keyform h2{margin:0;font-size:17px;font-weight:600}.st-keyform p{margin:0;color:var(--ink-2)}
-.st-err{color:var(--danger);min-height:1em;margin:0;font-size:12.5px}
+.st-err{color:var(--danger);margin:0;font-size:12.5px}
+.st-err:empty{display:none}
 .st-empty{color:var(--ink-2);text-align:center;padding:56px 20px;border:1px dashed var(--rule-2);border-radius:12px}
 .st-modal{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:60;width:min(420px,calc(100vw - 32px));padding:22px;display:grid;gap:14px;box-shadow:var(--shadow-lg),0 0 0 100vmax rgba(9,9,11,.4);background:var(--paper)!important;border-radius:14px}
 .st-modal h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.01em}
@@ -212,3 +213,7 @@ body.editing .cl-save{display:none}
 .sn-in{position:relative;display:block}
 .sn-in input{width:100%;box-sizing:border-box;padding-right:34px!important}
 .sn-in i{position:absolute;right:10px;top:50%;transform:translateY(-50%);font:12px var(--f-ui);font-style:normal;color:var(--ink-3);pointer-events:none}
+
+.st-modal .st-msg{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.5}.st-modal .st-msg b{color:var(--ink);font-weight:600;word-break:break-word}
+#stDelForm .btn.st-danger{background:#e5484d;border-color:#e5484d;color:#fff!important}#stDelForm .btn.st-danger:hover{background:#d93d42}
+.sn-lot[data-loading] input{opacity:.5}

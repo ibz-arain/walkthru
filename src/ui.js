@@ -71,7 +71,7 @@ addEventListener('pointerdown', e => { if (popOpen && !e.target.closest('.pop, [
 addEventListener('resize', () => { closePops(); relayout(); });
 
 // ---------- dialogs: one at a time; Esc or a click outside closes them ----------
-const DIALOGS = ['stNewForm'];
+const DIALOGS = ['stNewForm', 'stEditForm', 'stDelForm'];
 new MutationObserver(ms => { for (const m of ms) if (!m.target.hidden && DIALOGS.includes(m.target.id)) for (const id of DIALOGS) if (id !== m.target.id) $u(id).hidden = true; })
   .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 const openDialog = () => DIALOGS.map($u).find(d => d && !d.hidden);
