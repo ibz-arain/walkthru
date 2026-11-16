@@ -331,7 +331,7 @@ function peUndo() { const s = PE.hist.pop(); if (!s) return; PE.redo.push(snapsh
 function peRedo() { const s = PE.redo.pop(); if (!s) return; PE.hist.push(snapshot()); BM = JSON.parse(s); planChanged(); }
 document.getElementById('peRedo').onclick = peRedo;
 document.getElementById('peUndo').onclick = peUndo;
-document.getElementById('peReset').onclick = () => { closePops(); pushHist(); BM = permitPlan(); PE.sel = null; peFit(); planChanged(); };
+document.getElementById('peReset').onclick = () => { closePops(); pushHist(); BM = starterPlan(); PE.sel = null; peFit(); planChanged(); };
 document.getElementById('peClear').onclick = () => { closePops(); pushHist(); BM = { roof: BM.roof, rooms: [] }; PE.sel = null; planChanged(); };
 document.querySelectorAll('[data-pelv]').forEach(b => b.onclick = () => { PE.lv = b.dataset.pelv; PE.sel = null; peLvlButtons(); peInspector(); peDraw(); if (curHouse === 3) goView(PE.lv); });
 const TRACE = { living: 'rec', great: 'rec', kitchen: 'rec', dining: 'rec', foyer: 'rec', hall: 'rec', sunroom: 'rec', bonus: 'rec', rec: 'rec', playroom: 'rec',

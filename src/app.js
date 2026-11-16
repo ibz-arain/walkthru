@@ -103,7 +103,7 @@ const HOUSES = {
 const roomsOf = n => n === 1 ? ROOMS : n === 2 ? ROOMS2 : ROOMS3;
 const outlineOf = n => n === 1 ? OUTLINE : n === 2 ? OUTLINE2 : OUTLINE3;
 const HASHES = { 1: '', 2: '#house-2', 3: '#my-design', 4: '#house-3' };
-const houseFromHash = () => /^#(admin|c\/)/.test(location.hash) ? 3 : ({ '#house-2': 2, '#my-design': 3, '#house-3': 4 })[location.hash] || 1; // Studio and customer links draw through My Design
+const houseFromHash = () => !SAMPLES || /^#(admin|c\/)/.test(location.hash) ? 3 : ({ '#house-2': 2, '#my-design': 3, '#house-3': 4 })[location.hash] || 1; // Studio and customer links draw through My Design
 const startHouse = houseFromHash();
 let curHouse = startHouse === 4 ? 3 : startHouse; // House 3 (tab 4) is drawn by the builder, like My Design
 const tabHouse = () => curHouse === 3 && H3P ? 4 : curHouse;

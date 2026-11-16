@@ -116,13 +116,13 @@ Object.assign(M, { batten: std({ map: TX.batten, color: '#767a80', roughness: .8
   gdoor: std({ color: '#4a4d52', roughness: .55, metalness: .2 }), fence: std({ map: TX.deck, color: '#c9a07a', roughness: .85 }), lamp: std({ color: '#ffe2a8', emissive: '#ffcf7a', emissiveIntensity: 1.2 }) });
 let BM;
 try { BM = JSON.parse(localStorage.getItem('walkthru-builder-v1') || 'null'); } catch (e) { }
-if (!BM || !Array.isArray(BM.rooms)) BM = permitPlan();
+if (!BM || !Array.isArray(BM.rooms)) BM = starterPlan();
 
 // Several saved designs: { cur, list: [{ id, name, bm }] }. The first one picks up whatever was saved before.
 let DS = null;
 try { DS = JSON.parse(localStorage.getItem('walkthru-designs-v1') || 'null'); } catch (e) { }
-if (!DS || !Array.isArray(DS.list) || !DS.list.length) DS = { cur: 1, list: [{ id: 1, name: 'My Design', bm: BM }] };
-{ const d = DS.list.find(x => x.id === DS.cur) || DS.list[0]; DS.cur = d.id; BM = d.bm && Array.isArray(d.bm.rooms) ? d.bm : permitPlan(); }
+if (!DS || !Array.isArray(DS.list) || !DS.list.length) DS = { cur: 1, list: [{ id: 1, name: 'My design', bm: BM }] };
+{ const d = DS.list.find(x => x.id === DS.cur) || DS.list[0]; DS.cur = d.id; BM = d.bm && Array.isArray(d.bm.rooms) ? d.bm : starterPlan(); }
 function resetBID() { BID = Math.max(1, ...BM.rooms.map(r => r.id + 1), ...(BM.stairs || []).map(s => s.id + 1)); }
 let H3P = false, userBM = null; // H3P: House 3 (the Campana plan) is showing in place of your design
 function usePreset(on) { if (on === H3P) return false; if (on) { userBM = BM; BM = campanaPlan(); } else { BM = userBM; resetBID(); } H3P = on; return true; }

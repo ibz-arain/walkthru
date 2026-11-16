@@ -17,6 +17,10 @@ const SCALE_BAR = () => METRIC ? [3 / .3048, '3 m'] : [10, "10'"];
 const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;
 const UZ = 2.54; // 2nd floor plan is set back 2'-6½" from the main front wall
 const EXT = 0.67, INT = 0.4;
+// Built-in sample houses and the sample plan are hidden: everything starts empty. Set true to bring them back.
+const SAMPLES = false;
+const blankPlan = () => ({ roof: 'hip', rooms: [], stairs: [] });
+const starterPlan = () => SAMPLES ? permitPlan() : blankPlan();
 
 // ---------- Renderer / scene ----------
 const stage = document.getElementById('stage');

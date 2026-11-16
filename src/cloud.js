@@ -65,7 +65,7 @@ function showDesign(bm, { save = null } = {}) {
 }
 function leaveCloudDesign() { // back to this browser's own designs
   cloudSave = null; finishHook = null; applyFinishes(saved);
-  const d = curDesign(); BM = d?.bm && Array.isArray(d.bm.rooms) ? d.bm : permitPlan(); resetBID(); normalizeStairs(BM); PE.hist = [];
+  const d = curDesign(); BM = d?.bm && Array.isArray(d.bm.rooms) ? d.bm : starterPlan(); resetBID(); normalizeStairs(BM); PE.hist = [];
   if (PE.open) openEditor(false); rebuildHouse3();
 }
 
