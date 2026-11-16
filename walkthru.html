@@ -788,9 +788,8 @@ body.cl-pinning #stage{cursor:crosshair}
 <!-- ===== Studio (admin) dashboard ===== -->
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
-    <a class="st-brand" href="/"><b id="stBrand">Demo</b><span class="st-tag">Studio</span></a>
-    <span class="st-user" id="stUser" hidden></span>
-    <div class="st-actions"><button class="btn st-ghost" id="stDemo" type="button">Open playground</button><button class="btn st-primary" id="stNew" type="button">New project</button></div>
+    <a class="st-brand" href="/"><b>Demo</b></a>
+    <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button><button class="btn st-ghost" id="stOut" type="button">Sign out</button></div>
   </header>
   <div class="st-wrap">
     <form id="stKey" class="st-card st-keyform" hidden onsubmit="return false">
@@ -4541,8 +4540,8 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 // ---------- Studio dashboard ----------
 let stProjects = [];
 async function studioHome() {
-  $c('stBrand').textContent = ACC.org?.name || CL.brand.name; document.title = `${ACC.org?.name || CL.brand.name} · Studio`;
-  $c('stUser').textContent = ACC.user ? (ACC.user.name || ACC.user.email) : ''; $c('stUser').hidden = !ACC.user; $c('stNew').hidden = ACC.role === 'viewer';
+  document.title = 'Projects · Demo';
+  $c('stNew').hidden = ACC.role === 'viewer'; $c('stOut').hidden = !ACC.user;
   try { const j = await cloudApi('GET', 'projects'); stProjects = j.projects; $c('stKey').hidden = true; $c('stHead').hidden = false; renderStudio(); }
   catch (e) { if (e.status === 401) { $c('stKey').hidden = false; $c('stHead').hidden = true; $c('stList').innerHTML = ''; $c('stEmpty').hidden = true; $c('stKeyAlt').hidden = !CL.locked; $c('stSignIn').href = `/account#login?next=${encodeURIComponent('/playground#admin')}`; $c('stSignUp').href = `/account#signup?next=${encodeURIComponent('/playground#admin')}`; } else { $c('stList').innerHTML = `<p class="st-err">${clEsc(e.message)}</p>`; } }
 }
@@ -4559,9 +4558,7 @@ function renderStudio() {
 }
 $c('stSearch').oninput = renderStudio;
 $c('stKey').onsubmit = async () => { try { localStorage.setItem('studio-key', $c('stKeyIn').value.trim()); } catch (e) { } $c('stKeyErr').textContent = ''; await studioHome(); if (!$c('stKey').hidden) $c('stKeyErr').textContent = 'That key didn’t work.'; };
-// The playground on its own (no project). Remembered for this tab, so signed-in people aren't sent back to Projects.
-const toSandbox = () => { try { sessionStorage.setItem('wt-sandbox', '1'); } catch (e) { } location.hash = ''; };
-$c('stDemo').onclick = toSandbox;
+$c('stOut').onclick = async () => { await fetch('/api/auth?action=logout', { method: 'POST' }).catch(() => { }); location.href = '/'; };
 $c('stHome') && ($c('stHome').onclick = () => { location.href = '/'; });
 $c('stNew').onclick = () => {
   $c('snFrom').innerHTML = TEMPLATES().map(([k, n]) => `<option value="${clEsc(k)}">${clEsc(n)}</option>`).join('');
