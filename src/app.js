@@ -431,7 +431,7 @@ for (const [sec, items] of FIN) {
   const h = document.createElement('div'); h.className = 'grp'; h.dataset.sec = sec; h.innerHTML = `<h3>${sec}</h3>`; fb.appendChild(h);
   for (const [key, label, mat, types] of items) {
     const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3>${label}<span class="cur"></span></h3>`;
-    const ty = document.createElement('div'); ty.className = 'fin-types'; if (types.length > 1) g.appendChild(ty);
+    const ty = document.createElement('select'); ty.className = 'fin-type'; ty.setAttribute('aria-label', `${label} material`); if (types.length > 1) g.appendChild(ty);
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
     const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Any colour'; custom.innerHTML = '<i></i><input type="color" aria-label="Any colour">';
     let cur = { t: -1, c: 0 };
@@ -439,7 +439,7 @@ for (const [sec, items] of FIN) {
       T0.colors.forEach(([n, c], i) => { const b = document.createElement('button'); b.type = 'button'; b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${swatchBg(T0.map, c)};background-blend-mode:multiply"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(`${T0.id}:${i}`); sw.appendChild(b); });
       sw.appendChild(custom); };
     const pick = (v) => { const p = parseFin(types, v), T0 = types[p.t], hex = typeof p.c === 'string' ? p.c : T0.colors[p.c][1], m = mat();
-      if (p.t !== cur.t) { cur.t = p.t; drawColours(); ty.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === p.t)));
+      if (p.t !== cur.t) { cur.t = p.t; drawColours(); ty.value = T0.id;
         m.map = T0.map ? TX[T0.map] : null; m.roughness = T0.rough; m.metalness = T0.metal; m.needsUpdate = true; if (typeof renderer !== 'undefined') renderer.shadowMap.needsUpdate = true; }
       cur.c = p.c; m.color.set(hex);
       sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(p.c === j)));
@@ -448,8 +448,7 @@ for (const [sec, items] of FIN) {
       const val = `${T0.id}:${p.c}`;
       if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
-    types.forEach((T0, j) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="background:${swatchBg(T0.map, T0.colors[0][1])};background-blend-mode:multiply"></i><span>${T0.name}</span>`;
-      b.onclick = () => pick(`${T0.id}:0`); ty.appendChild(b); });
+    types.forEach(T0 => ty.add(new Option(T0.name, T0.id))); ty.onchange = () => pick(`${ty.value}:0`);
     custom.querySelector('input').oninput = e => pick(`${types[cur.t].id}:${e.target.value}`);
     pick(saved[key] ?? 0);
   }

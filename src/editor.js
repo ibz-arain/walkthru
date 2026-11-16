@@ -307,7 +307,7 @@ function peAddStair(at) {
   BM.stairs = BM.stairs || []; BM.stairs.push(S); PE.selStair = S.id; PE.sel = null; planChanged();
 }
 function peInspector() {
-  peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
+  peSideFollow(); peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
   document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
@@ -413,20 +413,43 @@ addEventListener('resize', () => { if (PE.open) peSize(); });
 window.__pe = { PE, get BM() { return BM; } };
 window.__pe.planLevel = planLevel;
 
-// ---------- The selection's options float next to what you clicked (like a right-click menu), not in a side column ----------
-const peSideEl = document.getElementById('peSide'), peBodyEl = peSideEl.parentElement; let pePt = null, peSelKey = '';
-function pePlaceSide() {
-  if (!pePt || innerWidth <= 760) { peSideEl.style.left = peSideEl.style.top = ''; return; }
-  const B = peBodyEl.getBoundingClientRect(), w = peSideEl.offsetWidth, h = peSideEl.offsetHeight, g = 14;
-  let x = pePt[0] - B.left + g, y = pePt[1] - B.top - 20;
-  if (x + w > B.width - 8) x = pePt[0] - B.left - g - w;
-  peSideEl.style.left = Math.max(8, Math.min(x, B.width - w - 8)) + 'px';
-  peSideEl.style.top = Math.max(8, Math.min(y, B.height - h - 8)) + 'px';
+// ---------- The selection's options float beside what's selected (like a right-click menu), never on top of it if there's room ----------
+let pePt = null, peSelKey = '';
+function peSelBox() { // the selection's extent in plan feet: [x0, z0, x1, z1]
+  const U = a => a.length ? [Math.min(...a.map(b => b[0])), Math.min(...a.map(b => b[1])), Math.max(...a.map(b => b[2])), Math.max(...a.map(b => b[3]))] : null;
+  if (PE.multi?.size) return U(BM.rooms.filter(r => PE.multi.has(r.id)).map(r => [r.x, r.z, r.x + r.w, r.z + r.d]));
+  const q = BM.rooms.find(r => r.id === PE.sel); if (q) return [q.x, q.z, q.x + q.w, q.z + q.d];
+  const S = (BM.stairs || []).find(o => o.id === PE.selStair); if (S) { const r = stairRect(S, stairDirOf(S)); return [r.x, r.z, r.x + r.w, r.z + r.d]; }
+  const w = PE.selWall; if (w) return w.axis === 'x' ? [w.a, w.c - .5, w.b, w.c + .5] : [w.c - .5, w.a, w.c + .5, w.b];
+  const X = PE.selX; if (!X) return null;
+  if (X.kind === 'item') { const it = (BM.items || []).find(i => i.id === X.id); if (it) { const [a, b] = itemDims(it); return [it.x - a / 2, it.z - b / 2, it.x + a / 2, it.z + b / 2]; } }
+  if (X.kind === 'note') { const n = (BM.notes || []).find(i => i.id === X.id); if (n) return [n.x - 1, n.z - 1, n.x + 1, n.z + 1]; }
+  if (X.kind === 'dim') { const d = (BM.dims || []).find(i => i.id === X.id); if (d) return [Math.min(d.x1, d.x2), Math.min(d.z1, d.z2), Math.max(d.x1, d.x2), Math.max(d.z1, d.z2)]; }
+  return null;
 }
-pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peBodyEl.classList.add('pe-busy'); });
-addEventListener('pointerup', () => { if (!peBodyEl.classList.contains('pe-busy')) return; peBodyEl.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
-pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too (see pointerdown); no browser menu over the plan
-new MutationObserver(() => { // a new selection (from the canvas, a list, or a shortcut) re-anchors the menu
-  const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), document.getElementById('planEd').classList.contains('has-sel')].join('|');
-  if (k !== peSelKey) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
-}).observe(document.getElementById('planEd'), { attributes: true, attributeFilter: ['class'] });
+function pePlaceSide() {
+  const el = document.getElementById('peSide'), body = el.parentElement;
+  if (innerWidth <= 760) { el.style.left = el.style.top = ''; return; }
+  const B = body.getBoundingClientRect(), C = pc.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, g = 16, m = 8, sb = peSelBox();
+  let L, T, R, Bt; // the selection on screen, relative to the editor body
+  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = a + C.left - B.left; T = b + C.top - B.top; R = c + C.left - B.left; Bt = d + C.top - B.top; }
+  else if (pePt) { L = R = pePt[0] - B.left; T = Bt = pePt[1] - B.top; } else return;
+  const minX = C.left - B.left + m, maxX = B.width - m, clampY = y => Math.max(m, Math.min(y, B.height - h - m)), clampX = x => Math.max(minX, Math.min(x, maxX - w));
+  const opts = [ // [x, y, free space on that side]
+    [R + g, clampY(T), maxX - (R + g) - w],
+    [L - g - w, clampY(T), (L - g - w) - minX],
+    [clampX(L), Bt + g, B.height - m - (Bt + g) - h],
+    [clampX(L), T - g - h, (T - g - h) - m],
+  ];
+  const fit = opts.find(o => o[2] >= 0) || opts.reduce((p, o) => o[2] > p[2] ? o : p);
+  el.style.left = clampX(fit[0]) + 'px'; el.style.top = clampY(fit[1]) + 'px';
+}
+function peSideFollow() { // called after every inspector refresh: move when the selection changes or moves, not while you're typing in it
+  const el = document.getElementById('peSide'); if (!el) return;
+  const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), PE.selX && PE.selX.kind + PE.selX.id, PE.multi?.size].join('|');
+  if (k !== peSelKey || !el.contains(document.activeElement)) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
+}
+pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; pc.parentElement.parentElement.classList.add('pe-busy'); });
+addEventListener('pointerup', () => { const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
+pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too; no browser menu over the plan
+addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });

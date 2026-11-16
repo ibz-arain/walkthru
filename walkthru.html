@@ -310,12 +310,9 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #acctPop button:hover{background:var(--paper-2)}
 #acctBtn .avatar{width:28px;height:28px;font-size:11px}
 
-/* finish material types: small texture tiles above the colours */
-.fin-types{display:flex;flex-wrap:wrap;gap:6px;padding:0 6px 10px}
-.fin-types button{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 4px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);font:12.5px var(--f-ui);color:var(--ink-2);cursor:pointer}
-.fin-types button:hover{border-color:var(--ink-3);color:var(--ink)}
-.fin-types button i{width:22px;height:22px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);flex:none}
-.fin-types button[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);font-weight:500}
+/* finish material: a dropdown above the colours */
+.fin-type{display:block;width:calc(100% - 12px);margin:0 6px 10px;font:13px var(--f-ui);padding:6px 28px 6px 9px;border:1px solid var(--rule-2);border-radius:var(--r-sm);color:var(--ink);background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%239e9ea8' stroke-width='1.6'%3E%3Cpath d='m5 6.5 3 3 3-3'/%3E%3C/svg%3E") no-repeat right 8px center;appearance:none;-webkit-appearance:none;cursor:pointer}
+.fin-type:focus{outline:none;border-color:var(--ink-3);box-shadow:0 0 0 3px var(--accent-soft)}
 
 /* slim scrollbars everywhere: a thin rounded thumb, no track */
 *{scrollbar-width:thin;scrollbar-color:var(--rule-2) transparent}
@@ -500,6 +497,18 @@ body.editing .cl-save{display:none}
 .pe-libopen:hover{color:var(--ink);border-color:var(--rule-2)}
 #planEd.lib-off .pe-libopen{display:flex}
 #planEd.lib-off .pe-tip{left:100px;top:17px}
+
+/* the floating selection menu: compact, labels beside their fields */
+#peSide .pe-card{padding:2px 8px 8px}
+#peSide .pe-card h3{margin:8px 6px 4px;font-size:12.5px}
+#peSide .fld{display:grid;grid-template-columns:58px 1fr;align-items:center;gap:8px;margin:4px 6px;font-size:11.5px}
+#peSide .fld input,#peSide .fld select{padding:5px 8px;font-size:12.5px}
+#peSide .pe-wd{gap:6px;margin:0 6px}
+#peSide .pe-wd .fld{display:flex;flex-direction:column;align-items:stretch;gap:3px;margin:4px 0}
+#peSide .pe-row{margin:6px 6px 0;gap:4px}
+#peSide .pe-row .btn{padding:4px 8px;font-size:11.5px}
+#peSide .seg{margin:4px 6px}
+#peSide .pe-note{margin:6px 6px 0;font-size:11px}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -3295,7 +3304,7 @@ function peAddStair(at) {
   BM.stairs = BM.stairs || []; BM.stairs.push(S); PE.selStair = S.id; PE.sel = null; planChanged();
 }
 function peInspector() {
-  peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
+  peSideFollow(); peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
   document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
@@ -3401,23 +3410,46 @@ addEventListener('resize', () => { if (PE.open) peSize(); });
 window.__pe = { PE, get BM() { return BM; } };
 window.__pe.planLevel = planLevel;
 
-// ---------- The selection's options float next to what you clicked (like a right-click menu), not in a side column ----------
-const peSideEl = document.getElementById('peSide'), peBodyEl = peSideEl.parentElement; let pePt = null, peSelKey = '';
-function pePlaceSide() {
-  if (!pePt || innerWidth <= 760) { peSideEl.style.left = peSideEl.style.top = ''; return; }
-  const B = peBodyEl.getBoundingClientRect(), w = peSideEl.offsetWidth, h = peSideEl.offsetHeight, g = 14;
-  let x = pePt[0] - B.left + g, y = pePt[1] - B.top - 20;
-  if (x + w > B.width - 8) x = pePt[0] - B.left - g - w;
-  peSideEl.style.left = Math.max(8, Math.min(x, B.width - w - 8)) + 'px';
-  peSideEl.style.top = Math.max(8, Math.min(y, B.height - h - 8)) + 'px';
+// ---------- The selection's options float beside what's selected (like a right-click menu), never on top of it if there's room ----------
+let pePt = null, peSelKey = '';
+function peSelBox() { // the selection's extent in plan feet: [x0, z0, x1, z1]
+  const U = a => a.length ? [Math.min(...a.map(b => b[0])), Math.min(...a.map(b => b[1])), Math.max(...a.map(b => b[2])), Math.max(...a.map(b => b[3]))] : null;
+  if (PE.multi?.size) return U(BM.rooms.filter(r => PE.multi.has(r.id)).map(r => [r.x, r.z, r.x + r.w, r.z + r.d]));
+  const q = BM.rooms.find(r => r.id === PE.sel); if (q) return [q.x, q.z, q.x + q.w, q.z + q.d];
+  const S = (BM.stairs || []).find(o => o.id === PE.selStair); if (S) { const r = stairRect(S, stairDirOf(S)); return [r.x, r.z, r.x + r.w, r.z + r.d]; }
+  const w = PE.selWall; if (w) return w.axis === 'x' ? [w.a, w.c - .5, w.b, w.c + .5] : [w.c - .5, w.a, w.c + .5, w.b];
+  const X = PE.selX; if (!X) return null;
+  if (X.kind === 'item') { const it = (BM.items || []).find(i => i.id === X.id); if (it) { const [a, b] = itemDims(it); return [it.x - a / 2, it.z - b / 2, it.x + a / 2, it.z + b / 2]; } }
+  if (X.kind === 'note') { const n = (BM.notes || []).find(i => i.id === X.id); if (n) return [n.x - 1, n.z - 1, n.x + 1, n.z + 1]; }
+  if (X.kind === 'dim') { const d = (BM.dims || []).find(i => i.id === X.id); if (d) return [Math.min(d.x1, d.x2), Math.min(d.z1, d.z2), Math.max(d.x1, d.x2), Math.max(d.z1, d.z2)]; }
+  return null;
 }
-pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peBodyEl.classList.add('pe-busy'); });
-addEventListener('pointerup', () => { if (!peBodyEl.classList.contains('pe-busy')) return; peBodyEl.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
-pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too (see pointerdown); no browser menu over the plan
-new MutationObserver(() => { // a new selection (from the canvas, a list, or a shortcut) re-anchors the menu
-  const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), document.getElementById('planEd').classList.contains('has-sel')].join('|');
-  if (k !== peSelKey) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
-}).observe(document.getElementById('planEd'), { attributes: true, attributeFilter: ['class'] });
+function pePlaceSide() {
+  const el = document.getElementById('peSide'), body = el.parentElement;
+  if (innerWidth <= 760) { el.style.left = el.style.top = ''; return; }
+  const B = body.getBoundingClientRect(), C = pc.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, g = 16, m = 8, sb = peSelBox();
+  let L, T, R, Bt; // the selection on screen, relative to the editor body
+  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = a + C.left - B.left; T = b + C.top - B.top; R = c + C.left - B.left; Bt = d + C.top - B.top; }
+  else if (pePt) { L = R = pePt[0] - B.left; T = Bt = pePt[1] - B.top; } else return;
+  const minX = C.left - B.left + m, maxX = B.width - m, clampY = y => Math.max(m, Math.min(y, B.height - h - m)), clampX = x => Math.max(minX, Math.min(x, maxX - w));
+  const opts = [ // [x, y, free space on that side]
+    [R + g, clampY(T), maxX - (R + g) - w],
+    [L - g - w, clampY(T), (L - g - w) - minX],
+    [clampX(L), Bt + g, B.height - m - (Bt + g) - h],
+    [clampX(L), T - g - h, (T - g - h) - m],
+  ];
+  const fit = opts.find(o => o[2] >= 0) || opts.reduce((p, o) => o[2] > p[2] ? o : p);
+  el.style.left = clampX(fit[0]) + 'px'; el.style.top = clampY(fit[1]) + 'px';
+}
+function peSideFollow() { // called after every inspector refresh: move when the selection changes or moves, not while you're typing in it
+  const el = document.getElementById('peSide'); if (!el) return;
+  const k = [PE.sel, PE.selStair, PE.selWall && JSON.stringify(PE.selWall), PE.selX && PE.selX.kind + PE.selX.id, PE.multi?.size].join('|');
+  if (k !== peSelKey || !el.contains(document.activeElement)) { peSelKey = k; requestAnimationFrame(pePlaceSide); }
+}
+pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; pc.parentElement.parentElement.classList.add('pe-busy'); });
+addEventListener('pointerup', () => { const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
+pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too; no browser menu over the plan
+addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 
 // =====================================================================
@@ -4294,7 +4326,7 @@ for (const [sec, items] of FIN) {
   const h = document.createElement('div'); h.className = 'grp'; h.dataset.sec = sec; h.innerHTML = `<h3>${sec}</h3>`; fb.appendChild(h);
   for (const [key, label, mat, types] of items) {
     const g = document.createElement('div'); g.className = 'grp'; g.dataset.sec = sec; g.innerHTML = `<h3>${label}<span class="cur"></span></h3>`;
-    const ty = document.createElement('div'); ty.className = 'fin-types'; if (types.length > 1) g.appendChild(ty);
+    const ty = document.createElement('select'); ty.className = 'fin-type'; ty.setAttribute('aria-label', `${label} material`); if (types.length > 1) g.appendChild(ty);
     const sw = document.createElement('div'); sw.className = 'sw'; g.appendChild(sw); fb.appendChild(g);
     const custom = document.createElement('label'); custom.className = 'sw-custom'; custom.title = 'Any colour'; custom.innerHTML = '<i></i><input type="color" aria-label="Any colour">';
     let cur = { t: -1, c: 0 };
@@ -4302,7 +4334,7 @@ for (const [sec, items] of FIN) {
       T0.colors.forEach(([n, c], i) => { const b = document.createElement('button'); b.type = 'button'; b.id = `sw-${key}-${i}`; b.innerHTML = `<i style="background:${swatchBg(T0.map, c)};background-blend-mode:multiply"></i><span>${n}</span>`; b.title = n; b.onclick = () => pick(`${T0.id}:${i}`); sw.appendChild(b); });
       sw.appendChild(custom); };
     const pick = (v) => { const p = parseFin(types, v), T0 = types[p.t], hex = typeof p.c === 'string' ? p.c : T0.colors[p.c][1], m = mat();
-      if (p.t !== cur.t) { cur.t = p.t; drawColours(); ty.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(j === p.t)));
+      if (p.t !== cur.t) { cur.t = p.t; drawColours(); ty.value = T0.id;
         m.map = T0.map ? TX[T0.map] : null; m.roughness = T0.rough; m.metalness = T0.metal; m.needsUpdate = true; if (typeof renderer !== 'undefined') renderer.shadowMap.needsUpdate = true; }
       cur.c = p.c; m.color.set(hex);
       sw.querySelectorAll('button').forEach((b, j) => b.setAttribute('aria-pressed', String(p.c === j)));
@@ -4311,8 +4343,7 @@ for (const [sec, items] of FIN) {
       const val = `${T0.id}:${p.c}`;
       if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
-    types.forEach((T0, j) => { const b = document.createElement('button'); b.type = 'button'; b.innerHTML = `<i style="background:${swatchBg(T0.map, T0.colors[0][1])};background-blend-mode:multiply"></i><span>${T0.name}</span>`;
-      b.onclick = () => pick(`${T0.id}:0`); ty.appendChild(b); });
+    types.forEach(T0 => ty.add(new Option(T0.name, T0.id))); ty.onchange = () => pick(`${ty.value}:0`);
     custom.querySelector('input').oninput = e => pick(`${types[cur.t].id}:${e.target.value}`);
     pick(saved[key] ?? 0);
   }
