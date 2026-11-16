@@ -7,10 +7,20 @@
 PE.multi = new Set(); PE.selX = null; PE.tool = null;
 const NIL = () => .5; // furniture helpers that want a random source get a fixed one, so pieces look the same every rebuild
 // kind: [name, width, depth, plan colour, build(group, y)] — built facing +z (toward the back of the plan), centred on 0,0.
+const BOOKS2 = [std({ color: '#8a3b33', roughness: .9 })];
+const fabOf = it => it?.color ? finMat(M.fabric, it.color) : undefined; // optional fabric colour per placed piece
 const CATALOG = {
-  sofa: ['Sofa', 7.5, 3.2, '#8d9091', (g, y) => sofa(g, [-3.75, 3.75, -1.6, 1.6], y, 'n')],
-  loveseat: ['Loveseat', 5.5, 3.2, '#8d9091', (g, y) => sofa(g, [-2.75, 2.75, -1.6, 1.6], y, 'n')],
-  armchair: ['Armchair', 2.8, 2.8, '#5d6b74', (g, y) => armchair(g, 0, 0, y, 's', M.fabric2)],
+  sofa: ['Sofa', 7.5, 3.2, '#8d9091', (g, y, it) => { const w = (it?.w || 7.5) / 2; sofa(g, [-w, w, -1.6, 1.6], y, 'n', fabOf(it)); }],
+  sectional: ['Sectional sofa', 9.5, 7, '#8d9091', (g, y, it) => { sofa(g, [-4.75, 4.75, -3.5, -.3], y, 'n', fabOf(it)); sofa(g, [-4.75, -1.55, -.3, 3.5], y, 'w', fabOf(it)); }],
+  art: ['Wall art', 4, .4, '#d9663f', (g, y, it) => art(g, 0, -.2, y + (it?.y ?? 4.2), it?.w || 4, it?.h || 3, () => it?.pick ?? .1, 'x', 1)],
+  pendant: ['Pendant light', 2, 2, '#1b1c1e', (g, y, it) => { const top = y + (it?.top ?? 8.8), drop = it?.drop ?? 1.5; for (const dx of it?.n === 3 ? [-2.2, 0, 2.2] : [0]) pendant(g, dx, 0, top, drop, .8); }],
+  walltv: ['TV, wall-mounted', 5, .3, '#0d0e10', (g, y, it) => { const w = (it?.w || 5) / 2, yb = y + (it?.y ?? 4), h = w * 1.125; box(g, -w, w, yb, yb + h, -.15, .05, M.tv); box(g, -w + .06, w - .06, yb + .06, yb + h - .06, .05, .06, M.black); }],
+  sidetable: ['Side table and lamp', 1.8, 1.8, '#5e4330', (g, y) => { cyl(g, 0, 0, .9, y + 1.8, y + 1.95, M.walnut, 20); cyl(g, 0, 0, .12, y, y + 1.8, M.black, 8); cyl(g, 0, 0, .3, y + 1.95, y + 3.1, M.porcelain, 12, { r2: .35 }); cyl(g, 0, 0, .55, y + 3.1, y + 3.8, M.bulb, 16, { r2: .4 }); }],
+  ottoman: ['Ottoman', 2.4, 2.4, '#8d9091', (g, y, it) => { bx(g, [-1.2, 1.2, -1.2, 1.2], y + .3, y + 1.4, fabOf(it) || M.leather, { solid: true }); for (const [a, b] of [[-1, -.85], [.85, 1]]) for (const [c, d] of [[-1, -.85], [.85, 1]]) box(g, a, b, y, y + .3, c, d, M.black); }],
+  console: ['Console table', 5, 1.4, '#5e4330', (g, y, it) => { table(g, [-2.5, 2.5, -.7, .7], y, 2.6, M.walnut); box(g, -2.3, -1.6, y + 2.6, y + 3.3, -.3, .3, BOOKS2[0]); cyl(g, 1.4, 0, .25, y + 2.6, y + 3.8, M.porcelain, 12, { r2: .18 }); }],
+  fireplace: ['Fireplace wall', 8, 1.4, '#9a968f', (g, y, it) => fireplaceWall(g, [-4, 4, -.7, .7], y, y + (it?.h || 9), 's', [-2.4, 2.4, .7, .74])],
+  loveseat: ['Loveseat', 5.5, 3.2, '#8d9091', (g, y, it) => sofa(g, [-2.75, 2.75, -1.6, 1.6], y, 'n', fabOf(it))],
+  armchair: ['Armchair', 2.8, 2.8, '#5d6b74', (g, y, it) => armchair(g, 0, 0, y, 's', fabOf(it) || M.fabric2)],
   coffee: ['Coffee table', 4, 2.2, '#b48b5e', (g, y) => table(g, [-2, 2, -1.1, 1.1], y, 1.4, M.oak)],
   tvunit: ['TV and console', 6, 1.6, '#2a2b2c', (g, y) => media(g, 0, -.4, y, 6, 's')],
   queen: ['Queen bed', 5.2, 7, '#ecebe6', (g, y) => bed(g, [-2.6, 2.6, -3.5, 3.5], y, 'n')],
@@ -28,7 +38,7 @@ const CATALOG = {
   vanity: ['Vanity', 4, 1.9, '#f2f2ef', (g, y) => vanity(g, [-2, 2, -.95, .95], y, 's', 1, false)],
   toilet: ['Toilet', 1.8, 2.4, '#fbfbfb', (g, y) => toilet(g, 0, -.4, y, 's')],
   washer: ['Washer and dryer', 5.4, 2.4, '#e5e7ea', (g, y) => { for (const x of [-1.4, 1.4]) { box(g, x - 1.25, x + 1.25, y, y + 3.2, -1.2, 1.2, M.white, { solid: true }); cyl(g, x, 1.21, .7, y + 1.2, y + 2.6, M.steel, 20).rotation.x = Math.PI / 2; } }],
-  rug: ['Rug', 8, 5.5, '#c3b9a9', (g, y) => rug(g, [-4, 4, -2.75, 2.75], y + .01)],
+  rug: ['Rug', 8, 5.5, '#c3b9a9', (g, y, it) => { const w = (it?.w || 8) / 2, d = (it?.d || 5.5) / 2; rug(g, [-w, w, -d, d], y + .01, it?.color ? finMat(M.rug, it.color) : undefined); }],
   plant: ['Plant', 1.6, 1.6, '#4f7a37', (g, y) => plant(g, 0, 0, y, NIL)],
   lamp: ['Floor lamp', 1.2, 1.2, '#2a2b2c', (g, y) => floorLamp(g, 0, 0, y)],
   piano: ['Piano', 5, 2.2, '#1b1c1e', (g, y) => { box(g, -2.5, 2.5, y, y + 4.2, -1.1, .2, M.black, { solid: true }); box(g, -2.5, 2.5, y + 2.3, y + 2.6, .2, 1.1, M.black); box(g, -2.3, 2.3, y + 2.6, y + 2.7, .3, 1, M.porcelain); }],
@@ -47,7 +57,7 @@ const CATALOG = {
   hottub: ['Hot tub', 7, 7, '#7cc3dc', (g, y) => { box(g, -3.5, 3.5, y, y + 3, -3.5, 3.5, M.deck, { solid: true }); box(g, -3, 3, y + 2.9, y + 2.95, -3, 3, M.water); }],
   bbq: ['Grill', 4, 2, '#2d2f33', (g, y) => { box(g, -2, 2, y, y + 3, -1, 1, M.metal, { solid: true }); box(g, -1.6, 1.6, y + 3, y + 3.6, -.8, .8, M.black); }],
 };
-const ITEM_GROUPS = [['Living', ['sofa', 'loveseat', 'armchair', 'coffee', 'tvunit', 'rug', 'piano']], ['Bedroom', ['queen', 'king', 'single', 'crib', 'dresser', 'wardrobe']],
+const ITEM_GROUPS = [['Living', ['sofa', 'sectional', 'loveseat', 'armchair', 'coffee', 'tvunit', 'walltv', 'fireplace', 'rug', 'art', 'sidetable', 'ottoman', 'console', 'pendant', 'piano']], ['Bedroom', ['queen', 'king', 'single', 'crib', 'dresser', 'wardrobe']],
   ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Outdoor', ['hottub', 'bbq']]];
 const RESIZABLE = new Set(['base', 'sinkbase', 'upper', 'tall']), WALL_ITEMS = new Set(['base', 'sinkbase', 'upper', 'tall', 'corner', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'wardrobe', 'dresser', 'bookcase', 'tvunit', 'vanity', 'toilet', 'washer', 'tub', 'piano', 'desk']);
 const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it.rot % 2 ? [c[2], w] : [w, c[2]]; };

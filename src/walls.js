@@ -102,6 +102,7 @@ function fillOpening(p, horiz, c, t, os, op) {
     const n0 = fc - .12, n1 = fc + .12;
     boxAN(p, horiz, a + fw, b - fw, yb, yt - fw, n0, n1, FM, { solid: true });
     const pw = b - a - 2 * fw, ph = yt - yb - fw;
+    if (op.plain) { for (let r = 1; r < 8; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 8 - .02, yb + ph * r / 8, n0 - .03, n1 + .03, M.black); return; }
     if (op.top) { const n = Math.max(3, Math.round(pw / 3.4)); for (let q = 0; q < n; q++) { const sx = a + fw + pw * (q + .1) / n; boxAN(p, horiz, sx, sx + pw * .8 / n, yb + ph * .79, yb + ph * .92, n0 - .02, n1 + .02, M.frost); } } // a row of lites along the top panel
     else for (let r = 0; r < 4; r++) for (let q = 0; q < 2; q++) {
       const sx = a + fw + pw * (0.12 + q * 0.5), sy = yb + ph * (0.14 + r * 0.22);

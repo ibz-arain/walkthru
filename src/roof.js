@@ -112,9 +112,9 @@ function roofLevel(parent, o) {
   }
   const mesh = (arr, mat, uvs) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); if (uvs) g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2)); else g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(arr.length / 3 * 2).fill(0), 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); return m; };
-  mesh(pos, M.roof, uv); if (under.length) mesh(under, M.soffit);
+  mesh(pos, o.roofMat || M.roof, uv); if (under.length) mesh(under, o.soffitMat || M.soffit);
   // a second skin a hair below the first: the long merged strips meet at T-junctions, and this hides the hairline cracks there
-  const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, M.roof, uv); // casts shadow too, so sunlight can't leak through those cracks either
+  const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, o.roofMat || M.roof, uv); // casts shadow too, so sunlight can't leak through those cracks either
 
   // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
   const fas = [], FT = .22, FB = .75;

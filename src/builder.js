@@ -114,6 +114,25 @@ TX.brick = ctex(256, 4, (g, s, r) => { g.fillStyle = '#b9b2a6'; g.fillRect(0, 0,
     g.fillStyle = `hsl(${h},${38 + r() * 14}%,${l}%)`; g.fillRect(x + 1.5, i * rh + 1.5, bw - 3, rh - 3); } }, 47);
 Object.assign(M, { batten: std({ map: TX.batten, color: '#767a80', roughness: .85, side: THREE.DoubleSide }), brick: std({ map: TX.brick, color: '#ffffff', roughness: .92 }),
   gdoor: std({ color: '#4a4d52', roughness: .55, metalness: .2 }), fence: std({ map: TX.deck, color: '#c9a07a', roughness: .85 }), lamp: std({ color: '#ffe2a8', emissive: '#ffcf7a', emissiveIntensity: 1.2 }) });
+// grey fieldstone (House 4 style): random-height courses in greys and warm tans
+TX.fstone = ctex(512, 5, (g, s, r) => { g.fillStyle = '#6e6a64'; g.fillRect(0, 0, s, s); let y = 0;
+  while (y < s) { const h = Math.min(s - y, 46 + r() * 44 | 0); let x = -r() * 120;
+    while (x < s) { const w = 90 + r() * 140, t = r(), hue = t < .14 ? 30 : t < .3 ? 210 : 40, sat = t < .14 ? 16 : t < .3 ? 5 : 4 + r() * 6, l = t < .3 && t >= .14 ? 40 + r() * 14 | 0 : 60 + r() * 22 | 0;
+      g.fillStyle = `hsl(${hue},${sat}%,${l}%)`; g.fillRect(x + 3, y + 3, w - 5, h - 5);
+      g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(x + 3, y + 3, w - 5, 3); g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(x + 3, y + h - 6, w - 5, 3);
+      for (let k = 0; k < 40; k++) { const q = l + (r() - .5) * 20 | 0; g.fillStyle = `hsla(${hue},${sat}%,${q}%,.5)`; g.fillRect(x + 3 + r() * (w - 8), y + 3 + r() * (h - 8), 3, 3); }
+      x += w; }
+    y += h; } }, 53);
+TX.dsiding = ctex(256, 3, (g, s, r) => { noise(g, s, r, 150, 14, 5000, 2); for (let i = 0; i < 12; i++) { g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(0, i * s / 12, s, 2); g.fillStyle = 'rgba(255,255,255,.12)'; g.fillRect(0, i * s / 12 + 2, s, 2); } }, 59);
+Object.assign(M, { fstone: std({ map: TX.fstone, color: '#ffffff', roughness: .95 }), dsiding: std({ map: TX.dsiding, color: '#8a927f', roughness: .8, side: THREE.DoubleSide }),
+  gdoor2: std({ color: '#d9d9d5', roughness: .55 }), gravel: std({ map: TX.concrete, color: '#8b8d90', roughness: 1 }), curb: std({ color: '#a8a8a4', roughness: .9 }), flowers: [std({ color: '#d9507a', roughness: 1 }), std({ color: '#e8a23a', roughness: 1 }), std({ color: '#f1f1ea', roughness: 1 })] });
+// modern style: each volume picks its own cladding (r.clad)
+TX.cedar = ctex(256, 3, (g, s, r) => { for (let i = 0; i < 10; i++) { const v = 150 + r() * 50 | 0; g.fillStyle = `rgb(${v},${v * .72 | 0},${v * .5 | 0})`; g.fillRect(i * s / 10, 0, s / 10, s);
+  for (let k = 0; k < 8; k++) { g.fillStyle = `rgba(80,45,20,${.08 + r() * .1})`; g.fillRect(i * s / 10 + r() * s / 10, 0, 1.5, s); } g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(i * s / 10, 0, 2, s); } }, 61);
+const DS2 = { side: THREE.DoubleSide }; // gable ends are drawn as single faces: cladding must show from both sides
+Object.assign(M, { cedar: std({ map: TX.cedar, color: '#ffffff', roughness: .7, ...DS2 }), panel: std({ map: TX.seam, color: '#3a3c40', roughness: .55, metalness: .3, ...DS2 }), render: std({ map: TX.stucco, color: '#f6f5f1', roughness: .9, ...DS2 }),
+  limeW: std({ map: TX.limestone, color: '#efebe3', roughness: .9, ...DS2 }), wood2: std({ map: TX.cedar, color: '#ffffff', roughness: .7 }), poolTile: std({ color: '#2f7fa3', roughness: .3 }), soffitM: std({ color: '#ecebe7', roughness: .8, side: THREE.DoubleSide }), panelSlat: std({ color: '#33363a', roughness: .6 }), gdoorDark: std({ color: '#5a5e63', roughness: .55, metalness: .1 }), seamRoof: std({ map: TX.seam, color: '#26282b', roughness: .75, metalness: .1, side: THREE.DoubleSide }) });
+const CLAD = () => ({ cedar: M.cedar, dark: M.panel, render: M.render, stone: M.limeW, fstone: M.fstone });
 let BM;
 try { BM = JSON.parse(localStorage.getItem('walkthru-builder-v1') || 'null'); } catch (e) { }
 if (!BM || !Array.isArray(BM.rooms)) BM = starterPlan();
@@ -213,6 +232,9 @@ function planLevel(lv) {
       for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh, style: ov.style, lites: ov.style === 'grid' }); } continue; }
     if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
     const T = RT[w.room.type] || {};
+    if (T.garage && lv === 'M' && BM.style === 'modern' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { w.ops.push({ c: (w.a + w.b) / 2, w: 16, b: GF, h: 8, k: 'garage', fm: M.gdoorDark, plain: true }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
+    if (T.garage && lv === 'M' && BM.style === 'stone' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { // two single doors with a stone pier between
+      w.ops.push({ c: w.a + L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }, { c: w.b - L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
@@ -450,13 +472,13 @@ function buildHouse3() {
         const corners = [[r.x, r.z], [r.x + r.w, r.z], [r.x, r.z + r.d], [r.x + r.w, r.z + r.d]];
         const indoorAt = (x, z) => BM.rooms.some(o => o.level === lv && !isOut(o) && x > o.x - .2 && x < o.x + o.w + .2 && z > o.z - .2 && z < o.z + o.d + .2);
         if (lv === 'U') for (const [cx, cz] of corners) if (!BM.rooms.some(o => o.level === 'M' && cx >= o.x - .1 && cx <= o.x + o.w + .1 && cz >= o.z - .1 && cz <= o.z + o.d + .1)) { const sx = cx === r.x ? .3 : -.3, sz = cz === r.z ? .3 : -.3; box(P, cx + Math.min(0, sx * 2), cx + Math.max(0, sx * 2), 0, fy - 1.04, cz + Math.min(0, sz * 2), cz + Math.max(0, sz * 2), M.white, { solid: true }); }
-        const STY = BM.style === 'batten', frontSide = r.z < Math.min(...BM.rooms.filter(o => o.level === 'M' && !isOut(o)).map(o => o.z + o.d / 2));
-        if (T.covered) { for (const [cx, cz] of corners) if (!indoorAt(cx, cz)) { const sx = cx === r.x ? 1 : -1, sz = cz === r.z ? 1 : -1, A = (k, wd) => [k + Math.min(0, (k === cx ? sx : sz) * wd), k + Math.max(0, (k === cx ? sx : sz) * wd)];
+        const STY = BM.style === 'batten' || BM.style === 'stone', PIER = BM.style === 'stone' ? M.fstone : M.brick, SIDE = BM.style === 'stone' ? M.dsiding : M.batten, frontSide = r.z < Math.min(...BM.rooms.filter(o => o.level === 'M' && !isOut(o)).map(o => o.z + o.d / 2));
+        if (T.covered) { for (const [cx, cz] of corners) if (!indoorAt(cx, cz) && BM.style !== 'modern') { const sx = cx === r.x ? 1 : -1, sz = cz === r.z ? 1 : -1, A = (k, wd) => [k + Math.min(0, (k === cx ? sx : sz) * wd), k + Math.max(0, (k === cx ? sx : sz) * wd)];
             if (STY) { const ins = (k, s2, wd) => [k + s2 * .15, k + s2 * (.15 + wd)].sort((p, q) => p - q);
-              if (frontSide) { const [a0, a1] = ins(cx, sx, 1.5), [b0, b1] = ins(cz, sz, 1.5); box(P, a0, a1, fy, fy + 2.8, b0, b1, M.brick, { solid: true }); box(P, a0 - .08, a1 + .08, fy + 2.8, fy + 2.95, b0 - .08, b1 + .08, M.concrete); }
+              if (frontSide) { const [a0, a1] = ins(cx, sx, 1.5), [b0, b1] = ins(cz, sz, 1.5); box(P, a0, a1, fy, fy + 2.8, b0, b1, PIER, { solid: true }); box(P, a0 - .08, a1 + .08, fy + 2.8, fy + 2.95, b0 - .08, b1 + .08, M.concrete); }
               const d = frontSide ? .42 : 0, [a0, a1] = ins(cx + sx * d, sx, .65), [b0, b1] = ins(cz + sz * d, sz, .65); box(P, a0, a1, fy, MC - .6, b0, b1, M.trim, { solid: true }); }
             else box(P, ...A(cx, 1.1), fy, MC - .6, ...A(cz, 1.1), M.stone, { solid: true }); }
-          box(P, r.x, r.x + r.w, MC - .6, MC, r.z, r.z + r.d, STY ? M.batten : M.stucco); flat(G3.mainCeil, rr, [], MC - .62, M.soffit); }
+          box(P, r.x, r.x + r.w, MC - .6, MC, r.z, r.z + r.d, BM.style === 'modern' ? M.trim2 : STY ? SIDE : M.stucco); flat(G3.mainCeil, rr, [], MC - .62, BM.style === 'modern' ? M.soffitM : M.soffit); }
         if (T.rail) for (const e of edgesOf(r)) { // railings on the open edges
           const segs = sub1d([e.a, e.b], BM.rooms.filter(o => o.level === lv && !isOut(o) && o !== r).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; }));
           for (const [a, b] of segs) railing(P, e.axis, e.c, a, b, fy);
@@ -474,7 +496,7 @@ function buildHouse3() {
         for (const q of open) flat(G3.mainCeil, q, [], UC - .02, M.ceil);
         if (!fullyTall(r)) flat(G3.mainCeil, rr, open, yc - .02, M.ceil); }
       else flat(lv === 'U' ? G3.upperCeil : G3.mainCeil, rr, [], (lv === 'U' ? UC : yc) - .02, M.ceil);
-      if (showFurnBuild) { if (r.type === 'garage') { if (carDone) r._car = true; carDone = true; } furnish(furn[lv], r, g ? GF : y, zones); delete r._car; }
+      if (showFurnBuild && !r.nofurn) { if (r.type === 'garage') { if (carDone) r._car = true; carDone = true; } furnish(furn[lv], r, g ? GF : y, zones); delete r._car; }
     }
     // staircases starting on this level
     for (const S of stairsOn(lv)) {
@@ -516,8 +538,8 @@ function buildHouse3() {
         o.faceMat = {}; for (const q of ext ? [w.room] : w.rooms) if (q.finish) o.faceMat[faceOf(q)] = paintFor(q, sideOfRoom(q, w.axis, w.c));
         if (ext) {
           const [ox, oz] = nrm[w.out], [qx, qz] = probe(ox * .6, oz * .6), overVoid = lv === 'U' && inTall(qx, qz);
-          const STY = BM.style === 'batten';
-          Object.assign(o, { out: w.out, outer: overVoid ? M.paint : lv === 'B' ? M.found : STY ? M.batten : M.stucco, skirt: lv === 'M' });
+          const STY = BM.style === 'batten', STN = BM.style === 'stone', MOD = BM.style === 'modern';
+          Object.assign(o, { out: w.out, outer: overVoid ? M.paint : lv === 'B' ? M.found : CLAD()[w.room.clad] || (STY ? M.batten : STN ? M.fstone : MOD ? M.render : M.stucco), skirt: lv === 'M' && !STN && !MOD });
           if (STY && lv === 'M') Object.assign(o, w.out === '-z' ? { skirtMat: M.brick, skirtTop: MF + 1.5 } : { skirtMat: M.found, skirtTop: TF + .2 });
           if (overVoid) { o.y0 = MC; o.ops = []; } // the box's face drops to the main ceiling line, so the floor edge is covered
         }
@@ -538,22 +560,52 @@ function buildHouse3() {
   const upLike = up.concat(main.filter(isTall));
   // one roof per level over its whole footprint (see roof.js): the 2nd floor's, then the main floor's where nothing sits on it
   ROOF3 = [];
-  const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : M.stucco, e = EXT / 2;
+  const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : BM.style === 'stone' ? M.fstone : BM.style === 'modern' ? M.render : M.stucco, rmo = BM.style === 'modern' ? { roofMat: M.seamRoof, soffitMat: M.soffitM } : {}, e = EXT / 2;
   const outer = rs => rs.map(([x0, x1, z0, z1]) => [x0 - e, x1 + e, z0 - e, z1 + e]), ov = BM.ov ?? 1.5;
-  const upR = outer(rectCells(upLike)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc))), balcR = outer(rectCells(balc));
+  const ownRoof = main.filter(r => r.roof === 'gable'); // single-storey rooms with a gable roof of their own (a garage, say)
+  const upR = outer(rectCells(upLike)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc, ownRoof))), balcR = outer(rectCells(balc)), ownR = outer(rectCells(ownRoof));
+  const flatSlabs = list => { for (const [[x0, x1, z0, z1], plate] of list) {
+      const MO = BM.style === 'modern', o2 = MO ? (BM.ovFlat ?? BM.ov ?? 2) : .8;
+      // a lower roof stops at the wall of a taller volume next to it, instead of running into that room (or its overhang showing inside)
+      const taller = plate === MC ? upR.concat(ownR) : [], hit = (x, z) => taller.some(([a0, a1, b0, b1]) => x > a0 && x < a1 && z > b0 && z < b1), mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+      const ow = hit(x0 - .5, mz) ? -e : o2, oe = hit(x1 + .5, mz) ? -e : o2, on = hit(mx, z0 - .5) ? -e : o2, os = hit(mx, z1 + .5) ? -e : o2; // -e: stop at the wall's centre line, clear of the room's face
+      box(G3.roof, x0 - ow, x1 + oe, plate, plate + .9, z0 - on, z1 + os, MO ? M.white : flatRoofMat); box(G3.roof, x0 - ow - .05, x1 + oe + .05, plate + .9, plate + 1.05, z0 - on - .05, z1 + os + .05, M.trim);
+      if (MO) flat(G3.roof, rect(x0 - ow, x1 + oe, z0 - on, z1 + os), [], plate - .01, M.soffitM); } };
+  const flatInfo = (plate, name) => ({ name, plate, pitch: 0, asked: 0, eaveH: plate + .9, maxH: plate + 1.05, style: 'flat', heightAt: () => null });
   if (BM.roof === 'flat') {
-    for (const [[x0, x1, z0, z1], plate] of [...upR.map(q => [q, UC]), ...mainOnly.map(q => [q, MC])]) {
-      box(G3.roof, x0 - .8, x1 + .8, plate, plate + .9, z0 - .8, z1 + .8, flatRoofMat); box(G3.roof, x0 - .85, x1 + .85, plate + .9, plate + 1.05, z0 - .85, z1 + .85, M.trim); }
-    ROOF3.push(...[[upR, UC, '2nd floor roof'], [mainOnly, MC, 'Main floor roof']].filter(q => q[0].length).map(([, plate, name]) => ({ name, plate, pitch: 0, asked: 0, eaveH: plate + .9, maxH: plate + 1.05, style: 'flat', heightAt: () => null })));
+    flatSlabs([...upR.map(q => [q, UC]), ...mainOnly.map(q => [q, MC])]);
+    ROOF3.push(...[[upR, UC, '2nd floor roof'], [mainOnly, MC, 'Main floor roof']].filter(q => q[0].length).map(([, plate, name]) => flatInfo(plate, name)));
   } else {
     const style = BM.roof === 'gable' || BM.roof === 'shed' ? BM.roof : 'hip', P = style === 'shed' ? Math.min(pitch, 4 / 12) : pitch;
-    if (upR.length) roofLevel(G3.roof, { name: '2nd floor roof', eaves: upR, plate: UC, pitch: P, ov, style, wallMat: gw });
+    if (upR.length) roofLevel(G3.roof, { name: '2nd floor roof', eaves: upR, plate: UC, pitch: P, ov, style, wallMat: gw, ...rmo });
+    // mainRoof 'flat': the single-storey parts get flat canopies under the pitched upper roof
+    if (mainOnly.length && BM.mainRoof === 'flat') { flatSlabs(mainOnly.map(q => [q, MC])); ROOF3.push(flatInfo(MC, 'Main floor roof')); }
     // a lower roof that meets the storey above slopes away from it, and is kept below the 2nd-floor windows
-    if (mainOnly.length) roofLevel(G3.roof, { name: 'Main floor roof', eaves: mainOnly, inner: mainR, solid: upR.concat(balcR), plate: MC + .03, pitch: P, ov, style, wallMat: gw, cap: upR.length ? UC - .5 : null, windows: upR.length ? planLevel('U').filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
+    else if (mainOnly.length) roofLevel(G3.roof, { ...rmo, name: 'Main floor roof', eaves: mainOnly, inner: mainR, solid: upR.concat(balcR), plate: MC + .03, pitch: P, ov, style, wallMat: gw, cap: upR.length ? UC - .5 : null, windows: upR.length ? planLevel('U').filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
   }
+  for (const r of ownRoof) { const x0 = r.x - e, x1 = r.x + r.w + e, z0 = r.z - e, z1 = r.z + r.d + e; // ridge runs front to back: a gable end faces the street
+    hipRoof(G3.roof, { x0, x1, z0: z0 - 1.4, z1, plate: MC + .03, pitch, ov: 1.4, slopes: { e: true, w: true }, mat: rmo.roofMat, soffit: rmo.soffitMat, wall: CLAD()[r.clad] || gw, gables: [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] }); }
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
-  for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: 7 / 12, ov: 1.2, slopes: { e: true, w: true }, wall: M.batten,
-    gables: [{ edge: 'n', at: gb.z0 + 1.05 }, ...(gb.back ? [{ edge: 's', at: gb.z1 }] : [])] });
+  for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: (gb.pitch || 7) / 12, ov: gb.ov ?? 1.2, slopes: { e: true, w: true }, wall: gb.wall === 'siding' ? M.dsiding : gb.wall === 'stone' ? M.fstone : M.batten,
+    gables: [{ edge: 'n', at: gb.z0 + (gb.at ?? 1.05) }, ...(gb.back ? [{ edge: 's', at: gb.z1 }] : [])] });
+  // dormers: a dark-sided box with a window, poking out of the roof, with its own gabled roof
+  for (const dm of BM.extras?.dormers || []) { const cx = (dm.x0 + dm.x1) / 2, ww = Math.min(5, (dm.x1 - dm.x0) - 1.6);
+    box(G3.roof, dm.x0 + .35, dm.x1 - .35, dm.y0, dm.plate, dm.z0 + .35, dm.z0 + 1.1, M.dsiding, { solid: true });
+    box(G3.roof, cx - ww / 2 - .2, cx + ww / 2 + .2, dm.plate - 2.85, dm.plate - .35, dm.z0 + .3, dm.z0 + .4, M.trim);
+    box(G3.roof, cx - ww / 2, cx + ww / 2, dm.plate - 2.7, dm.plate - .5, dm.z0 + .24, dm.z0 + .3, M.glass); box(G3.roof, cx - .05, cx + .05, dm.plate - 2.7, dm.plate - .5, dm.z0 + .2, dm.z0 + .32, M.trim);
+    hipRoof(G3.roof, { x0: dm.x0, x1: dm.x1, z0: dm.z0, z1: dm.z1, plate: dm.plate, pitch: (dm.pitch || 9) / 12, ov: .9, slopes: { e: true, w: true }, wall: M.dsiding, gables: [{ edge: 'n', at: dm.z0 + .7 }] }); }
+  // landscaping for the stone house: shrubs and a gravel bed along the front, flower pots by the steps
+  for (const sb of BM.extras?.shrubs || []) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(sb[2], 1), sb[3] === 'f' ? M.flowers[(sb[0] * 7 | 0) % 3] : (sb[0] * 3 | 0) % 2 ? M.leaf : M.leaf2);
+    m.position.set(sb[0], (sb[4] || 0) + sb[2] * .8, sb[1]); m.scale.y = .8; m.castShadow = true; G3.site.add(m); }
+  for (const t of BM.extras?.trees || []) tree(t[0], t[1], t[2], G3.trees);
+  for (const pl of BM.extras?.pools || []) { const [x0, x1, z0, z1] = pl; // pool: paver deck, coping and water
+    flat(G3.site, rect(x0 - 5, x1 + 5, z0 - 5, z1 + 5), [rect(x0 - 1, x1 + 1, z0 - 1, z1 + 1)], .05, M.pavers, { walk: true });
+    for (const [a0, a1, b0, b1] of [[x0 - 1, x1 + 1, z0 - 1, z0], [x0 - 1, x1 + 1, z1, z1 + 1], [x0 - 1, x0, z0, z1], [x1, x1 + 1, z0, z1]]) box(G3.site, a0, a1, 0, .25, b0, b1, M.white, { walk: true });
+    flat(G3.site, rect(x0, x1, z0, z1), [], .03, M.poolTile); flat(G3.site, rect(x0, x1, z0, z1), [], .12, M.water); }
+  for (const pt of BM.extras?.planters || []) { box(G3.site, pt[0], pt[1], 0, pt[4] || 1.6, pt[2], pt[3], M.panel, { solid: true }); flat(G3.site, rect(pt[0] + .2, pt[1] - .2, pt[2] + .2, pt[3] - .2), [], (pt[4] || 1.6) + .01, M.bark); }
+  for (const sc of BM.extras?.screens || []) { const [x0, x1, z0, z1, y0, y1] = sc, along = x1 - x0 >= z1 - z0; for (let t = along ? x0 : z0; t < (along ? x1 : z1); t += .5) along ? box(G3.roof, t, t + .22, y0, y1, z0, z1, M.panelSlat) : box(G3.roof, x0, x1, y0, y1, t, t + .22, M.panelSlat); }
+  for (const sl of BM.extras?.slabs || []) box(G3.site, sl[0], sl[1], sl[2], sl[3], sl[4], sl[5], M.concrete, { walk: true });
+  for (const gv of BM.extras?.beds || []) { flat(G3.site, gv.pts, [], .06, M.gravel); }
   // site: ground, street, driveway to the garage door, walk to the front door
   const all = rooms.filter(r => r.level !== 'B'); const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
   const bsm = rooms.filter(r => r.level === 'B');
