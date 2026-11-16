@@ -48,6 +48,21 @@ export const canManage = w => !!w && (w.super || ['owner', 'admin'].includes(w.r
 // Does this caller's workspace own the project? (The legacy studio key sees everything.)
 export const ownsProject = (w, p) => !!w && !!p && (w.super || (w.org && p.org_id === w.org.id));
 
+export const INVITE_DAYS = 7;
+export const inviteLive = inv => !!inv && !inv.accepted_at && now() - inv.created_at < INVITE_DAYS * 864e5;
+export const clientIp = req => String(req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+// Rate limiting: `max` failures inside `windowMs` locks the key for `lockMs`.
+export async function throttled(c, key) {
+  const r = (await c.execute({ sql: 'SELECT locked_until FROM attempts WHERE key = ?', args: [key] })).rows[0];
+  return r?.locked_until && r.locked_until > now() ? Math.ceil((r.locked_until - now()) / 60e3) : 0;
+}
+export async function failed(c, key, max, windowMs = 15 * 60e3, lockMs = 15 * 60e3) {
+  const r = (await c.execute({ sql: 'SELECT * FROM attempts WHERE key = ?', args: [key] })).rows[0], t = now();
+  if (!r || t - r.first_at > windowMs) return c.execute({ sql: 'INSERT OR REPLACE INTO attempts (key, n, first_at, locked_until) VALUES (?, 1, ?, NULL)', args: [key, t] });
+  const n = r.n + 1; await c.execute({ sql: 'UPDATE attempts SET n = ?, locked_until = ? WHERE key = ?', args: [n, n >= max ? t + lockMs : null, key] });
+}
+export const cleared = (c, key) => c.execute({ sql: 'DELETE FROM attempts WHERE key = ?', args: [key] });
+
 export async function createWorkspace(c, userId, name) {
   const id = token(6), t = now();
   await c.batch([

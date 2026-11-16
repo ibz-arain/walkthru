@@ -11,9 +11,9 @@ for (const n of ['auth', 'team', 'designs', 'projects', 'project', 'share', 'com
 
 // A tiny client that keeps its own cookie, like one browser.
 function client() {
-  let cookie = '';
+  let cookie = ''; const ip = `10.0.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
   return async (name, method = 'GET', query = {}, data, headers = {}) => {
-    const req = { method, query, headers: { cookie, host: 'test.local', 'content-type': 'application/json', ...headers }, body: data };
+    const req = { method, query, headers: { cookie, host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': ip, ...headers }, body: data };
     const out = { code: 200, headers: {} };
     const res = { setHeader(k, v) { out.headers[k.toLowerCase()] = v; }, getHeader(k) { return out.headers[k.toLowerCase()]; }, status(c) { out.code = c; return res; }, json(b) { out.body = b; } };
     await H[name](req, res);
@@ -116,6 +116,29 @@ test('ALLOW_SIGNUPS=false closes sign-up except for invites', async () => {
     const r = await client()('auth', 'POST', { action: 'signup' }, { email: 'invited@example.com', password: 'longpassword', invite: inv });
     assert.equal(r.code, 201); assert.equal(r.body.org.name, 'Closed Co');
   } finally { delete process.env.ALLOW_SIGNUPS; }
+});
+
+test('sign-in lockout, invite expiry, admin password reset', async () => {
+  const own = client(), bad = client();
+  await own('auth', 'POST', { action: 'signup' }, { email: 'lock@example.com', password: 'longpassword', workspace: 'Lock' });
+  for (let i = 0; i < 5; i++) assert.equal((await bad('auth', 'POST', { action: 'login' }, { email: 'lock@example.com', password: 'nope' })).code, 401);
+  assert.equal((await bad('auth', 'POST', { action: 'login' }, { email: 'lock@example.com', password: 'longpassword' })).code, 429, 'locked after 5 misses');
+  const { db } = await import('../api/_lib/db.js'); const c = await db(); await c.execute("DELETE FROM attempts WHERE key LIKE 'login:lock@%'");
+
+  const inv = (await own('team', 'POST', {}, { email: 'late@example.com', role: 'viewer' })).body.token;
+  await c.execute({ sql: 'UPDATE invites SET created_at = ? WHERE token = ?', args: [Date.now() - 8 * 864e5, inv] });
+  assert.equal((await own('team')).body.invites[0].expired, true);
+  const late = await client()('auth', 'POST', { action: 'signup' }, { email: 'late@example.com', password: 'longpassword', invite: inv });
+  assert.notEqual(late.body.org?.name, 'Lock', 'an expired invite does not join the workspace');
+
+  const mate = client(); const inv2 = (await own('team', 'POST', {}, { email: 'mate@example.com', role: 'editor' })).body.token;
+  await mate('auth', 'POST', { action: 'signup' }, { email: 'mate@example.com', password: 'longpassword', invite: inv2 });
+  const mateId = (await own('team')).body.members.find(m => m.email === 'mate@example.com').id;
+  const r = await own('team', 'POST', { action: 'reset' }, { userId: mateId }); assert.equal(r.code, 201);
+  const tok = r.body.url.split('#reset/')[1];
+  assert.equal((await client()('auth', 'POST', { action: 'reset' }, { token: tok, password: 'brandnewpass' })).code, 200);
+  assert.equal((await client()('auth', 'POST', { action: 'login' }, { email: 'mate@example.com', password: 'brandnewpass' })).code, 200);
+  assert.equal((await mate('auth')).body.user, null, 'old sessions end after a reset');
 });
 
 test.after(() => { try { rmSync(file); } catch (e) { } });

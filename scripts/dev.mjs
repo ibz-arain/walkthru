@@ -15,8 +15,12 @@ process.chdir(root);
 const PORT = +(process.env.PORT || 8787);
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.mp4': 'video/mp4', '.svg': 'image/svg+xml' };
 
+// Same response headers as Vercel (vercel.json), minus HSTS which only makes sense on https.
+const VH = JSON.parse(readFileSync(path.join(root, 'vercel.json'), 'utf8')).headers || [];
+const applyHeaders = (res, p) => { for (const h of VH) if (new RegExp('^' + h.source.replace('(.*)', '.*') + '$').test(p)) for (const { key, value } of h.headers) if (key !== 'Strict-Transport-Security' && !(key === 'Cache-Control')) res.setHeader(key, value); };
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  applyHeaders(res, url.pathname);
   if (url.pathname.startsWith('/api/')) {
     const name = url.pathname.slice(5).replace(/[^a-z0-9-]/gi, '');
     const file = path.join(root, 'api', `${name}.js`);

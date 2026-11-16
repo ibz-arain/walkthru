@@ -9,7 +9,7 @@
 // PATCH /api/auth                      {name?, notify?, current?, password?, workspace?}
 import { route, send, fail, body } from './_lib/http.js';
 import { db, now } from './_lib/db.js';
-import { who, hashPass, checkPass, startSession, endSession, createWorkspace, validEmail, token, sha, canManage, ROLES, signupsOpen } from './_lib/auth.js';
+import { who, hashPass, checkPass, startSession, endSession, createWorkspace, validEmail, token, sha, canManage, ROLES, signupsOpen, inviteLive, clientIp, throttled, failed, cleared } from './_lib/auth.js';
 import { sendMail, layout, appUrl } from './_lib/mail.js';
 
 async function me(c, w) {
@@ -19,7 +19,7 @@ async function me(c, w) {
 }
 async function joinInvite(c, inviteToken, user) {
   const inv = (await c.execute({ sql: 'SELECT * FROM invites WHERE token = ? AND accepted_at IS NULL', args: [inviteToken] })).rows[0];
-  if (!inv) return null;
+  if (!inviteLive(inv)) return null;
   if (inv.email.toLowerCase() !== user.email.toLowerCase()) throw Object.assign(new Error(`This invite was sent to ${inv.email}`), { status: 403 });
   await c.batch([
     { sql: 'INSERT OR IGNORE INTO members (org_id, user_id, role, created_at) VALUES (?, ?, ?, ?)', args: [inv.org_id, user.id, ROLES.includes(inv.role) ? inv.role : 'editor', now()] },
@@ -37,10 +37,11 @@ export default route({
     if (a === 'signup') {
       const email = String(b.email || '').trim().toLowerCase();
       if (!validEmail(email)) return fail(res, 400, 'Enter a valid email address');
+      const sKey = `signup-ip:${clientIp(req)}`, sWait = await throttled(c, sKey); if (sWait) return fail(res, 429, `Too many sign-ups from here. Try again in ${sWait} minutes.`); await failed(c, sKey, 10, 3600e3, 3600e3);
       if (tooShort(b.password)) return fail(res, 400, 'Use at least 8 characters for your password');
       if ((await c.execute({ sql: 'SELECT 1 FROM users WHERE email = ?', args: [email] })).rows.length) return fail(res, 409, 'There is already an account with that email. Sign in instead.');
       if (!signupsOpen()) {
-        const invited = b.invite && (await c.execute({ sql: 'SELECT email FROM invites WHERE token = ? AND accepted_at IS NULL', args: [b.invite] })).rows[0];
+        let invited = b.invite && (await c.execute({ sql: 'SELECT * FROM invites WHERE token = ? AND accepted_at IS NULL', args: [b.invite] })).rows[0]; if (!inviteLive(invited)) invited = null;
         const first = (await c.execute('SELECT COUNT(*) AS n FROM users')).rows[0].n === 0;
         if (!first && (!invited || invited.email.toLowerCase() !== email)) return fail(res, 403, 'Sign-ups are closed. Ask your team for an invite.');
       }
@@ -58,8 +59,12 @@ export default route({
       return send(res, 201, await me(c, await who({ headers: { cookie: res.getHeader('set-cookie') } })));
     }
     if (a === 'login') {
-      const u = (await c.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [String(b.email || '').trim().toLowerCase()] })).rows[0];
-      if (!u || !checkPass(b.password, u.pass_hash)) return fail(res, 401, 'That email and password don’t match');
+      const email = String(b.email || '').trim().toLowerCase(), eKey = `login:${email}`, iKey = `login-ip:${clientIp(req)}`;
+      const wait = Math.max(await throttled(c, eKey), await throttled(c, iKey));
+      if (wait) return fail(res, 429, `Too many attempts. Try again in ${wait} minute${wait > 1 ? 's' : ''}.`);
+      const u = (await c.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] })).rows[0];
+      if (!u || !checkPass(b.password, u.pass_hash)) { await failed(c, eKey, 5); await failed(c, iKey, 30); return fail(res, 401, 'That email and password don’t match'); }
+      await cleared(c, eKey);
       await startSession(req, res, u.id, null);
       return send(res, 200, await me(c, await who({ headers: { cookie: res.getHeader('set-cookie') } })));
     }

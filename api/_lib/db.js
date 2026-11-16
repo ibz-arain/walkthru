@@ -41,6 +41,8 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS outbox (id INTEGER PRIMARY KEY AUTOINCREMENT, to_addr TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL, error TEXT, created_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, name TEXT NOT NULL, detail TEXT, path TEXT, user_id TEXT, created_at INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS logs_kind ON logs(kind, created_at)`,
+  // Failed sign-in / link-password attempts, for rate limiting.
+  `CREATE TABLE IF NOT EXISTS attempts (key TEXT PRIMARY KEY, n INTEGER NOT NULL, first_at INTEGER NOT NULL, locked_until INTEGER)`,
 ];
 // Columns added after the first release. SQLite has no "ADD COLUMN IF NOT EXISTS", so each one is tried and "duplicate column" is ignored.
 const COLUMNS = [
