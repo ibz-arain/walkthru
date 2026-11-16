@@ -46,13 +46,12 @@
 #peResize::after{content:"";position:absolute;top:50%;left:4px;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--rule-2)}
 #peResize:hover::after,#peResize:focus-visible::after{background:var(--accent)}
 body.editing #hint{display:none}
-body.editing #clHead{display:none!important}
 @media (max-width:1100px){#peSide{width:200px} #peList{width:140px}}
 @media (max-width:760px){#planEd{width:calc(100vw - var(--il) - var(--ir) - var(--gap) * 2)!important} #peList{width:112px} #peSide{display:none} #peResize{display:none}}
 
 /* ---------- Studio dashboard ---------- */
 #studio{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;font-size:14px}
-.st-top{position:sticky;top:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:54px;margin:10px 10px 0;padding:0 10px 0 18px;background:var(--glass);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
+.st-top{position:sticky;top:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:54px;margin:10px 10px 0;padding:0 10px 0 18px;background:var(--glass);-webkit-border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
 .st-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none}.st-brand b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
@@ -101,15 +100,6 @@ button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow-lg);trans
 /* ---------- project / customer chrome ---------- */
 body.cl-on #designMenuBtn,body.cl-on #designMenu{display:none!important}
 body.cl-customer #peResetBtn,body.cl-customer #peAutoBtn{display:none!important}
-#clHead{left:calc(var(--il) + 12px);top:calc(var(--it) + 12px);width:250px;padding:10px 14px;display:grid;gap:2px;box-sizing:border-box}
-.cl-back{justify-self:start;padding:2px 0!important;color:var(--ink-2)!important;font-weight:500!important;margin-bottom:4px;border:0!important;background:none!important}
-.cl-back:hover{color:var(--ink)!important}
-.cl-brand{font:500 11.5px var(--f-ui);color:var(--ink-2)}
-.cl-brand:empty{display:none}
-.cl-title{font:600 15px var(--f-ui);letter-spacing:-.01em;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:2px 4px;margin:0 -5px;width:calc(100% + 10px);box-sizing:border-box}
-.cl-title:not([readonly]):hover,.cl-title:focus{border-color:var(--rule);background:var(--paper);outline:none}
-.cl-sub{font-size:12px;color:var(--ink-2)}
-.cl-save{font:11.5px var(--f-ui);color:var(--ink-3);min-height:1em}
 #clBanner{left:50%;transform:translateX(-50%);bottom:calc(var(--ib) + 16px);z-index:7;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:10px;font-size:13px;max-width:calc(100vw - 32px);flex-wrap:wrap;justify-content:center}
 body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs{margin:8px 8px 0;flex:none}
@@ -142,4 +132,20 @@ body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 body.cl-pinning #stage{cursor:crosshair}
 #clWelcome p{margin:0;color:var(--ink-2);line-height:1.55}
 #clWelcome blockquote{margin:0;padding:10px 12px;border-left:2px solid var(--ink);background:var(--paper-2);border-radius:0 6px 6px 0;white-space:pre-wrap}
-@media (max-width:760px){#clHead{width:auto;right:calc(var(--ir) + 12px)} body.cl-side-open #clBanner{left:50%;bottom:calc(58vh + 16px)}}
+@media (max-width:760px){body.cl-side-open #clBanner{left:50%;bottom:calc(58vh + 16px)}}
+
+/* project name in the toolbar */
+.tb-proj{display:flex;align-items:center;gap:4px;flex:none;min-width:0}
+.tb-proj .cl-brand{font:500 12.5px var(--f-ui);color:var(--ink-2);padding:0 4px}
+.tb-proj .cl-brand:empty{display:none}
+.cl-title{font:600 13.5px var(--f-ui);letter-spacing:-.01em;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:7px;padding:5px 7px;width:auto;max-width:240px}
+.cl-title:not([readonly]):hover{border-color:var(--rule)}
+.cl-title:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
+.cl-title[readonly]{cursor:default}
+.cl-save{font:12px var(--f-ui);color:var(--ink-3);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+body.dock-left .tb-proj,body.dock-right .tb-proj{flex-direction:column}
+body.dock-left .cl-title,body.dock-right .cl-title,body.dock-left .cl-save,body.dock-right .cl-save,body.dock-left .tb-proj .cl-brand,body.dock-right .tb-proj .cl-brand{display:none}
+body.editing .cl-save{display:none}
+@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]) .tb-t{display:none}}
+@media (max-width:1180px){#segMode .tb-t,#viewNow{display:none} .cl-title{max-width:150px}}
+@media (max-width:900px){#tbView .tb-t,#designNow{display:none} #segLvl .l{display:none} #segLvl .s{display:inline}}

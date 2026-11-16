@@ -11,7 +11,7 @@
 /* Playground shell: one toolbar docked to an edge, popovers off its buttons, one side panel at a time. */
 :root{
   --bg:#f7f7f8; --paper:#ffffff; --paper-2:#f3f3f5; --paper-3:#e8e8ec; --ink:#111114; --ink-2:#6b6b76; --ink-3:#9e9ea8; --rule:#e6e6ea; --rule-2:#d6d6dc;
-  --accent:#3b5bfd; --accent-ink:#ffffff; --accent-soft:rgba(59,91,253,.1); --glass:rgba(255,255,255,.88);
+  --accent:#3b5bfd; --accent-ink:#ffffff; --accent-soft:rgba(59,91,253,.1); --glass:#ffffff;
   --primary:#111114; --primary-ink:#ffffff; --danger:#dc2626; --ok:#16a34a;
   --shadow:0 1px 2px rgba(16,16,24,.05),0 8px 24px -8px rgba(16,16,24,.14);
   --shadow-lg:0 2px 4px rgba(16,16,24,.05),0 24px 56px -12px rgba(16,16,24,.26);
@@ -22,12 +22,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0c0c0e; --paper:#151518; --paper-2:#1d1d21; --paper-3:#28282d; --ink:#ececf0; --ink-2:#8e8e99; --ink-3:#5e5e68; --rule:#26262b; --rule-2:#34343a;
-  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:rgba(21,21,24,.88);
+  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:#151518;
   --primary:#ececf0; --primary-ink:#151518; --danger:#f87171;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -8px rgba(0,0,0,.55); --shadow-lg:0 24px 60px -12px rgba(0,0,0,.75); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0c0c0e; --paper:#151518; --paper-2:#1d1d21; --paper-3:#28282d; --ink:#ececf0; --ink-2:#8e8e99; --ink-3:#5e5e68; --rule:#26262b; --rule-2:#34343a;
-  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:rgba(21,21,24,.88);
+  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:#151518;
   --primary:#ececf0; --primary-ink:#151518; --danger:#f87171;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -8px rgba(0,0,0,.55); --shadow-lg:0 24px 60px -12px rgba(0,0,0,.75); color-scheme:dark}
 body{--gap:10px}
@@ -43,7 +43,7 @@ input,select,textarea{font-family:var(--f-ui)}
 #stage canvas{display:block}
 #labels{position:fixed;inset:0;pointer-events:none}
 .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.panel{position:fixed;background:var(--glass);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);z-index:5}
+.panel{position:fixed;background:var(--glass);-webkit-border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);z-index:5}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 kbd{font:500 10.5px/1.5 var(--f-mono);background:var(--paper);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink);white-space:nowrap}
 .logo{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--primary);color:var(--primary-ink);flex:none}
@@ -65,7 +65,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 /* ---------- toolbar ---------- */
 .tb{position:fixed;z-index:30;display:flex;align-items:center;gap:2px;background:var(--paper);border:0 solid var(--rule);scrollbar-width:none;overflow:auto;box-sizing:border-box}
 .tb::-webkit-scrollbar{display:none}
-.tb{border-width:1px;border-radius:14px;background:var(--glass);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
+.tb{border-width:1px;border-radius:14px;background:var(--glass);-webkit-box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
 body.dock-top .tb{top:var(--gap);left:var(--gap);right:var(--gap);height:var(--tbh);padding:0 8px}
 body.dock-bottom .tb{bottom:var(--gap);left:var(--gap);right:var(--gap);height:var(--tbh);padding:0 8px}
 body.dock-left .tb,body.dock-right .tb{top:var(--gap);bottom:var(--gap);width:var(--tbw);flex-direction:column;padding:8px 0}
@@ -264,7 +264,7 @@ body.measuring #stage{cursor:crosshair}
 body.recording #recBtn{color:#dc2626;background:rgba(220,38,38,.12)}
 body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.3}}
-#showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;backdrop-filter:blur(12px);box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
+#showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
 #showUI:hover{opacity:1}
 body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
@@ -351,13 +351,12 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peResize::after{content:"";position:absolute;top:50%;left:4px;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--rule-2)}
 #peResize:hover::after,#peResize:focus-visible::after{background:var(--accent)}
 body.editing #hint{display:none}
-body.editing #clHead{display:none!important}
 @media (max-width:1100px){#peSide{width:200px} #peList{width:140px}}
 @media (max-width:760px){#planEd{width:calc(100vw - var(--il) - var(--ir) - var(--gap) * 2)!important} #peList{width:112px} #peSide{display:none} #peResize{display:none}}
 
 /* ---------- Studio dashboard ---------- */
 #studio{position:fixed;inset:0;z-index:40;background:var(--bg);overflow:auto;font-size:14px}
-.st-top{position:sticky;top:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:54px;margin:10px 10px 0;padding:0 10px 0 18px;background:var(--glass);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
+.st-top{position:sticky;top:10px;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:12px;height:54px;margin:10px 10px 0;padding:0 10px 0 18px;background:var(--glass);-webkit-border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
 .st-brand{display:flex;align-items:center;gap:9px;color:var(--ink);text-decoration:none}.st-brand b{font-size:14.5px;font-weight:600;letter-spacing:-.01em}
 .st-tag{font:500 12px var(--f-ui);color:var(--ink-2);border-left:1px solid var(--rule);padding-left:10px;margin-left:2px}
 .st-actions{display:flex;gap:8px}
@@ -406,15 +405,6 @@ button.st-card:hover{border-color:var(--ink-3);box-shadow:var(--shadow-lg);trans
 /* ---------- project / customer chrome ---------- */
 body.cl-on #designMenuBtn,body.cl-on #designMenu{display:none!important}
 body.cl-customer #peResetBtn,body.cl-customer #peAutoBtn{display:none!important}
-#clHead{left:calc(var(--il) + 12px);top:calc(var(--it) + 12px);width:250px;padding:10px 14px;display:grid;gap:2px;box-sizing:border-box}
-.cl-back{justify-self:start;padding:2px 0!important;color:var(--ink-2)!important;font-weight:500!important;margin-bottom:4px;border:0!important;background:none!important}
-.cl-back:hover{color:var(--ink)!important}
-.cl-brand{font:500 11.5px var(--f-ui);color:var(--ink-2)}
-.cl-brand:empty{display:none}
-.cl-title{font:600 15px var(--f-ui);letter-spacing:-.01em;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:6px;padding:2px 4px;margin:0 -5px;width:calc(100% + 10px);box-sizing:border-box}
-.cl-title:not([readonly]):hover,.cl-title:focus{border-color:var(--rule);background:var(--paper);outline:none}
-.cl-sub{font-size:12px;color:var(--ink-2)}
-.cl-save{font:11.5px var(--f-ui);color:var(--ink-3);min-height:1em}
 #clBanner{left:50%;transform:translateX(-50%);bottom:calc(var(--ib) + 16px);z-index:7;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:10px;font-size:13px;max-width:calc(100vw - 32px);flex-wrap:wrap;justify-content:center}
 body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 #clSide .cl-tabs{margin:8px 8px 0;flex:none}
@@ -447,7 +437,23 @@ body.cl-side-open #clBanner{left:calc((100% - var(--spw)) / 2)}
 body.cl-pinning #stage{cursor:crosshair}
 #clWelcome p{margin:0;color:var(--ink-2);line-height:1.55}
 #clWelcome blockquote{margin:0;padding:10px 12px;border-left:2px solid var(--ink);background:var(--paper-2);border-radius:0 6px 6px 0;white-space:pre-wrap}
-@media (max-width:760px){#clHead{width:auto;right:calc(var(--ir) + 12px)} body.cl-side-open #clBanner{left:50%;bottom:calc(58vh + 16px)}}
+@media (max-width:760px){body.cl-side-open #clBanner{left:50%;bottom:calc(58vh + 16px)}}
+
+/* project name in the toolbar */
+.tb-proj{display:flex;align-items:center;gap:4px;flex:none;min-width:0}
+.tb-proj .cl-brand{font:500 12.5px var(--f-ui);color:var(--ink-2);padding:0 4px}
+.tb-proj .cl-brand:empty{display:none}
+.cl-title{font:600 13.5px var(--f-ui);letter-spacing:-.01em;color:var(--ink);background:transparent;border:1px solid transparent;border-radius:7px;padding:5px 7px;width:auto;max-width:240px}
+.cl-title:not([readonly]):hover{border-color:var(--rule)}
+.cl-title:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
+.cl-title[readonly]{cursor:default}
+.cl-save{font:12px var(--f-ui);color:var(--ink-3);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+body.dock-left .tb-proj,body.dock-right .tb-proj{flex-direction:column}
+body.dock-left .cl-title,body.dock-right .cl-title,body.dock-left .cl-save,body.dock-right .cl-save,body.dock-left .tb-proj .cl-brand,body.dock-right .tb-proj .cl-brand{display:none}
+body.editing .cl-save{display:none}
+@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]) .tb-t{display:none}}
+@media (max-width:1180px){#segMode .tb-t,#viewNow{display:none} .cl-title{max-width:150px}}
+@media (max-width:900px){#tbView .tb-t,#designNow{display:none} #segLvl .l{display:none} #segLvl .s{display:inline}}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -501,6 +507,7 @@ body.cl-pinning #stage{cursor:crosshair}
     <symbol id="i-pdf" viewBox="0 0 24 24"><path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M14 3.5V8.5h5M9 13h6M9 16.5h6"/></symbol>
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5 19 6v6c0 4.2-3 7.4-7 8.5-4-1.1-7-4.3-7-8.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
   </defs>
 </svg>
@@ -515,6 +522,13 @@ body.cl-pinning #stage{cursor:crosshair}
 <header id="views" class="tb" role="toolbar" aria-label="Toolbar">
   <div class="tb-g">
     <a id="homeLink" class="tb-b wordmark" href="/" data-tip="Home">Demo</a>
+    <span class="tb-proj" id="clHead" hidden>
+      <button class="tb-b" id="clBack" type="button" hidden data-tip="All projects" aria-label="All projects"><svg class="ic"><use href="#i-back"/></svg></button>
+      <span class="cl-brand" id="clBrand"></span>
+      <input id="clTitle" class="cl-title" aria-label="Project name" maxlength="80">
+      <span class="cl-save" id="clSave" aria-live="polite"></span>
+      <span id="clSub" hidden></span>
+    </span>
     <button class="tb-b tb-wide" id="designMenuBtn" type="button" data-pop="designMenu" data-tip="Switch design"><span class="tb-t" id="designNow">Sample 1</span><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <span class="tb-sep" id="tbViewSep"></span>
@@ -816,13 +830,6 @@ body.cl-pinning #stage{cursor:crosshair}
 </section>
 
 <!-- ===== Project / customer chrome over the 3D view ===== -->
-<div class="panel" id="clHead" hidden>
-  <button class="btn cl-back" id="clBack" type="button" hidden>← Projects</button>
-  <div class="cl-brand" id="clBrand"></div>
-  <input id="clTitle" class="cl-title" aria-label="Project name" maxlength="80">
-  <div class="cl-sub" id="clSub"></div>
-  <div class="cl-save" id="clSave" aria-live="polite"></div>
-</div>
 <div class="panel" id="clBanner" hidden role="status"></div>
 <aside id="clSide" hidden aria-label="Project panel">
   <nav class="cl-tabs seg" id="clTabs"></nav>
@@ -4577,6 +4584,9 @@ $c('stNewForm').onsubmit = async () => {
 };
 
 // ---------- shared chrome ----------
+// the name box is as wide as the name
+function fitTitle() { const t = $c('clTitle'); t.size = Math.max(4, Math.min(28, t.value.length + 1)); }
+$c('clTitle').addEventListener('input', fitTitle);
 function setSave(text) { $c('clSave').textContent = text; fitHead(); }
 function fitHead() { requestAnimationFrame(() => document.documentElement.style.setProperty('--clh', $c('clHead').offsetHeight + 'px')); } // keep Finishes just below the project card
 addEventListener('resize', fitHead);
@@ -4672,9 +4682,9 @@ async function openProject(id, keepView) {
   CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBack').hidden = false; $c('clBrand').textContent = '';
-  const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; document.title = `${j.project.name} · ${CL.brand.name}`;
-  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ');
-  setSave(`Saved · version ${j.project.version}`); banner(''); chrome(); renderPins();
+  const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
+  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
+  setSave('Saved'); banner(''); chrome(); renderPins();
   CL.tab = 'history'; toggleSide(false); renderSide();
   CL.poll = setInterval(refreshProject, 20000);
   if (first) setTimeout(saveThumb, 2500);
@@ -4692,7 +4702,7 @@ async function refreshProject() {
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
+    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave('Saved'); }
     catch (e) { setSave(`Not saved: ${e.message}`); }
   }, 800);
 }
@@ -4738,7 +4748,7 @@ async function openShare(token) {
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
   $c('clBack').hidden = true; $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
-  const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; document.title = `${j.project.name} · ${j.brand.name}`;
+  const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
   $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }

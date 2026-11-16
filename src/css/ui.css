@@ -1,7 +1,7 @@
 /* Playground shell: one toolbar docked to an edge, popovers off its buttons, one side panel at a time. */
 :root{
   --bg:#f7f7f8; --paper:#ffffff; --paper-2:#f3f3f5; --paper-3:#e8e8ec; --ink:#111114; --ink-2:#6b6b76; --ink-3:#9e9ea8; --rule:#e6e6ea; --rule-2:#d6d6dc;
-  --accent:#3b5bfd; --accent-ink:#ffffff; --accent-soft:rgba(59,91,253,.1); --glass:rgba(255,255,255,.88);
+  --accent:#3b5bfd; --accent-ink:#ffffff; --accent-soft:rgba(59,91,253,.1); --glass:#ffffff;
   --primary:#111114; --primary-ink:#ffffff; --danger:#dc2626; --ok:#16a34a;
   --shadow:0 1px 2px rgba(16,16,24,.05),0 8px 24px -8px rgba(16,16,24,.14);
   --shadow-lg:0 2px 4px rgba(16,16,24,.05),0 24px 56px -12px rgba(16,16,24,.26);
@@ -12,12 +12,12 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0c0c0e; --paper:#151518; --paper-2:#1d1d21; --paper-3:#28282d; --ink:#ececf0; --ink-2:#8e8e99; --ink-3:#5e5e68; --rule:#26262b; --rule-2:#34343a;
-  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:rgba(21,21,24,.88);
+  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:#151518;
   --primary:#ececf0; --primary-ink:#151518; --danger:#f87171;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -8px rgba(0,0,0,.55); --shadow-lg:0 24px 60px -12px rgba(0,0,0,.75); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0c0c0e; --paper:#151518; --paper-2:#1d1d21; --paper-3:#28282d; --ink:#ececf0; --ink-2:#8e8e99; --ink-3:#5e5e68; --rule:#26262b; --rule-2:#34343a;
-  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:rgba(21,21,24,.88);
+  --accent:#7088ff; --accent-ink:#0b0d18; --accent-soft:rgba(112,136,255,.15); --glass:#151518;
   --primary:#ececf0; --primary-ink:#151518; --danger:#f87171;
   --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -8px rgba(0,0,0,.55); --shadow-lg:0 24px 60px -12px rgba(0,0,0,.75); color-scheme:dark}
 body{--gap:10px}
@@ -33,7 +33,7 @@ input,select,textarea{font-family:var(--f-ui)}
 #stage canvas{display:block}
 #labels{position:fixed;inset:0;pointer-events:none}
 .ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.panel{position:fixed;background:var(--glass);backdrop-filter:saturate(1.6) blur(16px);-webkit-backdrop-filter:saturate(1.6) blur(16px);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);z-index:5}
+.panel{position:fixed;background:var(--glass);-webkit-border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);z-index:5}
 button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 kbd{font:500 10.5px/1.5 var(--f-mono);background:var(--paper);border:1px solid var(--rule-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink);white-space:nowrap}
 .logo{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--primary);color:var(--primary-ink);flex:none}
@@ -55,7 +55,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 /* ---------- toolbar ---------- */
 .tb{position:fixed;z-index:30;display:flex;align-items:center;gap:2px;background:var(--paper);border:0 solid var(--rule);scrollbar-width:none;overflow:auto;box-sizing:border-box}
 .tb::-webkit-scrollbar{display:none}
-.tb{border-width:1px;border-radius:14px;background:var(--glass);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
+.tb{border-width:1px;border-radius:14px;background:var(--glass);-webkit-box-shadow:0 1px 2px rgba(16,16,24,.06),0 12px 32px -12px rgba(16,16,24,.28)}
 body.dock-top .tb{top:var(--gap);left:var(--gap);right:var(--gap);height:var(--tbh);padding:0 8px}
 body.dock-bottom .tb{bottom:var(--gap);left:var(--gap);right:var(--gap);height:var(--tbh);padding:0 8px}
 body.dock-left .tb,body.dock-right .tb{top:var(--gap);bottom:var(--gap);width:var(--tbw);flex-direction:column;padding:8px 0}
@@ -254,7 +254,7 @@ body.measuring #stage{cursor:crosshair}
 body.recording #recBtn{color:#dc2626;background:rgba(220,38,38,.12)}
 body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.3}}
-#showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;backdrop-filter:blur(12px);box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
+#showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
 #showUI:hover{opacity:1}
 body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}

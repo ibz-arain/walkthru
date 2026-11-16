@@ -128,6 +128,9 @@ $c('stNewForm').onsubmit = async () => {
 };
 
 // ---------- shared chrome ----------
+// the name box is as wide as the name
+function fitTitle() { const t = $c('clTitle'); t.size = Math.max(4, Math.min(28, t.value.length + 1)); }
+$c('clTitle').addEventListener('input', fitTitle);
 function setSave(text) { $c('clSave').textContent = text; fitHead(); }
 function fitHead() { requestAnimationFrame(() => document.documentElement.style.setProperty('--clh', $c('clHead').offsetHeight + 'px')); } // keep Finishes just below the project card
 addEventListener('resize', fitHead);
@@ -223,9 +226,9 @@ async function openProject(id, keepView) {
   CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBack').hidden = false; $c('clBrand').textContent = '';
-  const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; document.title = `${j.project.name} · ${CL.brand.name}`;
-  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · ');
-  setSave(`Saved · version ${j.project.version}`); banner(''); chrome(); renderPins();
+  const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
+  $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
+  setSave('Saved'); banner(''); chrome(); renderPins();
   CL.tab = 'history'; toggleSide(false); renderSide();
   CL.poll = setInterval(refreshProject, 20000);
   if (first) setTimeout(saveThumb, 2500);
@@ -243,7 +246,7 @@ async function refreshProject() {
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave(`Saved · version ${CL.project.project.version} · ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`); }
+    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave('Saved'); }
     catch (e) { setSave(`Not saved: ${e.message}`); }
   }, 800);
 }
@@ -289,7 +292,7 @@ async function openShare(token) {
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
   $c('clBack').hidden = true; $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
-  const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; document.title = `${j.project.name} · ${j.brand.name}`;
+  const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
   $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
   shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
