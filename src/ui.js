@@ -293,8 +293,6 @@ $u('fullBtn').onclick = () => { if (document.fullscreenElement) document.exitFul
 document.addEventListener('fullscreenchange', () => $u('fullBtn').setAttribute('aria-pressed', String(!!document.fullscreenElement)));
 function setUIHidden(on) { closePops(); document.body.classList.toggle('ui-hidden', on); $u('showUI').hidden = !on; relayout(); }
 $u('hideUI').onclick = () => setUIHidden(true); $u('showUI').onclick = () => setUIHidden(false);
-$u('hintX').onclick = () => { document.body.classList.add('hint-off'); ST.set('walkthru-hint', 'off'); };
-if (ST.get('walkthru-hint', '') === 'off') document.body.classList.add('hint-off');
 
 // ---------- keyboard ----------
 addEventListener('keydown', e => {

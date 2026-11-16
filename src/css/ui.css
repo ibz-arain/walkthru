@@ -230,17 +230,10 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .keys p span{flex:1;color:var(--ink)}
 
 /* ---------- HUD + overlays ---------- */
-#lockTip{left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 14px;font:500 12.5px var(--f-ui);pointer-events:none}
 #room{top:calc(var(--it) + 12px);left:50%;transform:translateX(-50%);padding:7px 14px;text-align:center;pointer-events:none}
 #room b{display:block;font-size:13.5px;font-weight:600}
 #room span{font:11.5px var(--f-mono);color:var(--ink-2)}
 #room span:empty{display:none}
-#hint{right:calc(var(--ir) + 12px);bottom:calc(var(--ib) + 12px);padding:9px 30px 9px 12px;font:12px/1.65 var(--f-ui);color:var(--ink-2);max-width:260px}
-#hint b{color:var(--ink);font-weight:500}
-.hint-x{position:absolute;top:6px;right:6px;width:20px;height:20px;display:grid;place-items:center;border:0;background:none;color:var(--ink-3);border-radius:5px;cursor:pointer}
-.hint-x:hover{background:var(--paper-2);color:var(--ink)} .hint-x .ic{width:12px;height:12px}
-body.panel-open #hint,body.cl-side-open #hint{right:calc(var(--ir) + var(--spw) + var(--gap) + 12px)}
-body.hint-off #hint{display:none}
 #mini{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:5px;overflow:hidden}
 #mini canvas{display:block;width:190px;height:150px;border-radius:6px}
 #pad{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:6px;display:grid;grid-template-columns:repeat(3,44px);gap:4px}
@@ -255,7 +248,7 @@ body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.3}}
 #showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
 #showUI:hover{opacity:1}
-body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
+body.ui-hidden #side,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
 .lbl{font:500 11px var(--f-ui);color:#111114;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap}
 .lbl{transition:opacity .2s}
@@ -280,14 +273,14 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .sp:not([hidden]) .sp-b{animation:rise .22s ease-out}
 .st-modal:not([hidden]){animation:dlgIn .22s cubic-bezier(.2,.8,.2,1)}
 #toast:not([hidden]){animation:rise .2s ease-out}
-#hint,#room,#measureBar{transition:opacity .2s,transform .2s}
+#room,#measureBar{transition:opacity .2s,transform .2s}
 .pop{animation:popin .16s cubic-bezier(.2,.8,.2,1)}
 @keyframes popin{from{opacity:0;transform:translateY(4px) scale(.985)}}
 .tb-b,.tb-primary,.seg button,.btn{transition:background .15s,color .15s,box-shadow .15s,opacity .15s,transform .1s}
 .tb-b:active,.tb-primary:active,.btn:active{transform:scale(.97)}
 @media (max-width:760px){
   #side,#clSide{left:calc(var(--il) + var(--gap));right:calc(var(--ir) + var(--gap));width:auto;top:auto;height:58vh;box-shadow:var(--shadow-lg)}
-  #hint,#mini{display:none}
+  #mini{display:none}
   .tb-t{max-width:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}

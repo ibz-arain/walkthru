@@ -64,7 +64,7 @@ function placeItems() {
 }
 
 // ---------- library: furniture section ----------
-document.getElementById('pePalette').insertAdjacentHTML('beforeend', ITEM_GROUPS.map(([g, ks]) => `<h3>${g}</h3>` + ks.map(k => `<button type="button" data-item="${k}" title="Click to add, or drag onto the plan"><i style="background:${CATALOG[k][3]};border-radius:50%"></i>${CATALOG[k][0]}</button>`).join('')).join(''));
+document.getElementById('pePalette').insertAdjacentHTML('beforeend', ITEM_GROUPS.map(([g, ks]) => `<h3>${g}</h3>` + ks.map(k => `<button type="button" data-item="${k}"><i style="background:${CATALOG[k][3]};border-radius:50%"></i>${CATALOG[k][0]}</button>`).join('')).join(''));
 document.getElementById('pePalette').insertAdjacentHTML('afterbegin', '<h3 class="lib-tab">Rooms</h3>');
 const furnHead = [...document.querySelectorAll('#pePalette h3')].find(h => h.textContent === 'Living' && h.nextElementSibling?.dataset.item); furnHead?.insertAdjacentHTML('beforebegin', '<h3 class="lib-tab">Furniture</h3>');
 function viewCentre() { const r = pc.getBoundingClientRect(); return S2W(r.width / 2, r.height / 2); }
@@ -117,7 +117,7 @@ function peToolUp() {
   if (D.before !== snapshot()) { PE.hist.push(D.before); PE.redo = []; planChanged(); } else peDraw();
   return true;
 }
-function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; if (t) toast(t === 'note' ? 'Click to place' : 'Drag to measure'); }
+function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
 document.getElementById('peNoteBtn').onclick = () => setTool(PE.tool === 'note' ? null : 'note');
 document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? null : 'dim');
 

@@ -110,9 +110,7 @@ function peDraw() {
   if (sel && sel.level === PE.lv) { const [a, b] = W2S(sel.x, sel.z); px.strokeStyle = css('--accent'); px.lineWidth = 2.5; px.strokeRect(a, b, sel.w * s, sel.d * s); }
   // empty floor: say what to do instead of showing a blank grid
   if (!lvRooms().length && !guide.length) { px.textAlign = 'center'; px.fillStyle = css('--ink'); px.font = '600 15px Inter, system-ui, sans-serif';
-    px.fillText(`No ${LV_NAME[PE.lv].toLowerCase()} rooms yet`, W / 2, H / 2 - 12);
-    px.fillStyle = css('--ink-2'); px.font = '12px Inter, system-ui, sans-serif';
-    px.fillText(PE.lv === 'B' ? 'The dashed outline is your main floor. Click Trace main floor to dig under it, or add rooms from the list.' : 'Pick a room type from the list to start this floor.', W / 2, H / 2 + 10); }
+    px.fillText(`No ${LV_NAME[PE.lv].toLowerCase()} rooms yet`, W / 2, H / 2); }
   // scale bar
   px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const [bft, blab] = SCALE_BAR(), bar = bft * s; px.fillRect(14, H - 58, bar, 3); px.fillText(blab, 18 + bar, H - 56);
   peDrawExtras(s);

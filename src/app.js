@@ -159,19 +159,17 @@ function enterWalk(spawn, third = false) {
   mode = 'walk'; controls.enabled = false; anim = null;
   if (spawn) { player.x = spawn[0]; player.z = spawn[1]; player.yaw = spawn[2]; player.pitch = -0.05; player.feet = spawn[3] ?? 40; const g = groundAt(player.x, player.z, player.feet + 1.3); player.feet = g ?? 0; }
   camera.fov = 72; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'hintWalk']) document.getElementById(id).hidden = false;
-  document.getElementById('hintOrbit').hidden = true;
+  for (const id of ['room', 'mini']) document.getElementById(id).hidden = false;
   document.getElementById('pad').hidden = !matchMedia('(pointer: coarse)').matches;
-  player.vy = 0; setThird(third); const tip = document.getElementById('lockTip'); tip.textContent = third ? 'Hold to look around' : 'Click to look around'; tip.hidden = locked;
+  player.vy = 0; setThird(third);
   applyVisibility();
 }
 function exitWalk() {
   releaseAll();
-  if (locked) document.exitPointerLock?.(); document.getElementById('lockTip').hidden = true;
+  if (locked) document.exitPointerLock?.();
   avatar.visible = false; AV.blob.visible = false; AV.third = false; queueMicrotask(syncModes);
   mode = 'orbit'; controls.enabled = true; camera.fov = orbitFov; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'hintWalk', 'pad']) document.getElementById(id).hidden = true;
-  document.getElementById('hintOrbit').hidden = false;
+  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true;
 }
 function collide() {
   const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
@@ -215,9 +213,6 @@ function setThird(on) {
   if (on) { AV.yaw = player.yaw; AV.pitch = .32; AV.boom = AV.dist; }
   syncModes();
   camera.fov = on ? 60 : 72; camera.updateProjectionMatrix();
-  document.getElementById('hintWalk').innerHTML = on
-    ? '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Esc</kbd> exit'
-    : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Esc</kbd> exit';
 }
 function stepWalk(dt) {
   let f = 0, s = 0;
@@ -289,12 +284,12 @@ function look(dx, dy, k) {
   if (AV.third) AV.pitch = Math.max(-.05, Math.min(1.2, AV.pitch + dy * k * .9));
   else player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch - dy * k));
 }
-document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === renderer.domElement; if (!locked) holdLock = false; document.getElementById('lockTip').hidden = true; });
+document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === renderer.domElement; if (!locked) holdLock = false; });
 renderer.domElement.addEventListener('pointerdown', e => {
   if (mode !== 'walk') return;
   const wantLock = e.pointerType === 'mouse' && !locked && renderer.domElement.requestPointerLock && (!AV.third || e.button === 0);
   if (wantLock) { holdLock = AV.third; try { const r = renderer.domElement.requestPointerLock(); r?.catch?.(() => { }); } catch (err) { } }
-  drag = { x: e.clientX, y: e.clientY }; document.getElementById('lockTip').hidden = true;
+  drag = { x: e.clientX, y: e.clientY };
 });
 let holdLock = false;
 renderer.domElement.addEventListener('pointermove', e => {

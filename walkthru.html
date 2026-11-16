@@ -240,17 +240,10 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .keys p span{flex:1;color:var(--ink)}
 
 /* ---------- HUD + overlays ---------- */
-#lockTip{left:50%;top:50%;transform:translate(-50%,-50%);padding:8px 14px;font:500 12.5px var(--f-ui);pointer-events:none}
 #room{top:calc(var(--it) + 12px);left:50%;transform:translateX(-50%);padding:7px 14px;text-align:center;pointer-events:none}
 #room b{display:block;font-size:13.5px;font-weight:600}
 #room span{font:11.5px var(--f-mono);color:var(--ink-2)}
 #room span:empty{display:none}
-#hint{right:calc(var(--ir) + 12px);bottom:calc(var(--ib) + 12px);padding:9px 30px 9px 12px;font:12px/1.65 var(--f-ui);color:var(--ink-2);max-width:260px}
-#hint b{color:var(--ink);font-weight:500}
-.hint-x{position:absolute;top:6px;right:6px;width:20px;height:20px;display:grid;place-items:center;border:0;background:none;color:var(--ink-3);border-radius:5px;cursor:pointer}
-.hint-x:hover{background:var(--paper-2);color:var(--ink)} .hint-x .ic{width:12px;height:12px}
-body.panel-open #hint,body.cl-side-open #hint{right:calc(var(--ir) + var(--spw) + var(--gap) + 12px)}
-body.hint-off #hint{display:none}
 #mini{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:5px;overflow:hidden}
 #mini canvas{display:block;width:190px;height:150px;border-radius:6px}
 #pad{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:6px;display:grid;grid-template-columns:repeat(3,44px);gap:4px}
@@ -265,7 +258,7 @@ body.recording #recBtn .ic{animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.3}}
 #showUI{position:fixed;z-index:30;top:12px;right:12px;display:flex;align-items:center;gap:7px;font:500 12px var(--f-ui);background:var(--glass);color:var(--ink);border:1px solid var(--rule);border-radius:99px;padding:7px 12px;cursor:pointer;box-shadow:var(--shadow);opacity:.6;transition:opacity .2s}
 #showUI:hover{opacity:1}
-body.ui-hidden #side,body.ui-hidden #hint,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
+body.ui-hidden #side,body.ui-hidden #clSide,body.ui-hidden #clHead,body.ui-hidden #clBanner{display:none!important}
 #toast{position:fixed;z-index:95;left:50%;bottom:calc(var(--ib) + 20px);transform:translateX(-50%);background:var(--primary);color:var(--primary-ink);font:500 12.5px var(--f-ui);padding:8px 14px;border-radius:8px;box-shadow:var(--shadow-lg)}
 .lbl{font:500 11px var(--f-ui);color:#111114;background:rgba(255,255,255,.94);box-shadow:0 1px 3px rgba(0,0,0,.18);padding:3px 7px;border-radius:5px;text-align:center;white-space:nowrap}
 .lbl{transition:opacity .2s}
@@ -290,14 +283,14 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .sp:not([hidden]) .sp-b{animation:rise .22s ease-out}
 .st-modal:not([hidden]){animation:dlgIn .22s cubic-bezier(.2,.8,.2,1)}
 #toast:not([hidden]){animation:rise .2s ease-out}
-#hint,#room,#measureBar{transition:opacity .2s,transform .2s}
+#room,#measureBar{transition:opacity .2s,transform .2s}
 .pop{animation:popin .16s cubic-bezier(.2,.8,.2,1)}
 @keyframes popin{from{opacity:0;transform:translateY(4px) scale(.985)}}
 .tb-b,.tb-primary,.seg button,.btn{transition:background .15s,color .15s,box-shadow .15s,opacity .15s,transform .1s}
 .tb-b:active,.tb-primary:active,.btn:active{transform:scale(.97)}
 @media (max-width:760px){
   #side,#clSide{left:calc(var(--il) + var(--gap));right:calc(var(--ir) + var(--gap));width:auto;top:auto;height:58vh;box-shadow:var(--shadow-lg)}
-  #hint,#mini{display:none}
+  #mini{display:none}
   .tb-t{max-width:90px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
@@ -350,7 +343,6 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peList i{width:10px;height:10px;border-radius:3px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
 .pe-canvas{flex:1;position:relative;min-width:0;background:var(--paper)}
 #peCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
-.pe-tip{position:absolute;left:12px;right:12px;top:10px;margin:0;font:11.5px var(--f-ui);color:var(--ink-3);pointer-events:none}
 .pe-zoom{position:absolute;left:12px;bottom:12px;display:flex;align-items:center;background:var(--paper);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
 .pe-zoom button{height:28px;min-width:28px;display:grid;place-items:center;border:0;background:none;color:var(--ink-2);cursor:pointer;font:500 11.5px var(--f-mono)}
 .pe-zoom button:hover{background:var(--paper-2);color:var(--ink)}
@@ -376,7 +368,6 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peResize{position:absolute;top:0;bottom:0;right:0;width:10px;cursor:col-resize;z-index:5}
 #peResize::after{content:"";position:absolute;top:50%;left:4px;width:3px;height:36px;margin-top:-18px;border-radius:2px;background:var(--rule-2)}
 #peResize:hover::after,#peResize:focus-visible::after{background:var(--accent)}
-body.editing #hint{display:none}
 @media (max-width:1100px){#peList{width:140px}}
 @media (max-width:760px){#planEd{width:calc(100vw - var(--il) - var(--ir) - var(--gap) * 2)!important} #peList{width:112px} #peSide{left:8px!important;right:8px;top:auto!important;bottom:8px;width:auto;max-height:50%} #peResize{display:none}}
 
@@ -498,8 +489,7 @@ body.editing .cl-save{display:none}
 .pe-libopen{position:absolute;left:10px;top:10px;z-index:4;display:none;align-items:center;gap:6px;height:30px;padding:0 10px 0 7px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink-2);font:500 12px var(--f-ui);box-shadow:var(--shadow);cursor:pointer}
 .pe-libopen:hover{color:var(--ink);border-color:var(--rule-2)}
 #planEd.lib-off .pe-libopen{display:flex}
-#planEd.lib-off .pe-tip{left:100px;top:17px}
-
+#planEd.lib-off 
 /* the floating selection menu: compact, labels beside their fields */
 #peSide .pe-card{padding:2px 8px 8px}
 #peSide .pe-card h3{margin:8px 6px 4px;font-size:12.5px}
@@ -691,7 +681,6 @@ body.editing .cl-save{display:none}
   <h6>Your height <output id="meHv" class="pop-out"></output></h6>
   <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
   <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
-  <p class="pop-note">Walking views the house from this eye level.</p>
   <h6>Start walking</h6>
   <button class="drop-tile" id="peg" type="button" aria-label="Drag onto the house to start walking there"><svg class="ic"><use href="#i-drop"/></svg><span><b>Drag onto the house</b><small>Start walking where you drop it</small></span></button>
   <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">From the front door</button>
@@ -752,7 +741,6 @@ body.editing .cl-save{display:none}
     </nav>
     <div class="pe-canvas"><canvas id="peCanvas"></canvas>
       <button type="button" class="pe-libopen" id="peLibShow" data-tip="Show room list" aria-label="Show the room list"><svg class="ic"><use href="#i-expand"/></svg><span>Rooms</span></button>
-      <p class="pe-tip">Scroll to zoom · Drag to pan</p>
       <div class="pe-zoom"><button type="button" id="peZoomOut" data-tip="Zoom out (−)"><svg class="ic"><use href="#i-minus"/></svg></button><button type="button" id="peZoomFit" data-tip="Fit to screen (0)"><span id="peZoomV">100%</span></button><button type="button" id="peZoomIn" data-tip="Zoom in (+)"><svg class="ic"><use href="#i-plus"/></svg></button></div>
       <div id="peStatus"></div>
     </div>
@@ -905,14 +893,8 @@ body.editing .cl-save{display:none}
 
 
 <!-- ===== HUD ===== -->
-<div class="panel" id="lockTip" hidden>Click to look around</div>
 <div class="panel" id="room" hidden><b id="roomName">Outside</b><span id="roomDim"></span></div>
 <div class="panel" id="measureBar" hidden><svg class="ic"><use href="#i-ruler"/></svg><span id="measureMsg">Click two points to measure</span><button class="btn" id="measureClear" type="button">Clear</button><button class="btn btn-primary" id="measureDone" type="button">Done</button></div>
-<div class="panel" id="hint">
-  <button class="hint-x" id="hintX" type="button" aria-label="Hide tips"><svg class="ic"><use href="#i-x"/></svg></button>
-  <div id="hintOrbit">Drag to orbit · Scroll to zoom</div>
-  <div id="hintWalk" hidden></div>
-</div>
 <div class="panel" id="mini" hidden><canvas id="miniC" width="380" height="300"></canvas></div>
 <div id="pegGhost" hidden><svg viewBox="0 0 24 32" width="26" height="34" aria-hidden="true"><path d="M12 31s10-10.2 10-18A10 10 0 0 0 2 13c0 7.8 10 18 10 18z" fill="#3b5bfd" stroke="#fff" stroke-width="2"/><circle cx="12" cy="13" r="4" fill="#fff"/></svg></div>
 <div class="panel" id="pad" hidden>
@@ -3120,9 +3102,7 @@ function peDraw() {
   if (sel && sel.level === PE.lv) { const [a, b] = W2S(sel.x, sel.z); px.strokeStyle = css('--accent'); px.lineWidth = 2.5; px.strokeRect(a, b, sel.w * s, sel.d * s); }
   // empty floor: say what to do instead of showing a blank grid
   if (!lvRooms().length && !guide.length) { px.textAlign = 'center'; px.fillStyle = css('--ink'); px.font = '600 15px Inter, system-ui, sans-serif';
-    px.fillText(`No ${LV_NAME[PE.lv].toLowerCase()} rooms yet`, W / 2, H / 2 - 12);
-    px.fillStyle = css('--ink-2'); px.font = '12px Inter, system-ui, sans-serif';
-    px.fillText(PE.lv === 'B' ? 'The dashed outline is your main floor. Click Trace main floor to dig under it, or add rooms from the list.' : 'Pick a room type from the list to start this floor.', W / 2, H / 2 + 10); }
+    px.fillText(`No ${LV_NAME[PE.lv].toLowerCase()} rooms yet`, W / 2, H / 2); }
   // scale bar
   px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const [bft, blab] = SCALE_BAR(), bar = bft * s; px.fillRect(14, H - 58, bar, 3); px.fillText(blab, 18 + bar, H - 56);
   peDrawExtras(s);
@@ -3533,7 +3513,7 @@ function placeItems() {
 }
 
 // ---------- library: furniture section ----------
-document.getElementById('pePalette').insertAdjacentHTML('beforeend', ITEM_GROUPS.map(([g, ks]) => `<h3>${g}</h3>` + ks.map(k => `<button type="button" data-item="${k}" title="Click to add, or drag onto the plan"><i style="background:${CATALOG[k][3]};border-radius:50%"></i>${CATALOG[k][0]}</button>`).join('')).join(''));
+document.getElementById('pePalette').insertAdjacentHTML('beforeend', ITEM_GROUPS.map(([g, ks]) => `<h3>${g}</h3>` + ks.map(k => `<button type="button" data-item="${k}"><i style="background:${CATALOG[k][3]};border-radius:50%"></i>${CATALOG[k][0]}</button>`).join('')).join(''));
 document.getElementById('pePalette').insertAdjacentHTML('afterbegin', '<h3 class="lib-tab">Rooms</h3>');
 const furnHead = [...document.querySelectorAll('#pePalette h3')].find(h => h.textContent === 'Living' && h.nextElementSibling?.dataset.item); furnHead?.insertAdjacentHTML('beforebegin', '<h3 class="lib-tab">Furniture</h3>');
 function viewCentre() { const r = pc.getBoundingClientRect(); return S2W(r.width / 2, r.height / 2); }
@@ -3586,7 +3566,7 @@ function peToolUp() {
   if (D.before !== snapshot()) { PE.hist.push(D.before); PE.redo = []; planChanged(); } else peDraw();
   return true;
 }
-function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; if (t) toast(t === 'note' ? 'Click to place' : 'Drag to measure'); }
+function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
 document.getElementById('peNoteBtn').onclick = () => setTool(PE.tool === 'note' ? null : 'note');
 document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? null : 'dim');
 
@@ -4070,19 +4050,17 @@ function enterWalk(spawn, third = false) {
   mode = 'walk'; controls.enabled = false; anim = null;
   if (spawn) { player.x = spawn[0]; player.z = spawn[1]; player.yaw = spawn[2]; player.pitch = -0.05; player.feet = spawn[3] ?? 40; const g = groundAt(player.x, player.z, player.feet + 1.3); player.feet = g ?? 0; }
   camera.fov = 72; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'hintWalk']) document.getElementById(id).hidden = false;
-  document.getElementById('hintOrbit').hidden = true;
+  for (const id of ['room', 'mini']) document.getElementById(id).hidden = false;
   document.getElementById('pad').hidden = !matchMedia('(pointer: coarse)').matches;
-  player.vy = 0; setThird(third); const tip = document.getElementById('lockTip'); tip.textContent = third ? 'Hold to look around' : 'Click to look around'; tip.hidden = locked;
+  player.vy = 0; setThird(third);
   applyVisibility();
 }
 function exitWalk() {
   releaseAll();
-  if (locked) document.exitPointerLock?.(); document.getElementById('lockTip').hidden = true;
+  if (locked) document.exitPointerLock?.();
   avatar.visible = false; AV.blob.visible = false; AV.third = false; queueMicrotask(syncModes);
   mode = 'orbit'; controls.enabled = true; camera.fov = orbitFov; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'hintWalk', 'pad']) document.getElementById(id).hidden = true;
-  document.getElementById('hintOrbit').hidden = false;
+  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true;
 }
 function collide() {
   const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
@@ -4126,9 +4104,6 @@ function setThird(on) {
   if (on) { AV.yaw = player.yaw; AV.pitch = .32; AV.boom = AV.dist; }
   syncModes();
   camera.fov = on ? 60 : 72; camera.updateProjectionMatrix();
-  document.getElementById('hintWalk').innerHTML = on
-    ? '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Space</kbd> jump · <kbd>Esc</kbd> exit'
-    : '<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move · <kbd>Esc</kbd> exit';
 }
 function stepWalk(dt) {
   let f = 0, s = 0;
@@ -4200,12 +4175,12 @@ function look(dx, dy, k) {
   if (AV.third) AV.pitch = Math.max(-.05, Math.min(1.2, AV.pitch + dy * k * .9));
   else player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch - dy * k));
 }
-document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === renderer.domElement; if (!locked) holdLock = false; document.getElementById('lockTip').hidden = true; });
+document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === renderer.domElement; if (!locked) holdLock = false; });
 renderer.domElement.addEventListener('pointerdown', e => {
   if (mode !== 'walk') return;
   const wantLock = e.pointerType === 'mouse' && !locked && renderer.domElement.requestPointerLock && (!AV.third || e.button === 0);
   if (wantLock) { holdLock = AV.third; try { const r = renderer.domElement.requestPointerLock(); r?.catch?.(() => { }); } catch (err) { } }
-  drag = { x: e.clientX, y: e.clientY }; document.getElementById('lockTip').hidden = true;
+  drag = { x: e.clientX, y: e.clientY };
 });
 let holdLock = false;
 renderer.domElement.addEventListener('pointermove', e => {
@@ -5310,8 +5285,6 @@ $u('fullBtn').onclick = () => { if (document.fullscreenElement) document.exitFul
 document.addEventListener('fullscreenchange', () => $u('fullBtn').setAttribute('aria-pressed', String(!!document.fullscreenElement)));
 function setUIHidden(on) { closePops(); document.body.classList.toggle('ui-hidden', on); $u('showUI').hidden = !on; relayout(); }
 $u('hideUI').onclick = () => setUIHidden(true); $u('showUI').onclick = () => setUIHidden(false);
-$u('hintX').onclick = () => { document.body.classList.add('hint-off'); ST.set('walkthru-hint', 'off'); };
-if (ST.get('walkthru-hint', '') === 'off') document.body.classList.add('hint-off');
 
 // ---------- keyboard ----------
 addEventListener('keydown', e => {
