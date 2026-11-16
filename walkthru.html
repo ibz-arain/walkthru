@@ -285,6 +285,12 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 #peList h3.lib-tab{margin:16px 6px 2px;font:600 12px var(--f-ui);color:var(--ink);padding-top:10px;border-top:1px solid var(--rule)}
 #peList h3.lib-tab:first-child{border-top:0;padding-top:0;margin-top:6px}
 .pe-card .seg.al{margin:4px 6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chips button{width:22px;height:22px;border-radius:6px;border:1px solid rgba(0,0,0,.15);cursor:pointer;padding:0}
+.chips button[aria-pressed="true"]{box-shadow:0 0 0 2px var(--paper),0 0 0 3.5px var(--ink)}
+.chips .def{width:auto;padding:0 7px;font:500 11px var(--f-ui);background:var(--paper-2);color:var(--ink-2)}
+.chip-c{position:relative;width:22px;height:22px;border-radius:6px;background:conic-gradient(#e66,#ec6,#6c6,#6ce,#66e,#c6e,#e66);cursor:pointer}
+.chip-c input{position:absolute;inset:0;opacity:0;cursor:pointer}
 #peList button{display:flex;align-items:center;gap:8px;width:100%;font:12.5px var(--f-ui);color:var(--ink);background:transparent;border:0;border-radius:6px;padding:5px 6px;cursor:grab;text-align:left;touch-action:none}
 #peList button:hover{background:var(--paper-2)}
 #peList i{width:10px;height:10px;border-radius:3px;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
@@ -628,7 +634,7 @@ body.cl-pinning #stage{cursor:crosshair}
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW">Width (<span class="u-len">ft</span>) <input id="peSW" type="number" min="3" max="10" step="any"></label>
+        <label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="10" step="any"></label>
         <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <div class="pe-row"><button class="btn" id="peSRot" type="button">Rotate</button><button class="btn" id="peSAuto" type="button">Auto direction</button><button class="btn danger" id="peSDel" type="button">Delete</button></div>
         <p id="peSNote" class="pe-note"></p>
@@ -637,10 +643,11 @@ body.cl-pinning #stage{cursor:crosshair}
         <h3>Room <span id="peArea" class="pe-area"></span></h3>
         <label class="fld" for="peName">Name <input id="peName" type="text"></label>
         <label class="fld" for="peType">Type <select id="peType"></select></label>
-        <div class="pe-wd"><label class="fld" for="peW">Width (<span class="u-len">ft</span>) <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD">Depth (<span class="u-len">ft</span>) <input id="peD" type="number" min="3" max="120" step="any"></label></div>
+        <div class="pe-wd"><label class="fld" for="peW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD"><span>Depth (<span class="u-len">ft</span>)</span> <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
         <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
+        <div id="peFin"></div>
       </div>
     </aside>
   </div>
@@ -1037,6 +1044,7 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
   const c = horiz ? z0 : x0;
   const inner = o.mat ?? M.paint, outer = o.outer ?? M.stucco;
   const mats = wallMats(inner, outer, o.out);
+  for (const f in o.faceMat || {}) if (f !== o.out) mats[FACE[f]] = o.faceMat[f]; // a room's own paint or accent wall
   const osign = o.out ? (o.out[0] === '+' ? 1 : -1) : 0;
   const ops = (o.ops || []).slice().sort((a, b) => a.c - b.c);
   const piece = (a, b, ya, yb) => { if (b - a > .01 && yb - ya > .01) boxAN(parent, horiz, Math.max(s0, a - .004), Math.min(s1, b + .004), ya, yb, c - t / 2, c + t / 2, mats, { solid: true }); };
@@ -2351,6 +2359,16 @@ function flightLanes(lv) { // footprints of the flights that arrive at this leve
   return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, from === 'M' && turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); }
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
+// ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
+const _finMats = new Map();
+function finMat(base, hex) { const k = base.uuid + hex; if (!_finMats.has(k)) { const m = base.clone(); m.color.set(hex); _finMats.set(k, m); } return _finMats.get(k); }
+const ROOM_FLOORS = { oak: ['Light oak', () => M.wood, '#e0c49c'], natural: ['Natural oak', () => M.wood, '#bf9364'], walnut: ['Walnut', () => M.wood, '#7a563c'], greyoak: ['Grey oak', () => M.wood, '#b9b2a8'],
+  lvp: ['Vinyl plank', () => M.lvp, '#b7a58c'], tile: ['Light tile', () => M.tile, '#e4e2dc'], darktile: ['Dark tile', () => M.tile, '#5b5f63'], marble: ['Marble', () => M.tile, '#f2f1ec'],
+  carpet: ['Carpet, oat', () => M.carpet, '#cfc6b8'], carpetgrey: ['Carpet, grey', () => M.carpet, '#8f9296'], concrete: ['Polished concrete', () => M.concrete, '#b9b7b2'] };
+const floorFor = r => { const f = ROOM_FLOORS[r.finish?.floor]; return f ? finMat(f[1](), f[2]) : floorMat(r.type); };
+const paintFor = (r, side) => { const F = r.finish || {}; const hex = F.accent?.side === side ? F.accent.color : F.paint; return hex ? finMat(M.paint, hex) : M.paint; };
+// which side of room r a wall at coordinate c runs along
+const sideOfRoom = (r, axis, c) => axis === 'x' ? (Math.abs(c - r.z) < Math.abs(c - (r.z + r.d)) ? 'n' : 's') : (Math.abs(c - r.x) < Math.abs(c - (r.x + r.w)) ? 'w' : 'e');
 const likeOf = t => RT[t]?.like || t;
 const isOut = r => !!RT[r.type]?.outdoor;
 function rectCells(rooms, step = .5, minus = []) { // occupancy grid (rooms minus `minus`) → maximal rectangles, for roofs
@@ -2467,7 +2485,7 @@ function buildHouse3() {
     for (const r of rs) {
       const rr = rect(r.x, r.x + r.w, r.z, r.z + r.d), g = r.type === 'garage' && lv === 'M', T = RT[r.type] || {};
       if (T.outdoor) { // decks, porches, balconies
-        const fy = lv === 'U' ? UF : MF - .35, mat = floorMat(r.type);
+        const fy = lv === 'U' ? UF : MF - .35, mat = floorFor(r);
         if (lv === 'U') box(P, r.x, r.x + r.w, fy - 1.04, fy, r.z, r.z + r.d, M.stucco, { walk: true });
         else box(P, r.x, r.x + r.w, 0, fy, r.z, r.z + r.d, T.covered ? M.concrete : M.deck, { walk: true });
         flat(P, rr, [], fy + .01, mat, { walk: true });
@@ -2492,7 +2510,7 @@ function buildHouse3() {
       for (const L of lanes) pieces = pieces.flatMap(p => cutRect(p, L)); // open only above the flight arriving from below
       for (const [a0, a1, b0, b1] of pieces) {
         if (g) box(P, a0, a1, 0, GF, b0, b1, M.concrete, { walk: true });
-        else { box(P, a0, a1, y - 1.04, y, b0, b1, M.ceil, { cast: false }); flat(P, rect(a0, a1, b0, b1), [], y + .01, floorMat(r.type), { walk: true }); }
+        else { box(P, a0, a1, y - 1.04, y, b0, b1, M.ceil, { cast: false }); flat(P, rect(a0, a1, b0, b1), [], y + .01, floorFor(r), { walk: true }); }
       }
       if (lv === 'M' && isTall(r)) { const open = tallParts(r).map(([a0, a1, b0, b1]) => rect(a0, a1, b0, b1));
         for (const q of open) flat(G3.mainCeil, q, [], UC - .02, M.ceil);
@@ -2536,7 +2554,8 @@ function buildHouse3() {
           if ((t1 && u2) || (t2 && u1)) y1 = MC;           // the 2nd-floor box's own wall closes the upper part
         }
         const ops = w.ops.filter(op => op.c >= sa - .01 && op.c < sb + .01 || (si === 0 && op.c < sa) || (si === bounds.length - 2 && op.c >= sb));
-        const o = { t, y0, y1, ops };
+        const o = { t, y0, y1, ops }, faceOf = q => horiz ? (q.z + q.d / 2 > w.c ? '+z' : '-z') : (q.x + q.w / 2 > w.c ? '+x' : '-x');
+        o.faceMat = {}; for (const q of ext ? [w.room] : w.rooms) if (q.finish) o.faceMat[faceOf(q)] = paintFor(q, sideOfRoom(q, w.axis, w.c));
         if (ext) {
           const [ox, oz] = nrm[w.out], [qx, qz] = probe(ox * .6, oz * .6), overVoid = lv === 'U' && inTall(qx, qz);
           const STY = BM.style === 'batten';
@@ -3380,6 +3399,7 @@ function drawDim(d, sel) {
 // ---------- inspector for items, notes, dimensions and several rooms ----------
 document.getElementById('peSide').insertAdjacentHTML('beforeend', '<div id="peX" class="pe-card" hidden></div>');
 function peExtraInspector() {
+  roomFinishPanel();
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
@@ -3449,6 +3469,7 @@ function mirrorPlan(axis) {
   const X = axis === 'x', lo = Math.min(...BM.rooms.map(r => X ? r.x : r.z)), hi = Math.max(...BM.rooms.map(r => X ? r.x + r.w : r.z + r.d)), S = lo + hi;
   const f = v => +(S - v).toFixed(2), swapOut = o => X ? ({ '+x': '-x', '-x': '+x' })[o] || o : ({ '+z': '-z', '-z': '+z' })[o] || o;
   for (const r of BM.rooms) { if (X) r.x = f(r.x + r.w); else r.z = f(r.z + r.d); if (r.rot !== undefined) r.rot = X ? (4 - r.rot) % 4 : (6 - r.rot) % 4; }
+  for (const r of BM.rooms) if (r.finish?.accent) r.finish.accent.side = (X ? { w: 'e', e: 'w' } : { n: 's', s: 'n' })[r.finish.accent.side] || r.finish.accent.side;
   for (const s of BM.stairs || []) { if (X) s.cx = f(s.cx); else s.cz = f(s.cz); if (s.dir) s.dir = swapOut(s.dir); }
   for (const it of BM.items || []) { if (X) it.x = f(it.x); else it.z = f(it.z); it.rot = X ? (4 - (it.rot || 0)) % 4 : (6 - (it.rot || 0)) % 4; }
   for (const n of BM.notes || []) { if (X) n.x = f(n.x); else n.z = f(n.z); }
@@ -3490,9 +3511,9 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
   <h6>Site</h6>
-  <label class="fld">Distance to the street (<span class="u-len">ft</span>) <input id="stSet" type="number" step="any"></label>
-  <div class="pe-wd"><label class="fld">Lot width (<span class="u-len">ft</span>) <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld">Lot depth (<span class="u-len">ft</span>) <input id="stLD" type="number" step="any" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld">Shift on lot (<span class="u-len">ft</span>) <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
+  <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
+  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -3571,6 +3592,27 @@ function drawOpening(g, P, w, o, s, col, winCol) {
   else if (k === 'garage') { g.setLineDash([4, 3]); line(at(a), at(b)); g.setLineDash([]); }
   else { g.strokeStyle = winCol; for (const n of [-.18, 0, .18]) line(at(a, n), at(b, n)); }
   g.restore();
+}
+
+// ---------- finishes for the selected room ----------
+const PAINTS = [['#f4f3ef', 'White'], ['#ddd4c6', 'Greige'], ['#c9c4bc', 'Warm grey'], ['#c7cdb9', 'Sage'], ['#cbd5dc', 'Mist'], ['#2f3b52', 'Navy'], ['#3f4a3c', 'Forest'], ['#8a5a44', 'Terracotta'], ['#1f2023', 'Black']];
+const SIDE_NAME = { n: 'Front wall', s: 'Back wall', w: 'Left wall', e: 'Right wall' };
+function roomFinishPanel() {
+  const q = BM.rooms.find(r => r.id === PE.sel), el = document.getElementById('peFin'); if (!q || !el) return;
+  if (RT[q.type]?.outdoor) { el.innerHTML = ''; return; }
+  const F = q.finish || {}, sw = (attr, cur) => PAINTS.map(([c, n]) => `<button type="button" ${attr}="${c}" title="${n}" aria-pressed="${cur === c}" style="background:${c}"></button>`).join('');
+  el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:14px">Finishes</h3>
+    <label class="fld">Floor <select id="rfFloor"><option value="">House default</option>${Object.entries(ROOM_FLOORS).map(([k, v]) => `<option value="${k}" ${F.floor === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
+    <div class="fld">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default">Default</button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
+    <label class="fld">Accent wall <select id="rfSide"><option value="">None</option>${Object.entries(SIDE_NAME).map(([k, n]) => `<option value="${k}" ${F.accent?.side === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    ${F.accent ? `<div class="fld"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
+  const set = fn => { pushHist(); q.finish = { ...(q.finish || {}) }; fn(q.finish); for (const k of Object.keys(q.finish)) if (q.finish[k] == null) delete q.finish[k]; if (!Object.keys(q.finish).length) delete q.finish; planChanged(); };
+  el.querySelector('#rfFloor').onchange = e => set(f => f.floor = e.target.value || null);
+  el.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => set(f => f.paint = b.dataset.rp || null));
+  el.querySelector('#rpC').onchange = e => set(f => f.paint = e.target.value);
+  el.querySelector('#rfSide').onchange = e => set(f => f.accent = e.target.value ? { side: e.target.value, color: f.accent?.color || '#2f3b52' } : null);
+  el.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => set(f => f.accent = { ...f.accent, color: b.dataset.ra }));
+  el.querySelector('#raC')?.addEventListener('change', e => set(f => f.accent = { ...f.accent, color: e.target.value }));
 }
 
 

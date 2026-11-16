@@ -145,6 +145,7 @@ function drawDim(d, sel) {
 // ---------- inspector for items, notes, dimensions and several rooms ----------
 document.getElementById('peSide').insertAdjacentHTML('beforeend', '<div id="peX" class="pe-card" hidden></div>');
 function peExtraInspector() {
+  roomFinishPanel();
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
@@ -214,6 +215,7 @@ function mirrorPlan(axis) {
   const X = axis === 'x', lo = Math.min(...BM.rooms.map(r => X ? r.x : r.z)), hi = Math.max(...BM.rooms.map(r => X ? r.x + r.w : r.z + r.d)), S = lo + hi;
   const f = v => +(S - v).toFixed(2), swapOut = o => X ? ({ '+x': '-x', '-x': '+x' })[o] || o : ({ '+z': '-z', '-z': '+z' })[o] || o;
   for (const r of BM.rooms) { if (X) r.x = f(r.x + r.w); else r.z = f(r.z + r.d); if (r.rot !== undefined) r.rot = X ? (4 - r.rot) % 4 : (6 - r.rot) % 4; }
+  for (const r of BM.rooms) if (r.finish?.accent) r.finish.accent.side = (X ? { w: 'e', e: 'w' } : { n: 's', s: 'n' })[r.finish.accent.side] || r.finish.accent.side;
   for (const s of BM.stairs || []) { if (X) s.cx = f(s.cx); else s.cz = f(s.cz); if (s.dir) s.dir = swapOut(s.dir); }
   for (const it of BM.items || []) { if (X) it.x = f(it.x); else it.z = f(it.z); it.rot = X ? (4 - (it.rot || 0)) % 4 : (6 - (it.rot || 0)) % 4; }
   for (const n of BM.notes || []) { if (X) n.x = f(n.x); else n.z = f(n.z); }
@@ -255,9 +257,9 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="3" max="12" step="1" class="pop-range">
   <h6>Site</h6>
-  <label class="fld">Distance to the street (<span class="u-len">ft</span>) <input id="stSet" type="number" step="any"></label>
-  <div class="pe-wd"><label class="fld">Lot width (<span class="u-len">ft</span>) <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld">Lot depth (<span class="u-len">ft</span>) <input id="stLD" type="number" step="any" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld">Shift on lot (<span class="u-len">ft</span>) <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
+  <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
+  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip">Hip</button><button type="button" data-roof="gable">Gable</button><button type="button" data-roof="shed">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -336,4 +338,25 @@ function drawOpening(g, P, w, o, s, col, winCol) {
   else if (k === 'garage') { g.setLineDash([4, 3]); line(at(a), at(b)); g.setLineDash([]); }
   else { g.strokeStyle = winCol; for (const n of [-.18, 0, .18]) line(at(a, n), at(b, n)); }
   g.restore();
+}
+
+// ---------- finishes for the selected room ----------
+const PAINTS = [['#f4f3ef', 'White'], ['#ddd4c6', 'Greige'], ['#c9c4bc', 'Warm grey'], ['#c7cdb9', 'Sage'], ['#cbd5dc', 'Mist'], ['#2f3b52', 'Navy'], ['#3f4a3c', 'Forest'], ['#8a5a44', 'Terracotta'], ['#1f2023', 'Black']];
+const SIDE_NAME = { n: 'Front wall', s: 'Back wall', w: 'Left wall', e: 'Right wall' };
+function roomFinishPanel() {
+  const q = BM.rooms.find(r => r.id === PE.sel), el = document.getElementById('peFin'); if (!q || !el) return;
+  if (RT[q.type]?.outdoor) { el.innerHTML = ''; return; }
+  const F = q.finish || {}, sw = (attr, cur) => PAINTS.map(([c, n]) => `<button type="button" ${attr}="${c}" title="${n}" aria-pressed="${cur === c}" style="background:${c}"></button>`).join('');
+  el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:14px">Finishes</h3>
+    <label class="fld">Floor <select id="rfFloor"><option value="">House default</option>${Object.entries(ROOM_FLOORS).map(([k, v]) => `<option value="${k}" ${F.floor === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
+    <div class="fld">Wall paint <div class="chips"><button type="button" data-rp="" class="def" aria-pressed="${!F.paint}" title="House default">Default</button>${sw('data-rp', F.paint)}<label class="chip-c" title="Any colour"><input type="color" id="rpC" value="${F.paint || '#f4f3ef'}"></label></div></div>
+    <label class="fld">Accent wall <select id="rfSide"><option value="">None</option>${Object.entries(SIDE_NAME).map(([k, n]) => `<option value="${k}" ${F.accent?.side === k ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    ${F.accent ? `<div class="fld"><div class="chips">${sw('data-ra', F.accent.color)}<label class="chip-c"><input type="color" id="raC" value="${F.accent.color}"></label></div></div>` : ''}`;
+  const set = fn => { pushHist(); q.finish = { ...(q.finish || {}) }; fn(q.finish); for (const k of Object.keys(q.finish)) if (q.finish[k] == null) delete q.finish[k]; if (!Object.keys(q.finish).length) delete q.finish; planChanged(); };
+  el.querySelector('#rfFloor').onchange = e => set(f => f.floor = e.target.value || null);
+  el.querySelectorAll('[data-rp]').forEach(b => b.onclick = () => set(f => f.paint = b.dataset.rp || null));
+  el.querySelector('#rpC').onchange = e => set(f => f.paint = e.target.value);
+  el.querySelector('#rfSide').onchange = e => set(f => f.accent = e.target.value ? { side: e.target.value, color: f.accent?.color || '#2f3b52' } : null);
+  el.querySelectorAll('[data-ra]').forEach(b => b.onclick = () => set(f => f.accent = { ...f.accent, color: b.dataset.ra }));
+  el.querySelector('#raC')?.addEventListener('change', e => set(f => f.accent = { ...f.accent, color: e.target.value }));
 }

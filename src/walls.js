@@ -13,6 +13,7 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
   const c = horiz ? z0 : x0;
   const inner = o.mat ?? M.paint, outer = o.outer ?? M.stucco;
   const mats = wallMats(inner, outer, o.out);
+  for (const f in o.faceMat || {}) if (f !== o.out) mats[FACE[f]] = o.faceMat[f]; // a room's own paint or accent wall
   const osign = o.out ? (o.out[0] === '+' ? 1 : -1) : 0;
   const ops = (o.ops || []).slice().sort((a, b) => a.c - b.c);
   const piece = (a, b, ya, yb) => { if (b - a > .01 && yb - ya > .01) boxAN(parent, horiz, Math.max(s0, a - .004), Math.min(s1, b + .004), ya, yb, c - t / 2, c + t / 2, mats, { solid: true }); };

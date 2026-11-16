@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.95d010ad82.js">
-<link rel="stylesheet" href="/assets/playground.24d152e978.css">
+<link rel="modulepreload" href="/assets/playground.8e14b8c2f2.js">
+<link rel="stylesheet" href="/assets/playground.ad8b443fa5.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -233,7 +233,7 @@
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW">Width (<span class="u-len">ft</span>) <input id="peSW" type="number" min="3" max="10" step="any"></label>
+        <label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="10" step="any"></label>
         <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <div class="pe-row"><button class="btn" id="peSRot" type="button">Rotate</button><button class="btn" id="peSAuto" type="button">Auto direction</button><button class="btn danger" id="peSDel" type="button">Delete</button></div>
         <p id="peSNote" class="pe-note"></p>
@@ -242,10 +242,11 @@
         <h3>Room <span id="peArea" class="pe-area"></span></h3>
         <label class="fld" for="peName">Name <input id="peName" type="text"></label>
         <label class="fld" for="peType">Type <select id="peType"></select></label>
-        <div class="pe-wd"><label class="fld" for="peW">Width (<span class="u-len">ft</span>) <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD">Depth (<span class="u-len">ft</span>) <input id="peD" type="number" min="3" max="120" step="any"></label></div>
+        <div class="pe-wd"><label class="fld" for="peW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD"><span>Depth (<span class="u-len">ft</span>)</span> <input id="peD" type="number" min="3" max="120" step="any"></label></div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
         <div class="pe-row"><button class="btn" id="peRot" type="button" title="Turn the furniture 90° (R)">Rotate furniture</button><button class="btn" id="peShuf" type="button" title="Try another furniture layout">Shuffle</button><button class="btn" id="peDup" type="button" title="Duplicate (⌘D)">Duplicate</button><button class="btn danger" id="peDel" type="button" title="Delete (Del)">Delete</button></div>
         <p id="peStairNote" class="pe-note" hidden></p>
+        <div id="peFin"></div>
       </div>
     </aside>
   </div>
@@ -396,5 +397,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.95d010ad82.js"></script>
+<script type="module" src="/assets/playground.8e14b8c2f2.js"></script>
 </html>

@@ -314,6 +314,16 @@ function flightLanes(lv) { // footprints of the flights that arrive at this leve
   return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, from === 'M' && turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); }
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
+// ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
+const _finMats = new Map();
+function finMat(base, hex) { const k = base.uuid + hex; if (!_finMats.has(k)) { const m = base.clone(); m.color.set(hex); _finMats.set(k, m); } return _finMats.get(k); }
+const ROOM_FLOORS = { oak: ['Light oak', () => M.wood, '#e0c49c'], natural: ['Natural oak', () => M.wood, '#bf9364'], walnut: ['Walnut', () => M.wood, '#7a563c'], greyoak: ['Grey oak', () => M.wood, '#b9b2a8'],
+  lvp: ['Vinyl plank', () => M.lvp, '#b7a58c'], tile: ['Light tile', () => M.tile, '#e4e2dc'], darktile: ['Dark tile', () => M.tile, '#5b5f63'], marble: ['Marble', () => M.tile, '#f2f1ec'],
+  carpet: ['Carpet, oat', () => M.carpet, '#cfc6b8'], carpetgrey: ['Carpet, grey', () => M.carpet, '#8f9296'], concrete: ['Polished concrete', () => M.concrete, '#b9b7b2'] };
+const floorFor = r => { const f = ROOM_FLOORS[r.finish?.floor]; return f ? finMat(f[1](), f[2]) : floorMat(r.type); };
+const paintFor = (r, side) => { const F = r.finish || {}; const hex = F.accent?.side === side ? F.accent.color : F.paint; return hex ? finMat(M.paint, hex) : M.paint; };
+// which side of room r a wall at coordinate c runs along
+const sideOfRoom = (r, axis, c) => axis === 'x' ? (Math.abs(c - r.z) < Math.abs(c - (r.z + r.d)) ? 'n' : 's') : (Math.abs(c - r.x) < Math.abs(c - (r.x + r.w)) ? 'w' : 'e');
 const likeOf = t => RT[t]?.like || t;
 const isOut = r => !!RT[r.type]?.outdoor;
 function rectCells(rooms, step = .5, minus = []) { // occupancy grid (rooms minus `minus`) → maximal rectangles, for roofs
@@ -430,7 +440,7 @@ function buildHouse3() {
     for (const r of rs) {
       const rr = rect(r.x, r.x + r.w, r.z, r.z + r.d), g = r.type === 'garage' && lv === 'M', T = RT[r.type] || {};
       if (T.outdoor) { // decks, porches, balconies
-        const fy = lv === 'U' ? UF : MF - .35, mat = floorMat(r.type);
+        const fy = lv === 'U' ? UF : MF - .35, mat = floorFor(r);
         if (lv === 'U') box(P, r.x, r.x + r.w, fy - 1.04, fy, r.z, r.z + r.d, M.stucco, { walk: true });
         else box(P, r.x, r.x + r.w, 0, fy, r.z, r.z + r.d, T.covered ? M.concrete : M.deck, { walk: true });
         flat(P, rr, [], fy + .01, mat, { walk: true });
@@ -455,7 +465,7 @@ function buildHouse3() {
       for (const L of lanes) pieces = pieces.flatMap(p => cutRect(p, L)); // open only above the flight arriving from below
       for (const [a0, a1, b0, b1] of pieces) {
         if (g) box(P, a0, a1, 0, GF, b0, b1, M.concrete, { walk: true });
-        else { box(P, a0, a1, y - 1.04, y, b0, b1, M.ceil, { cast: false }); flat(P, rect(a0, a1, b0, b1), [], y + .01, floorMat(r.type), { walk: true }); }
+        else { box(P, a0, a1, y - 1.04, y, b0, b1, M.ceil, { cast: false }); flat(P, rect(a0, a1, b0, b1), [], y + .01, floorFor(r), { walk: true }); }
       }
       if (lv === 'M' && isTall(r)) { const open = tallParts(r).map(([a0, a1, b0, b1]) => rect(a0, a1, b0, b1));
         for (const q of open) flat(G3.mainCeil, q, [], UC - .02, M.ceil);
@@ -499,7 +509,8 @@ function buildHouse3() {
           if ((t1 && u2) || (t2 && u1)) y1 = MC;           // the 2nd-floor box's own wall closes the upper part
         }
         const ops = w.ops.filter(op => op.c >= sa - .01 && op.c < sb + .01 || (si === 0 && op.c < sa) || (si === bounds.length - 2 && op.c >= sb));
-        const o = { t, y0, y1, ops };
+        const o = { t, y0, y1, ops }, faceOf = q => horiz ? (q.z + q.d / 2 > w.c ? '+z' : '-z') : (q.x + q.w / 2 > w.c ? '+x' : '-x');
+        o.faceMat = {}; for (const q of ext ? [w.room] : w.rooms) if (q.finish) o.faceMat[faceOf(q)] = paintFor(q, sideOfRoom(q, w.axis, w.c));
         if (ext) {
           const [ox, oz] = nrm[w.out], [qx, qz] = probe(ox * .6, oz * .6), overVoid = lv === 'U' && inTall(qx, qz);
           const STY = BM.style === 'batten';
