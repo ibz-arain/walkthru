@@ -192,33 +192,40 @@ const rig = new THREE.Group(); avatar.add(rig);
 const ME = { body: 'm', h: 5.75 }; // h in feet
 try { Object.assign(ME, JSON.parse(localStorage.getItem('walkthru-me') || '{}')); } catch (e) { }
 const eyeH = () => ME.h - .37; // eyes sit about 4½" below the top of the head
-const FIG_MAT = { skin: std({ color: '#d9c7b5', roughness: .7 }), shoe: std({ color: '#2a2522', roughness: .6 }),
-  m: { top: std({ color: '#3e4b5e', roughness: .85 }), legs: std({ color: '#2e3034', roughness: .85 }), hair: std({ color: '#3a2f28', roughness: .95 }) },
-  f: { top: std({ color: '#8c6a5f', roughness: .85 }), legs: std({ color: '#383b42', roughness: .85 }), hair: std({ color: '#5b4034', roughness: .95 }) } };
-// Built for a 5'-9" person standing on y = 0, facing −z, then scaled to the chosen height.
+const FIG_MAT = { skin: std({ color: '#d6c2ae', roughness: .65 }), shoe: std({ color: '#2b2724', roughness: .55 }),
+  m: { top: std({ color: '#4a5a70', roughness: .9 }), legs: std({ color: '#33363b', roughness: .9 }), hair: std({ color: '#3b3029', roughness: 1 }) },
+  f: { top: std({ color: '#4f6f6a', roughness: .9 }), legs: std({ color: '#3b3f47', roughness: .9 }), hair: std({ color: '#5c4135', roughness: 1 }) } };
+// Built for a 5'-9" person standing on y = 0, facing −z (feet, ft), from real body measurements, then scaled to the chosen height.
 function buildFigure() {
   for (const c of [...rig.children]) { rig.remove(c); c.traverse(o => o.geometry?.dispose()); }
   const F = ME.body === 'f', C = FIG_MAT[F ? 'f' : 'm'], sk = FIG_MAT.skin;
-  const mesh = (g, m, x, y, z, par = rig) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
-  const ell = (r, sx, sy, sz, m, x, y, z, par) => { const o = mesh(new THREE.SphereGeometry(r, 24, 16), m, x, y, z, par); o.scale.set(sx, sy, sz); return o; };
-  const cyl = (rt, rb, h, m, x, y, z, par, sz = 1) => { const o = mesh(new THREE.CylinderGeometry(rt, rb, h, 20), m, x, y, z, par); o.scale.z = sz; return o; };
-  const sh = F ? .5 : .6, hip = F ? .4 : .37, waist = F ? .3 : .34;
-  // torso, hips, neck, head (no face)
-  cyl(sh * .82, waist, .95, C.top, 0, 4.12, 0, rig, .58); cyl(waist, hip, .62, C.top, 0, 3.35, 0, rig, .62);
-  ell(hip, 1, .62, .66, C.legs, 0, 2.98, 0); for (const sx of [-1, 1]) ell(.17, 1, 1, 1, C.top, sx * sh * .86, 4.52, 0);
-  cyl(.11, .13, .32, sk, 0, 4.72, 0);
-  const head = ell(.33, .86, 1.08, .95, sk, 0, 5.18, 0);
-  if (F) { const h1 = ell(.35, .9, 1.06, .98, C.hair, 0, 5.22, .04); h1.scale.set(.9, 1.06, .98); const back = ell(.3, .95, 1.25, .7, C.hair, 0, 4.98, .18); ell(.15, 1, 1, 1, C.hair, 0, 5.42, .3); back.castShadow = true; }
-  else { const cap = new THREE.Mesh(new THREE.SphereGeometry(.345, 24, 12, 0, Math.PI * 2, 0, Math.PI * .5), C.hair); cap.position.set(0, 5.24, .03); cap.scale.set(.88, 1.02, .98); cap.rotation.x = .28; cap.castShadow = true; rig.add(cap); }
-  AV.head = head;
-  // limbs hang from pivots so walking can swing them
-  const limb = (x, y, par) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
+  const add = (g, m, x, y, z, par = rig) => { const o = new THREE.Mesh(g, m); o.position.set(x, y, z); o.castShadow = true; par.add(o); return o; };
+  const ball = (r, m, x, y, z, par, sx = 1, sy = 1, sz = 1) => { const o = add(new THREE.SphereGeometry(r, 28, 18), m, x, y, z, par); o.scale.set(sx, sy, sz); return o; };
+  const tube = (r0, r1, len, m, x, y, z, par) => add(new THREE.CylinderGeometry(r0, r1, len, 24), m, x, y - len / 2, z, par); // hangs down from y
+  const turned = (prof, m, depth) => { const o = add(new THREE.LatheGeometry(prof.map(([r, y]) => new THREE.Vector2(r, y)), 40), m, 0, 0, 0); o.scale.z = depth; return o; };
+  // Torso turned on a lathe: [radius, height]. Pants from the crotch to the belt, top from the belt to the neck.
+  const hipsP = F ? [[0, 2.9], [.42, 2.92], [.5, 3.08], [.52, 3.26], [.47, 3.46], [.43, 3.62]] : [[0, 2.92], [.4, 2.94], [.47, 3.1], [.49, 3.3], [.48, 3.48], [.48, 3.62]];
+  const topP = F ? [[.43, 3.6], [.4, 3.82], [.45, 4.02], [.5, 4.18], [.47, 4.36], [.46, 4.5], [.36, 4.66], [.18, 4.74], [0, 4.76]]
+                 : [[.48, 3.6], [.48, 3.82], [.53, 4.05], [.59, 4.25], [.61, 4.45], [.5, 4.62], [.22, 4.74], [0, 4.76]];
+  turned(hipsP, C.legs, F ? .66 : .62); turned(topP, C.top, F ? .62 : .6);
+  const sh = F ? .5 : .64; // shoulder joint, out from the centre
+  for (const sx of [-1, 1]) ball(F ? .15 : .175, C.top, sx * (sh - .03), 4.44, 0, rig, 1, .85, .9); // deltoids, tucked into the shoulder line
+  tube(F ? .15 : .175, F ? .16 : .19, .42, sk, 0, 5.1, 0); // neck
+  const head = ball(.33, sk, 0, 5.3, -.01, rig, .8, 1.1, .94); AV.head = head; // no face
+  if (F) { // shoulder-length hair: a cap and a fall at the back
+    const cap = add(new THREE.SphereGeometry(.36, 28, 16, 0, Math.PI * 2, 0, Math.PI * .58), C.hair, 0, 5.34, .02); cap.scale.set(.84, 1.06, .97); cap.rotation.x = .22;
+    ball(.32, C.hair, 0, 5.06, .13, rig, .88, 1.15, .6);
+  } else { const cap = add(new THREE.SphereGeometry(.355, 28, 14, 0, Math.PI * 2, 0, Math.PI * .5), C.hair, 0, 5.35, .02); cap.scale.set(.82, .95, .95); cap.rotation.x = .3; }
+  // arms and legs hang from pivots so walking can swing them
+  const pivot = (x, y) => { const pv = new THREE.Group(); pv.position.set(x, y, 0); rig.add(pv); return pv; };
   for (const sx of [-1, 1]) {
-    const arm = limb(sx * (sh * .86 + .04), 4.48);
-    cyl(F ? .085 : .1, F ? .07 : .08, 1.15, C.top, 0, -.58, 0, arm); cyl(F ? .065 : .075, F ? .055 : .065, 1.05, sk, 0, -1.68, 0, arm); ell(F ? .08 : .095, .8, 1.25, .55, sk, 0, -2.28, 0, arm);
-    const leg = limb(sx * hip * .48, 2.92);
-    cyl(F ? .16 : .17, F ? .12 : .13, 1.45, C.legs, 0, -.72, 0, leg); cyl(F ? .11 : .12, F ? .075 : .085, 1.3, C.legs, 0, -2.08, 0, leg);
-    ell(.13, .85, .55, 1.9, FIG_MAT.shoe, 0, -2.83, -.1, leg);
+    const arm = pivot(sx * (sh + (F ? .04 : .05)), 4.42);
+    tube(F ? .12 : .145, F ? .1 : .12, 1.12, C.top, 0, 0, 0, arm); ball(F ? .1 : .12, C.top, 0, -1.12, 0, arm);
+    tube(F ? .1 : .12, F ? .075 : .088, 1.0, sk, 0, -1.12, 0, arm); ball(F ? .085 : .1, sk, 0, -2.2, -.01, arm, .62, 1.35, .9); // forearm, hand
+    const leg = pivot(sx * (F ? .27 : .26), 3.02);
+    tube(F ? .28 : .29, F ? .18 : .19, 1.45, C.legs, 0, 0, 0, leg); ball(F ? .18 : .19, C.legs, 0, -1.45, 0, leg); // thigh, knee
+    tube(F ? .18 : .19, F ? .11 : .12, 1.33, C.legs, 0, -1.45, 0, leg); // shin
+    ball(F ? .12 : .135, FIG_MAT.shoe, 0, -2.9, -.13, leg, .95, .6, 2); // shoe
     if (sx < 0) { AV.armL = arm; AV.legL = leg; } else { AV.armR = arm; AV.legR = leg; }
   }
   avatar.scale.setScalar(ME.h / 5.75); if (AV.blob) AV.blob.scale.setScalar(.95 * ME.h / 5.75);
@@ -288,7 +295,7 @@ function stepWalk(dt) {
     const tgt = air ? { lL: .45, lR: -.3, aL: -.9, aR: -.9 } : { lL: sw, lR: -sw, aL: -sw * .8 + Math.sin(AV.t * 1.6) * .03, aR: sw * .8 - Math.sin(AV.t * 1.6) * .03 };
     AV.legL.rotation.x += (tgt.lL - AV.legL.rotation.x) * ease; AV.legR.rotation.x += (tgt.lR - AV.legR.rotation.x) * ease;
     AV.armL.rotation.x += (tgt.aL - AV.armL.rotation.x) * ease; AV.armR.rotation.x += (tgt.aR - AV.armR.rotation.x) * ease;
-    AV.armL.rotation.z = -.06; AV.armR.rotation.z = .06;
+    AV.armL.rotation.z = -.07; AV.armR.rotation.z = .07; // arms hang just clear of the hips
     rig.position.y = Math.abs(Math.sin(AV.phase)) * .18 * AV.amp + (moving ? 0 : Math.sin(AV.t * 2) * .03);
     rig.rotation.x = -.12 * AV.amp;
     avatar.position.set(player.x, player.feet, player.z); avatar.rotation.y = AV.yaw;

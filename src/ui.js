@@ -164,12 +164,14 @@ $u('sunPlay').onclick = () => { sunPlay = !sunPlay; $u('sunPlay').setAttribute('
 // ---------- you: body and height ----------
 const fmtH = ft => { const t = Math.round(ft * 12); return `${Math.floor(t / 12)}'${t % 12}"`; };
 function syncMe() {
-  press('[data-body]', 'body', ME.body); $u('meH').value = Math.round(ME.h * 12); $u('meHv').textContent = fmtH(ME.h); $u('meNow').textContent = fmtH(ME.h);
+  press('[data-body]', 'body', ME.body); $u('meH').value = Math.round(ME.h * 12); $u('meHv').textContent = fmtH(ME.h);
   document.querySelectorAll('[data-hpre]').forEach(b => b.setAttribute('aria-pressed', String(Math.round(+b.dataset.hpre * 12) === Math.round(ME.h * 12))));
 }
 document.querySelectorAll('[data-body]').forEach(b => b.onclick = () => { setMe({ body: b.dataset.body }); syncMe(); window.wtTrack?.('avatar', { body: ME.body }); });
 document.querySelectorAll('[data-hpre]').forEach(b => b.onclick = () => { setMe({ h: +b.dataset.hpre }); syncMe(); });
 $u('meH').oninput = e => { setMe({ h: +e.target.value / 12 }); syncMe(); };
+$u('mePlay').onclick = () => { closePops(); setMode('char'); };
+$u('peg').addEventListener('pointerup', () => setTimeout(closePops, 0));
 
 // ---------- measure ----------
 const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene.add(MEAS.group);
@@ -304,7 +306,7 @@ function uiSync() {
   if (!uiReady) return;
   const t = tabHouse(); $u('designNow').textContent = t === 3 ? (curDesign()?.name || 'My design') : `Sample ${t === 4 ? 3 : t}`;
   $u('viewNow').textContent = mode === 'walk' ? (AV.third ? 'Character' : 'Walking') : VIEW_NAME[curView] || 'Custom';
-  $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
+  $u('charBtn').setAttribute('aria-pressed', String(mode === 'walk' && AV.third)); $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
   if (RS !== 'real') applyRS();
   if (panel === 'nav') renderNav(); if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();

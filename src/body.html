@@ -72,10 +72,9 @@
   <span class="tb-sep" id="tbModeSep"></span>
   <div class="tb-g" id="tbMode">
     <div class="seg tb-seg" id="segMode" role="group" aria-label="How to explore">
-      <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button><button type="button" data-mode="char" data-tip="Play as a character"><svg class="ic"><use href="#i-char"/></svg></button>
+      <button type="button" data-mode="drone" data-tip="Orbit around the house"><svg class="ic"><use href="#i-orbit"/></svg></button><button type="button" data-mode="walk" data-tip="Walk at eye height"><svg class="ic"><use href="#i-walk"/></svg></button>
     </div>
-    <button class="tb-b" id="peg" type="button" data-tip="Drop in: drag onto the house" aria-label="Drop in"><svg class="ic"><use href="#i-drop"/></svg></button>
-    <button class="tb-b tb-wide" id="meBtn" type="button" data-pop="mePop" data-tip="Your body and height for walking"><svg class="ic"><use href="#i-height"/></svg><span class="tb-t" id="meNow">5'9"</span></button>
+    <button class="tb-b" id="charBtn" type="button" data-pop="mePop" data-tip="Play as a person"><svg class="ic"><use href="#i-char"/></svg><svg class="ic chev"><use href="#i-chev"/></svg></button>
   </div>
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
@@ -141,13 +140,16 @@
     <div class="dm-row"><button class="btn btn-primary" id="accSignUp" type="button">Create account</button><button class="btn" id="accSignIn" type="button">Sign in</button></div>
   </div>
 </div>
-<div class="pop" id="mePop" hidden role="dialog" aria-label="You">
-  <h6>Walk as</h6>
+<div class="pop" id="mePop" hidden role="dialog" aria-label="Play as a person">
+  <h6>Person</h6>
   <div class="seg full"><button type="button" data-body="m">Man</button><button type="button" data-body="f">Woman</button></div>
   <h6>Height <output id="meHv" class="pop-out"></output></h6>
   <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
   <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
-  <p class="pop-note">Walk and Character modes see the house from this eye height, so you can check counters, windows and sightlines at your own size.</p>
+  <h6>Place</h6>
+  <button class="drop-tile" id="peg" type="button" aria-label="Drag onto the house, or click to start at the front door"><svg class="ic"><use href="#i-drop"/></svg><span><b>Drag onto the house</b><small>Drop anywhere, inside or out</small></span></button>
+  <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">Start at the front door</button>
+  <p class="pop-note">Walk mode uses the same height, so you see the house at your own eye level.</p>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
