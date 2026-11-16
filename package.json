@@ -1,0 +1,13 @@
+{
+  "name": "walkthru",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "sh build.sh"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0"
+  },
+  "description": "3D home configurator and design review for builders and their buyers"
+}

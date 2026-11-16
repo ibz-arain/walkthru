@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Walkthru · Homes in 3D, before they're built</title>
+<meta name="description" content="Walkthru lets builders design floor plans, walk through them in 3D and share them with buyers for finishes, changes and comments.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2318181b'/%3E%3Cpath d='M9 15.5 16 9l7 6.5V23H9z' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script>
+  // Old links pointed at the app on the root URL (/#admin, /#c/<token>, /#my-design…). Send them to the playground.
+  if (/^#(admin|c\/|house-|my-design)/.test(location.hash)) location.replace('/playground' + location.hash);
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#fafafa; --paper:#ffffff; --paper-2:#f4f4f5; --ink:#18181b; --ink-2:#71717a; --ink-3:#a1a1aa; --rule:#e4e4e7;
+  --primary:#18181b; --primary-ink:#ffffff; --accent:#2f5be8;
+  --f-ui:"Inter",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --plan-wall:#18181b; --plan-fill:#ffffff; --plan-grid:rgba(24,24,27,.05);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b0b0d; --paper:#141417; --paper-2:#1c1c20; --ink:#ededf0; --ink-2:#8f8f99; --ink-3:#5f5f68; --rule:#27272c;
+  --primary:#ededf0; --primary-ink:#141417; --accent:#6d8cff; --plan-wall:#d4d4d8; --plan-fill:#141417; --plan-grid:rgba(255,255,255,.04); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b0b0d; --paper:#141417; --paper-2:#1c1c20; --ink:#ededf0; --ink-2:#8f8f99; --ink-3:#5f5f68; --rule:#27272c;
+  --primary:#ededf0; --primary-ink:#141417; --accent:#6d8cff; --plan-wall:#d4d4d8; --plan-fill:#141417; --plan-grid:rgba(255,255,255,.04); color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-ui);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+a{color:inherit}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+
+/* nav */
+.nav{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);border-bottom:1px solid transparent;transition:border-color .2s}
+.nav.scrolled{border-bottom-color:var(--rule)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:9px;text-decoration:none;font-weight:600;font-size:15px;letter-spacing:-.01em}
+.logo{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--primary);color:var(--primary-ink)}
+.logo svg{width:14px;height:14px}
+.nav nav{display:flex;align-items:center;gap:4px}
+.nav nav a.link{font-size:14px;color:var(--ink-2);text-decoration:none;padding:6px 10px;border-radius:6px}
+.nav nav a.link:hover{color:var(--ink)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:500 14px/1 var(--f-ui);text-decoration:none;border-radius:8px;padding:10px 16px;border:1px solid transparent;transition:opacity .15s,background .15s,border-color .15s;white-space:nowrap}
+.btn-sm{padding:8px 13px;font-size:13.5px}
+.btn-primary{background:var(--primary);color:var(--primary-ink)}
+.btn-primary:hover{opacity:.88}
+.btn-ghost{border-color:var(--rule);background:var(--paper);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--ink-3)}
+.btn svg{width:14px;height:14px}
+
+/* hero */
+.hero{padding:88px 0 56px;text-align:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font:500 12.5px var(--f-ui);color:var(--ink-2);border:1px solid var(--rule);background:var(--paper);border-radius:99px;padding:4px 12px 4px 6px;margin-bottom:28px}
+.eyebrow b{font-weight:500;color:var(--ink);background:var(--paper-2);border-radius:99px;padding:1px 8px}
+h1{font-size:clamp(36px,6vw,60px);line-height:1.04;letter-spacing:-.035em;font-weight:600;margin:0 auto;max-width:15ch;text-wrap:balance}
+.lede{font-size:clamp(16px,2vw,18px);color:var(--ink-2);max-width:54ch;margin:22px auto 0;text-wrap:pretty}
+.ctas{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+.ctas .btn{padding:12px 18px;font-size:15px}
+
+/* product frame */
+.frame{margin:64px auto 0;max-width:1000px;border:1px solid var(--rule);border-radius:14px;background:var(--paper);box-shadow:0 1px 2px rgba(16,16,20,.04),0 30px 60px -20px rgba(16,16,20,.18);overflow:hidden;text-align:left}
+.frame-bar{display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border-bottom:1px solid var(--rule);background:var(--bg)}
+.dots{display:flex;gap:6px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--rule)}
+.frame-url{flex:1;text-align:center;font:12px var(--f-mono);color:var(--ink-3)}
+.frame-body{display:grid;grid-template-columns:150px 1fr 210px;min-height:380px}
+.f-side{border-right:1px solid var(--rule);padding:14px 10px;background:var(--bg);font-size:12.5px}
+.f-side h6,.f-insp h6{margin:0 6px 8px;font:500 11px var(--f-ui);color:var(--ink-3)}
+.f-side div{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px}
+.f-side div i{width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.f-side div.on{background:var(--paper-2)}
+.f-canvas{position:relative;background-color:var(--plan-fill);background-image:linear-gradient(var(--plan-grid) 1px,transparent 1px),linear-gradient(90deg,var(--plan-grid) 1px,transparent 1px);background-size:20px 20px;display:grid;place-items:center;padding:28px}
+.f-canvas svg{width:100%;max-width:470px;height:auto}
+.f-insp{border-left:1px solid var(--rule);padding:14px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:12px}
+.f-field{display:grid;gap:5px;color:var(--ink-2);font-size:11.5px}
+.f-field span{display:block;border:1px solid var(--rule);border-radius:6px;padding:6px 8px;color:var(--ink);font-size:12.5px;background:var(--paper)}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f-sw{display:flex;gap:5px;flex-wrap:wrap}.f-sw i{width:22px;height:22px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.f-sw i.on{box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--ink)}
+.f-pill{margin-top:auto;display:flex;gap:2px;background:var(--paper-2);border-radius:7px;padding:2px;font-size:12px}
+.f-pill b{flex:1;text-align:center;padding:5px 0;border-radius:5px;font-weight:500;color:var(--ink-2)}
+.f-pill b.on{background:var(--primary);color:var(--primary-ink)}
+
+/* features */
+section{padding:96px 0}
+.sec-head{max-width:560px;margin-bottom:48px}
+.kicker{font:500 12.5px var(--f-mono);color:var(--ink-3);margin:0 0 14px}
+h2{font-size:clamp(26px,3.6vw,36px);line-height:1.12;letter-spacing:-.028em;font-weight:600;margin:0;text-wrap:balance}
+.sec-head p{color:var(--ink-2);margin:14px 0 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--rule);border-radius:14px;background:var(--paper);overflow:hidden}
+.feat{padding:28px 26px 30px}
+.feat + .feat{border-left:1px solid var(--rule)}
+.feat .ic{width:34px;height:34px;border-radius:9px;border:1px solid var(--rule);display:grid;place-items:center;margin-bottom:20px;color:var(--ink)}
+.feat .ic svg{width:17px;height:17px}
+.feat h3{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+.feat p{color:var(--ink-2);margin:0;font-size:14.5px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;counter-reset:s}
+.step{border-top:1px solid var(--rule);padding-top:20px}
+.step::before{counter-increment:s;content:"0" counter(s);font:500 12.5px var(--f-mono);color:var(--ink-3);display:block;margin-bottom:14px}
+.step h3{font-size:16px;font-weight:600;letter-spacing:-.01em;margin:0 0 6px}
+.step p{color:var(--ink-2);margin:0;font-size:14.5px}
+
+.cta{border:1px solid var(--rule);border-radius:16px;background:var(--paper);padding:64px 32px;text-align:center}
+.cta p{color:var(--ink-2);margin:14px auto 0;max-width:46ch}
+.cta .ctas{margin-top:28px}
+
+footer{border-top:1px solid var(--rule);padding:28px 0 40px;color:var(--ink-3);font-size:13.5px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+footer a{color:var(--ink-2);text-decoration:none;margin-left:20px}
+footer a:hover{color:var(--ink)}
+
+@media (max-width:860px){
+  .frame-body{grid-template-columns:1fr}
+  .f-side,.f-insp{display:none}
+  .grid3,.steps{grid-template-columns:1fr}
+  .feat + .feat{border-left:0;border-top:1px solid var(--rule)}
+  section{padding:72px 0}
+  .hero{padding:64px 0 40px}
+  .nav nav a.link{display:none}
+}
+@media (max-width:480px){.wrap{padding:0 16px} footer a{margin:0 16px 0 0}}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="/"><span class="logo"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 7.6 8 3l5 4.6V13H3z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></span>Walkthru</a>
+    <nav aria-label="Main">
+      <a class="link" href="#features">Product</a>
+      <a class="link" href="#how">How it works</a>
+      <a class="link" href="/playground#admin">Studio</a>
+      <a class="btn btn-primary btn-sm" href="/playground" style="margin-left:8px">Start building</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow"><b>New</b> Share a plan, get comments pinned in 3D</span>
+    <h1>Walk through the home before it's built.</h1>
+    <p class="lede">Draw a floor plan, see it in 3D straight away, and send buyers a link where they can pick finishes, suggest changes and leave comments right where they matter.</p>
+    <div class="ctas">
+      <a class="btn btn-primary" href="/playground">Start building
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a class="btn btn-ghost" href="/playground#house-3">See a sample home</a>
+    </div>
+
+    <div class="frame" aria-hidden="true">
+      <div class="frame-bar"><span class="dots"><i></i><i></i><i></i></span><span class="frame-url">walkthru / playground</span><span style="width:46px"></span></div>
+      <div class="frame-body">
+        <div class="f-side">
+          <h6>Rooms</h6>
+          <div><i style="background:#e8dcc8"></i>Living</div>
+          <div class="on"><i style="background:#f1e3b3"></i>Kitchen</div>
+          <div><i style="background:#d9e4ec"></i>Bedroom</div>
+          <div><i style="background:#cfe3dc"></i>Bathroom</div>
+          <div><i style="background:#e4dbe9"></i>Office</div>
+          <div><i style="background:#dddddd"></i>Garage</div>
+          <h6 style="margin-top:14px">Outside</h6>
+          <div><i style="background:#cfe0c3"></i>Deck</div>
+          <div><i style="background:#d6e6d0"></i>Porch</div>
+        </div>
+        <div class="f-canvas">
+          <svg viewBox="0 0 470 300" fill="none" stroke-linejoin="round">
+            <g stroke="var(--plan-wall)" stroke-width="1.5">
+              <rect x="10" y="10" width="190" height="150" fill="#e8dcc8"/>
+              <rect x="200" y="10" width="140" height="110" fill="#f1e3b3"/>
+              <rect x="340" y="10" width="120" height="110" fill="#e4dbe9"/>
+              <rect x="200" y="120" width="70" height="80" fill="#cfe3dc"/>
+              <rect x="270" y="120" width="190" height="170" fill="#d9e4ec"/>
+              <rect x="10" y="160" width="190" height="130" fill="#dddddd"/>
+              <rect x="200" y="200" width="70" height="90" fill="#f4f1ea"/>
+            </g>
+            <rect x="200" y="10" width="140" height="110" stroke="var(--accent)" stroke-width="2" fill="none"/>
+            <g fill="var(--accent)"><rect x="196" y="61" width="8" height="8"/><rect x="336" y="61" width="8" height="8"/><rect x="266" y="6" width="8" height="8"/><rect x="266" y="116" width="8" height="8"/></g>
+            <g stroke="var(--plan-fill)" stroke-width="4"><path d="M200 60v26M300 120h30M270 150v26M200 230v24M120 160h40"/></g>
+            <g font-family="Inter, sans-serif" font-size="11" fill="#18181b" text-anchor="middle" stroke="none">
+              <text x="105" y="82">Living</text><text x="270" y="62">Kitchen</text><text x="400" y="62">Office</text>
+              <text x="235" y="163">Bath</text><text x="365" y="203">Primary bedroom</text><text x="105" y="222">Garage</text><text x="235" y="248">Hall</text>
+            </g>
+            <g font-family="JetBrains Mono, monospace" font-size="9" fill="#71717a" text-anchor="middle" stroke="none">
+              <text x="105" y="96">19' × 15'</text><text x="270" y="76">14' × 11'</text><text x="400" y="76">12' × 11'</text><text x="365" y="217">19' × 17'</text><text x="105" y="236">19' × 13'</text>
+            </g>
+          </svg>
+        </div>
+        <div class="f-insp">
+          <h6 style="margin:0">Selected room</h6>
+          <div class="f-field">Name<span>Kitchen</span></div>
+          <div class="f-row"><div class="f-field">Width<span>14 ft</span></div><div class="f-field">Depth<span>11 ft</span></div></div>
+          <div class="f-field">Countertop
+            <div class="f-sw"><i class="on" style="background:#f1efe9"></i><i style="background:#2b2b2e"></i><i style="background:#b9a68a"></i><i style="background:#8f9aa3"></i></div>
+          </div>
+          <div class="f-pill"><b>Drone</b><b class="on">Walk</b><b>Character</b></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">Product</p>
+        <h2>One place for the plan, the model and the conversation.</h2>
+        <p>No exports, no plugins, no files sent back and forth. It all runs in the browser.</p>
+      </div>
+      <div class="grid3">
+        <div class="feat">
+          <span class="ic"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="2.5" y="2.5" width="13" height="13" rx="1"/><path d="M2.5 9h7v6.5M9.5 2.5V6"/></svg></span>
+          <h3>Draw the floor plan</h3>
+          <p>Drag rooms onto a grid, resize walls, add doors and stairs, or have a layout drafted from a bedroom and bathroom count.</p>
+        </div>
+        <div class="feat">
+          <span class="ic"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M9 2 15.5 5.5v7L9 16 2.5 12.5v-7z"/><path d="M2.5 5.5 9 9l6.5-3.5M9 9v7"/></svg></span>
+          <h3>See it in 3D, instantly</h3>
+          <p>Every change rebuilds the house. Fly around it, walk through each floor at eye height, and move the sun to check the light.</p>
+        </div>
+        <div class="feat">
+          <span class="ic"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M3 3.5h12v8H8.5L5 14.5v-3H3z"/></svg></span>
+          <h3>Share with buyers</h3>
+          <p>Send a link to view, pick finishes or change the plan. Comments are pinned to the exact spot in the house, and you approve what comes back.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" style="padding-top:0">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="kicker">How it works</p>
+        <h2>From sketch to sign-off in three steps.</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><h3>Start a design</h3><p>Begin with a blank page, a sample home, or an auto layout, then shape it in the plan editor.</p></div>
+        <div class="step"><h3>Review it in 3D</h3><p>Check room sizes, sightlines and finishes from the outside in, floor by floor.</p></div>
+        <div class="step"><h3>Send it out</h3><p>Create a project in Studio and share a link. Feedback, changes and versions land in one place.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding-top:0">
+    <div class="wrap">
+      <div class="cta">
+        <h2>Open the playground and start drawing.</h2>
+        <p>No sign-up needed. Your designs are saved in your browser as you go.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="/playground">Start building</a>
+          <a class="btn btn-ghost" href="/playground#admin">Go to Studio</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© <span id="yr">2026</span> Walkthru</span>
+    <span><a href="/playground">Playground</a><a href="/playground#admin">Studio</a></span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 8), { passive: true });
+</script>
+</body>
+</html>
