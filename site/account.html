@@ -16,14 +16,9 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--paper:#151518;--paper-2:#1d1d21;--ink:#ececf0;--ink-2:#8e8e99;--ink-3:#5e5e68;--rule:#26262b;--rule-2:#34343a;--primary:#ececf0;--primary-ink:#151518;--accent:#7088ff;--accent-soft:rgba(112,136,255,.15);--danger:#f87171;--ok:#4ade80;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#0c0c0e;--paper:#151518;--paper-2:#1d1d21;--ink:#ececf0;--ink-2:#8e8e99;--ink-3:#5e5e68;--rule:#26262b;--rule-2:#34343a;--primary:#ececf0;--primary-ink:#151518;--accent:#7088ff;--accent-soft:rgba(112,136,255,.15);--danger:#f87171;--ok:#4ade80;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01"}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font:14px/1.55 var(--f-ui);-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01"}
 [hidden]{display:none!important}
 a{color:inherit}
-.top{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 24px;border-bottom:1px solid var(--rule);background:var(--paper)}
-.brand{display:flex;align-items:center;gap:9px;text-decoration:none;font-weight:600}
-.logo{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--primary);color:var(--primary-ink)}
-.logo svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round}
-.top nav{display:flex;gap:6px;align-items:center}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:500 13.5px/1 var(--f-ui);color:var(--ink);background:var(--paper);border:1px solid var(--rule-2);border-radius:8px;padding:9px 14px;cursor:pointer;text-decoration:none;white-space:nowrap}
 .btn:hover{background:var(--paper-2)}
 .btn-primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}.btn-primary:hover{background:var(--primary);opacity:.88}
@@ -33,7 +28,9 @@ a{color:inherit}
 .link:hover{color:var(--ink)}
 button:disabled{opacity:.5;cursor:default}
 /* auth card */
-.auth{max-width:380px;margin:72px auto 40px;padding:0 20px}
+.auth{width:100%;max-width:380px;margin:auto;padding:40px 20px;box-sizing:border-box}
+.auth h1,.auth .alt{text-align:center}
+.auth .sub{text-align:center}
 .auth h1{font-size:24px;letter-spacing:-.02em;font-weight:600;margin:0 0 6px}
 .auth .sub{color:var(--ink-2);margin:0 0 24px}
 .card{background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:22px}
@@ -67,16 +64,12 @@ section > header p{margin:2px 0 0;color:var(--ink-2);font-size:13px}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .stat{background:var(--paper-2);border-radius:10px;padding:10px 12px}.stat b{display:block;font-size:18px;font-weight:600}.stat span{font-size:12px;color:var(--ink-2)}
 .mono{font-family:var(--f-mono);font-size:12px}
-@media (max-width:600px){.row2{grid-template-columns:1fr}.auth{margin-top:40px}}
+@media (max-width:600px){.row2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<header class="top">
-  <a class="brand" href="/">Demo</a>
-  <nav><a class="btn btn-sm" href="/playground" id="topPlay" hidden>Playground</a><a class="btn btn-sm" href="/playground#admin" id="topStudio" hidden>Projects</a></nav>
-</header>
 
-<main id="view"></main>
+<main id="view" style="flex:1;display:flex;flex-direction:column"></main>
 
 <script type="module">
 const $ = s => document.querySelector(s), view = $('#view');
@@ -184,7 +177,6 @@ async function settings() {
 async function route() {
   const h = location.hash.slice(1).split('?')[0];
   try { ME = await api('GET', 'auth'); } catch (e) { view.innerHTML = '<div class="auth"><h1>Accounts need the online version</h1><p class="sub">Run the site with its API (npm run dev) to sign in.</p></div>'; return; }
-  $('#topStudio').hidden = !ME.user; $('#topPlay').hidden = !ME.user;
   if (h.startsWith('reset/')) return reset(h.slice(6));
   if (h.startsWith('invite/')) return invite(h.slice(7));
   if (ME.user) { if (h === 'login' || h === 'signup') return void (location.href = nextUrl()); return settings(); }
