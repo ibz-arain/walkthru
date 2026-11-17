@@ -36,6 +36,30 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
     for (const [a, b] of spans) if (b - a > .05) boxAN(parent, horiz, a, b, -0.4, top, n0, n1, o.skirtMat ?? M.stone);
   }
 }
+// ---------- Doors you can open and close (E in walk mode) ----------
+// Each door leaf / garage panel is built into its own group whose origin is the hinge, so it can turn.
+// DOORS: { parts: [{ g, axis, ang }], cur 0..1 (0 = as drawn, 1 = turned by ang), target, at: [x, y, z], kind }
+const DOORS = [];
+function hingeGroup(p, horiz, h, y, n, build) { // h: position along the wall, n: across it
+  const g = new THREE.Group(); p.add(g); build(g);
+  const px = horiz ? h : n, pz = horiz ? n : h; g.position.set(px, y, pz);
+  for (const ch of g.children) { ch.position.x -= px; ch.position.y -= y; ch.position.z -= pz; }
+  return g;
+}
+// turn that takes direction N (x, z) onto direction A, about the vertical axis
+const yawBetween = (N, A) => { let d = Math.atan2(A[0], A[1]) - Math.atan2(N[0], N[1]); return Math.atan2(Math.sin(d), Math.cos(d)); };
+function addDoor(parts, at, kind, closedFirst) {
+  const d = { parts, cur: 0, target: 0, at, kind };
+  if (closedFirst) { d.cur = d.target = 1; for (const q of parts) q.g.rotation[q.axis] = q.ang; }
+  DOORS.push(d); return d;
+}
+function garageDone(P0, g, horiz, h, top, n, nIn, at) { // move the group's origin to the top edge, then register it
+  const px = horiz ? h : n, pz = horiz ? n : h; g.position.set(px, top, pz);
+  for (const ch of g.children) { ch.position.x -= px; ch.position.y -= top; ch.position.z -= pz; }
+  addDoor([{ g, axis: horiz ? 'x' : 'z', ang: (horiz ? -nIn : nIn) * Math.PI / 2 * .97 }], at, 'garage', false);
+}
+const doorMat = (hex, base) => hex ? finMat(M.white, hex) : base; // a door painted its own colour (BM.ops[key].color)
+const doorClosed = d => (d.kind === 'garage') === (d.cur < .5); // swing doors are drawn open; the garage panel is drawn closed
 function fillOpening(p, horiz, c, t, os, op) {
   const a = op.c - op.w / 2, b = op.c + op.w / 2, yb = op.b, yt = op.b + op.h;
   const k = op.k || 'win', FM = op.fm ?? M.trim;
@@ -45,20 +69,25 @@ function fillOpening(p, horiz, c, t, os, op) {
     const st = op.style || 'single', sw = (op.sw ?? 1), n0 = c + sw * t / 2;
     if (st !== 'barn') casing(p, horiz, c, t, a, b, yb, yt);
     if (st === 'cased') return; // just a trimmed opening
-    const leaf = (h0, len, glass) => { // a leaf standing open at hinge position h0, sticking `len` into the room
-      boxAN(p, horiz, h0, h0 + .14, yb, yt - .04, n0, n0 + sw * len, M.white);
-      if (glass) boxAN(p, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass);
+    const parts = [], N = horiz ? [0, sw] : [sw, 0];
+    const leaf = (h0, len, glass, swing = true) => { // a leaf standing open at hinge position h0, sticking `len` into the room
+      const mk = g => { boxAN(g, horiz, h0, h0 + .14, yb, yt - .04, n0, n0 + sw * len, doorMat(op.color, M.doorLeaf));
+        if (glass) boxAN(g, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass); };
+      if (!swing) return mk(p);
+      const dA = h0 < (a + b) / 2 ? 1 : -1, A = horiz ? [dA, 0] : [0, dA]; // closed, it lies along the wall toward the other jamb
+      parts.push({ g: hingeGroup(p, horiz, h0 + .07, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
     };
-    if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); return; }
-    if (st === 'bifold') { for (const h0 of [a + .05, b - .19]) leaf(h0, Math.min(1, op.w / 4), false); return; }
-    if (st === 'pocket') { const s0 = op.hinge === 'b' ? b - .4 : a - op.w + .4; boxAN(p, horiz, s0, s0 + op.w, yb, yt - .04, c - .06, c + .06, M.white); return; } // slid into the wall, the edge shows
+    const at = horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2];
+    if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); addDoor(parts, at, 'door', false); return; }
+    if (st === 'bifold') { for (const h0 of [a + .05, b - .19]) leaf(h0, Math.min(1, op.w / 4), false, false); return; }
+    if (st === 'pocket') { const s0 = op.hinge === 'b' ? b - .4 : a - op.w + .4; boxAN(p, horiz, s0, s0 + op.w, yb, yt - .04, c - .06, c + .06, doorMat(op.color, M.doorLeaf)); return; } // slid into the wall, the edge shows
     if (st === 'barn') { // a slab on the face of the wall, slid to one side, hanging from a rail
       const side = op.hinge === 'b' ? -1 : 1, s0 = side > 0 ? b - .3 : a - op.w + .3, nf = c + sw * (t / 2 + .05);
       boxAN(p, horiz, Math.min(a, s0) - .3, Math.max(b, s0 + op.w) + .3, yt + .25, yt + .4, nf + sw * .02, nf + sw * .14, M.black);
-      boxAN(p, horiz, s0, s0 + op.w, yb + .05, yt + .3, nf + sw * .14, nf + sw * .3, M.walnut);
+      boxAN(p, horiz, s0, s0 + op.w, yb + .05, yt + .3, nf + sw * .14, nf + sw * .3, doorMat(op.color, M.walnut));
       return;
     }
-    leaf(op.hinge === 'b' ? b - .19 : a + .05, op.w - .1, false);
+    leaf(op.hinge === 'b' ? b - .19 : a + .05, op.w - .1, false); addDoor(parts, at, 'door', false);
     return;
   }
   // exterior units: frame sits toward the outside face
@@ -99,27 +128,32 @@ function fillOpening(p, horiz, c, t, os, op) {
     return;
   }
   if (k === 'garage') {
-    const n0 = fc - .12, n1 = fc + .12;
-    boxAN(p, horiz, a + fw, b - fw, yb, yt - fw, n0, n1, FM, { solid: true });
+    const n0 = fc - .12, n1 = fc + .12, top = yt - fw, P0 = p;
+    // the panel turns up on its top edge into the garage (an overhead door): built in a group hinged there
+    const g = new THREE.Group(); P0.add(g); p = g;
+    boxAN(p, horiz, a + fw, b - fw, yb, yt - fw, n0, n1, FM);
     const pw = b - a - 2 * fw, ph = yt - yb - fw;
-    if (op.plain) { for (let r = 1; r < 8; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 8 - .02, yb + ph * r / 8, n0 - .03, n1 + .03, M.black); return; }
+    if (op.plain) { for (let r = 1; r < 8; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 8 - .02, yb + ph * r / 8, n0 - .03, n1 + .03, M.black); garageDone(P0, g, horiz, (a + b) / 2, top, nIn > 0 ? n1 : n0, nIn, [horiz ? (a + b) / 2 : fc, yb + 3, horiz ? fc : (a + b) / 2]); return; }
     if (op.top) { const n = Math.max(3, Math.round(pw / 3.4)); for (let q = 0; q < n; q++) { const sx = a + fw + pw * (q + .1) / n; boxAN(p, horiz, sx, sx + pw * .8 / n, yb + ph * .79, yb + ph * .92, n0 - .02, n1 + .02, M.frost); } } // a row of lites along the top panel
     else for (let r = 0; r < 4; r++) for (let q = 0; q < 2; q++) {
       const sx = a + fw + pw * (0.12 + q * 0.5), sy = yb + ph * (0.14 + r * 0.22);
       boxAN(p, horiz, sx, sx + pw * 0.26, sy, sy + ph * 0.09, n0 - .02, n1 + .02, M.frost);
     }
     for (let r = 1; r < 4; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 4 - .03, yb + ph * r / 4, n0 - .03, n1 + .03, M.black);
-    return;
+    garageDone(P0, g, horiz, (a + b) / 2, top, nIn > 0 ? n1 : n0, nIn, [horiz ? (a + b) / 2 : fc, yb + 3, horiz ? fc : (a + b) / 2]); return;
   }
   if (k === 'front' || k === 'extdoor') {
     // leaves swung open into the house so you can walk through
     const leaves = k === 'front' ? [[a + fw, (a + b) / 2, 0], [(a + b) / 2, b - fw, 1]] : [[a + fw, b - fw, op.hinge === 'b' ? 1 : 0]];
     const dir = op.outSwing ? -nIn : nIn, glassy = op.style === 'french';
+    const parts = [], N = horiz ? [0, dir] : [dir, 0];
     for (const [la, lb, right] of leaves) {
-      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw;
-      boxAN(p, horiz, hx, hx + .18, yb, yt - fw, n0, n1, FM);
-      boxAN(p, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass);
+      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1;
+      const mk = g => { boxAN(g, horiz, hx, hx + .18, yb, yt - fw, n0, n1, doorMat(op.color, FM));
+        boxAN(g, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass); };
+      parts.push({ g: hingeGroup(p, horiz, hx + .09, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) });
     }
+    addDoor(parts, horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2], 'door', true); // outside doors start shut
     boxAN(p, horiz, a, b, yb - .02, yb + .03, c - t / 2, c + t / 2, M.walnut, { walk: true });
   }
 }

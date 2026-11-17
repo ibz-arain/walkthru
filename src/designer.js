@@ -106,7 +106,6 @@ function dimAt(sx, sy) {
 // editor.js asks these first; returning true means the event was handled here.
 function peToolDown(e, sx, sy, wx, wz) {
   if (e.button !== 0) return false;
-  if (PE.tool === 'note') { const text = prompt('Note text'); setTool(null); if (!text?.trim()) return true; pushHist(); const n = { id: BID++, level: PE.lv, x: snapH(wx), z: snapH(wz), text: text.trim().slice(0, 140) }; (BM.notes = BM.notes || []).push(n); selectX({ kind: 'note', id: n.id }); planChanged(); return true; }
   if (PE.tool === 'dim') { const p = [snapToWalls(wx, 'x', .8), snapToWalls(wz, 'z', .8)]; PE.drag = { kind: 'dimNew', x1: p[0], z1: p[1], x2: p[0], z2: p[1] }; return true; }
   const n = noteAt(sx, sy); if (n) { selectX({ kind: 'note', id: n.id }); PE.drag = { kind: 'noteMove', n, dx: wx - n.x, dz: wz - n.z, before: snapshot() }; return true; }
   const it = itemAt(wx, wz); if (it) { selectX({ kind: 'item', id: it.id }); PE.drag = { kind: 'itemMove', it, dx: wx - it.x, dz: wz - it.z, before: snapshot() }; return true; }
@@ -127,8 +126,7 @@ function peToolUp() {
   if (D.before !== snapshot()) { PE.hist.push(D.before); PE.redo = []; planChanged(); } else peDraw();
   return true;
 }
-function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
-document.getElementById('peNoteBtn').onclick = () => setTool(PE.tool === 'note' ? null : 'note');
+function setTool(t) { PE.tool = t; document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
 document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? null : 'dim');
 
 // ---------- drawing (called at the end of peDraw) ----------
@@ -250,6 +248,7 @@ function mirrorPlan(axis) {
 }
 
 // ---------- door and window sizes on the selected wall ----------
+const DOOR_COLORS = [['#f6f6f3', 'White'], ['#1d1e20', 'Black'], ['#4a4e54', 'Charcoal'], ['#7a563c', 'Walnut'], ['#c69c6d', 'Oak'], ['#2f4a6b', 'Navy'], ['#5f7a5c', 'Sage'], ['#9b3b32', 'Red'], ['#d9b44a', 'Mustard']];
 document.getElementById('peWall').insertAdjacentHTML('beforeend', '<div id="peOp" hidden></div>');
 function opKey() { const w = PE.selWall; if (!w) return null; return w.ext ? extKey(w.R, w.out) : pairKey(w.A, w.B); }
 function peOpPanel() {
@@ -267,6 +266,7 @@ function peOpPanel() {
     ${kind === 'door' && !['double', 'french', 'bifold', 'cased', 'slider'].includes(o.style) && !(isFront && !o.style && (w.b - w.a) >= 7.5) ? `<div class="seg full pe-wm"><button type="button" data-hinge="a" aria-pressed="${o.hinge !== 'b'}">Hinge left</button><button type="button" data-hinge="b" aria-pressed="${o.hinge === 'b'}">Hinge right</button></div>` : ''}
     ${kind === 'door' && !['pocket', 'barn', 'cased', 'slider'].includes(o.style) ? `<div class="seg full pe-wm"><button type="button" data-swing="in" aria-pressed="${w.ext ? !o.out : !o.flip}">${w.ext ? 'Swings in' : 'Swing this side'}</button><button type="button" data-swing="out" aria-pressed="${w.ext ? !!o.out : !!o.flip}">${w.ext ? 'Swings out' : 'Other side'}</button></div>` : ''}
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
+    ${kind === 'door' && o.style !== 'cased' ? `<div class="fld fld-stack">Door colour <div class="chips"><button type="button" data-dc="" class="def" aria-pressed="${!o.color}" title="Default" aria-label="Default"></button>${DOOR_COLORS.map(([c, n]) => `<button type="button" data-dc="${c}" title="${n}" aria-pressed="${o.color === c}" style="background:${c}"></button>`).join('')}<label class="chip-c" title="Any colour"><input type="color" id="dcC" value="${o.color || '#f6f6f3'}"></label></div></div>` : ''}
     <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
   for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : k === 'n' ? +i.value : +fromDisp(+i.value).toFixed(3)); }
@@ -274,6 +274,8 @@ function peOpPanel() {
   el.querySelector('#opSt').onchange = e => set('style', e.target.value || null);
   el.querySelectorAll('[data-hinge]').forEach(b => b.onclick = () => set('hinge', b.dataset.hinge === 'b' ? 'b' : null));
   el.querySelectorAll('[data-swing]').forEach(b => b.onclick = () => set(w.ext ? 'out' : 'flip', b.dataset.swing === 'out' ? true : null));
+  el.querySelectorAll('[data-dc]').forEach(b => b.onclick = () => set('color', b.dataset.dc || null));
+  el.querySelector('#dcC')?.addEventListener('change', e => set('color', e.target.value));
   el.querySelector('#opReset').onclick = () => { pushHist(); if (BM.ops) delete BM.ops[opKey()]; planChanged(); };
 }
 
@@ -289,7 +291,26 @@ document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
 roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); syncPlanPop(); planChanged(); });
+// ---------- levels: how the house sits in the ground and how tall each storey is ----------
+const LEVEL_SLIDERS = [['lvMain', 'main', 'Main floor above ground', .5, 6, .25], ['lvMainH', 'mainH', 'Main floor ceiling', 8, 12, .5], ['lvUpH', 'upH', '2nd floor ceiling', 7.5, 10, .5], ['lvBaseH', 'baseH', 'Basement ceiling', 7, 10, .5]];
+document.getElementById('pePlanPop').insertAdjacentHTML('afterbegin', `<h6>Levels</h6>
+  <div class="seg full" id="lvPreset">${Object.entries(LEVEL_PRESETS).map(([k, [n, , t]]) => `<button type="button" data-lvp="${k}" title="${t}">${n}</button>`).join('')}</div>
+  ${LEVEL_SLIDERS.map(([id, , label, min, max, step]) => `<h6>${label} <output id="${id}V" class="pop-out"></output></h6><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" class="pop-range">`).join('')}
+  <p class="pop-note" id="lvNote"></p>`);
+function setLevels(patch) { const L = { ...(BM.levels || {}), ...patch }; for (const k in L) if (Math.abs(L[k] - LEVELS_DEF[k]) < .01) delete L[k]; if (Object.keys(L).length) BM.levels = L; else delete BM.levels; }
+function syncLevels() {
+  const L = levelsOf(BM); for (const [id, k] of LEVEL_SLIDERS) { const el = document.getElementById(id); if (document.activeElement !== el) el.value = L[k]; document.getElementById(id + 'V').textContent = ftin(L[k]); }
+  const pk = Object.entries(LEVEL_PRESETS).find(([, [, v]]) => Math.abs(v.main - L.main) < .01)?.[0];
+  document.querySelectorAll('[data-lvp]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvp === pk)));
+  const exposed = L.main - 1.16, base = BM.rooms.some(r => r.level === 'B'); // top of the foundation above the ground, as in baseWin()
+  document.getElementById('lvNote').textContent = L.main < .8 ? 'Slab on grade: the main floor is a step above the ground.' + (base ? ' The basement sits fully underground.' : '')
+    : !base ? `Main floor ${ftin(L.main)} above the ground.` : exposed >= 3.5 ? `The basement stands ${ftin(Math.min(exposed, L.baseH))} out of the ground, with full-size windows.` : 'The basement is below ground, with small windows near the ceiling.';
+}
+document.querySelectorAll('[data-lvp]').forEach(b => b.onclick = () => { pushHist(); setLevels({ ...LEVELS_DEF, ...LEVEL_PRESETS[b.dataset.lvp][1] }); syncLevels(); planChanged(false); });
+for (const [id, k] of LEVEL_SLIDERS) { const el = document.getElementById(id); el.onpointerdown = () => pushHist();
+  el.oninput = () => { setLevels({ [k]: +el.value }); syncLevels(); clearTimeout(el.t); el.t = setTimeout(() => planChanged(false), 150); }; }
 function syncPlanPop() {
+  syncLevels();
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
@@ -401,76 +422,3 @@ function snapToWall(it, reach = 1.6) {
   it.rot = best.rot; if (best.horiz) it.z = +best.want.toFixed(2); else it.x = +best.want.toFixed(2);
 }
 
-// ---------- code checks (common US residential rules, IRC-style). Each issue can point at a room or staircase. ----------
-const BEDROOMS = new Set(['bedroom', 'primary', 'guest', 'nursery']), LVN = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
-function codeChecks() {
-  const out = [], add = (sev, text, at) => out.push({ sev, text, at });
-  const walls = { B: planLevel('B'), M: planLevel('M'), U: planLevel('U') };
-  for (const r of BM.rooms) {
-    const T = RT[r.type] || {}, nm = `${rname(r)} (${LVN[r.level]})`;
-    if (BEDROOMS.has(r.type)) {
-      const ext = walls[r.level].filter(w => w.ext && w.room === r), opens = ext.flatMap(w => w.ops);
-      const egress = opens.some(o => o.k === 'extdoor' || o.k === 'slider' || o.k === 'front' || (!o.k && o.w * o.h >= 5.7 && o.w >= 1.67 && o.h >= 2));
-      if (!opens.length) add('error', `${nm} has no window or outside door. Bedrooms need an emergency exit (egress).`, { room: r.id });
-      else if (!egress) add('warn', `${nm}: windows look too small for egress (5.7 sq ft opening, 20" wide, 24" high).`, { room: r.id });
-      if (r.w * r.d < 70 || Math.min(r.w, r.d) < 7) add('warn', `${nm} is ${fmtArea(r.w * r.d)}, ${ftin(Math.min(r.w, r.d))} wide. Bedrooms need 70 sq ft and 7' in each direction.`, { room: r.id });
-    }
-    if (likeOf(r.type) === 'hall' && Math.min(r.w, r.d) < 3) add('warn', `${nm} is ${ftin(Math.min(r.w, r.d))} wide. Hallways need 36".`, { room: r.id });
-    if ((r.type === 'bath' || r.type === 'ensuite') && Math.min(r.w, r.d) < 5) add('info', `${nm} is narrow (${ftin(Math.min(r.w, r.d))}). A full bath usually needs 5' for a tub.`, { room: r.id });
-  }
-  for (const S of BM.stairs || []) {
-    const st = stairStatus(S), nm = `Stairs (${LVN[S.level]})`;
-    if (!st.ok) { add('error', `${nm}: ${st.msg}`, { stair: S.id }); continue; }
-    const rise = (st.up === 'U' ? UF - MF : MF - BF), risers = Math.ceil(rise * 12 / 7.75), need = (risers - 1) * 10 / 12;
-    if (S.W < 3) add('error', `${nm} are ${ftin(S.W)} wide. Stairs need 36".`, { stair: S.id });
-    if (!turns(S) && S.L < need - .05) add('error', `${nm}: ${risers} risers of ${(rise * 12 / risers).toFixed(1)}" need ${ftin(need)} of run with 10" treads; this flight has ${ftin(S.L)}.`, { stair: S.id });
-  }
-  for (const lv of ['B', 'M', 'U']) for (const w of walls[lv]) for (const o of w.ops) {
-    if (o.k === 'door' && o.style !== 'cased' && o.w < 2.67) add('warn', `A door on the ${LVN[lv].toLowerCase()} is ${ftin(o.w)}. 34" doors give the 32" clear opening needed for wheelchairs.`, { wall: { lv, c: w.c, a: o.c } });
-    if ((o.k === 'extdoor' || o.k === 'front') && w.front && o.w < 3) add('error', `The front door is ${ftin(o.w)}. The main exit needs a 36" door.`, {});
-  }
-  for (const it of (BM.items || []).filter(i => i.kind === 'island')) {
-    const [w, d] = itemDims(it), box = [it.x - w / 2, it.x + w / 2, it.z - d / 2, it.z + d / 2];
-    const others = (BM.items || []).filter(o => o !== it && o.level === it.level && WALL_ITEMS.has(o.kind) && !['upper', 'hood', 'microwave'].includes(o.kind));
-    for (const o of others) { const [ow, od] = itemDims(o), gx = Math.max(o.x - ow / 2 - box[1], box[0] - (o.x + ow / 2)), gz = Math.max(o.z - od / 2 - box[3], box[2] - (o.z + od / 2)), gap = Math.max(gx, gz);
-      if (gap >= 0 && gap < 3.5) { add('warn', `Only ${ftin(gap)} between the island and the ${CATALOG[o.kind][0].toLowerCase()}. Leave 42" (48" for two cooks).`, { item: it.id }); break; } }
-  }
-  const S = BM.site || {}, main = BM.rooms.filter(r => r.level === 'M');
-  if (S.lotW && S.lotD && main.length) { const foot = main.filter(r => !RT[r.type]?.outdoor || RT[r.type]?.covered).reduce((a, r) => a + r.w * r.d, 0), cov = foot / (S.lotW * S.lotD);
-    if (cov > .4) add('warn', `Lot coverage is ${Math.round(cov * 100)}%. Many zones cap it near 35–40%.`, {}); }
-  if ((S.setback ?? 48) < 20) add('warn', `The house is ${ftin(S.setback)} from the street. Front setbacks are usually 20–25' or more.`, {});
-  roofChecks(add);
-  return out;
-}
-// ---------- roof checks (minimum slopes are the usual code minimums, e.g. IRC R905) ----------
-const ROOF_MIN = { shingle: [2, 4, 'Asphalt shingles'], clay: [2.5, 4, 'Clay tile'], slate: [4, 4, 'Slate'], cedar: [3, 3, 'Cedar shakes'], metal: [.25, .25, 'Standing seam metal'] };
-const pitchTxt = p => `${+p.toFixed(1)}:12`;
-function roofChecks(add) {
-  if (curHouse !== 3 || !ROOF3.length) return;
-  const mat = document.querySelector('#finishBody select[aria-label="Roofing material"]')?.value || 'shingle', R = ROOF_MIN[mat] || ROOF_MIN.shingle;
-  for (const r of ROOF3) {
-    if (r.style === 'flat') { add('info', `${r.name}: flat roofs need a membrane and at least ¼" per foot of slope to drains or scuppers.`, {}); continue; }
-    const p = r.pitch * 12;
-    if (r.pitch < r.asked - .004) { add(p < R[0] - .01 ? 'error' : 'warn', `${r.name}: where it meets the 2nd floor it has to flatten to ${pitchTxt(p)} to stay under the windows above${p < R[0] - .01 ? `, too flat for ${R[2].toLowerCase()} (${pitchTxt(R[0])} minimum)` : ''}. Move or raise those windows, make that part of the house shallower, or use standing seam metal there.`, {}); continue; }
-    if (p < R[0] - .01) add('error', `${r.name} is ${pitchTxt(p)}. ${R[2]} need at least ${pitchTxt(R[0])}. Steepen the roof or pick a material for low slopes (standing seam metal).`, {});
-    else if (p < R[1] - .01) add('info', `${r.name} is ${pitchTxt(p)}. ${R[2]} below ${pitchTxt(R[1])} need two layers of underlayment.`, {});
-  }
-  const top = Math.max(...ROOF3.map(r => r.maxH));
-  if (top > 35) add('warn', `The roof peaks ${ftin(top)} above the ground. Many zoning bylaws cap house height near 35' (10.7 m); check yours.`, {});
-  if (H3_LOT) { const b = ROOF3.reduce((a, r) => r.bounds ? [Math.min(a[0], r.bounds[0]), Math.max(a[1], r.bounds[1]), Math.min(a[2], r.bounds[2]), Math.max(a[3], r.bounds[3])] : a, [1e9, -1e9, 1e9, -1e9]);
-    const side = Math.min(b[0] - H3_LOT[0], H3_LOT[1] - b[1]), back = H3_LOT[3] - b[3];
-    if (side < 0 || back < 0) add('error', `The roof hangs over the lot line. Eaves must stay on your own lot.`, {});
-    else if (side < 2) add('warn', `The eaves are ${ftin(side)} from the side lot line. Most bylaws want more room than that, and roof water kept on your lot.`, {}); }
-}
-function renderChecks() {
-  const list = codeChecks(), n = list.filter(i => i.sev !== 'info').length, badge = document.getElementById('checkCount');
-  if (badge) { badge.textContent = n || ''; badge.className = list.some(i => i.sev === 'error') ? 'err' : ''; }
-  const box = document.getElementById('checkList'); if (!box || document.getElementById('side').hidden) return;
-  box.innerHTML = list.length ? list.map((c, i) => `<button type="button" class="chk ${c.sev}" data-chk="${i}"><i></i><span>${c.text}</span></button>`).join('') : '<p class="sp-note">No issues found.</p>';
-  box.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => { const a = list[+b.dataset.chk].at; if (!PE.open) openEditor(true);
-    if (a.room) { const r = BM.rooms.find(q => q.id === a.room); PE.lv = r.level; PE.sel = r.id; PE.selStair = PE.selX = null; }
-    else if (a.stair) { const S = BM.stairs.find(q => q.id === a.stair); PE.lv = S.level; PE.selStair = S.id; PE.sel = PE.selX = null; }
-    else if (a.item) { const it = BM.items.find(q => q.id === a.item); PE.lv = it.level; selectX({ kind: 'item', id: it.id }); }
-    else if (a.wall) PE.lv = a.wall.lv;
-    peLvlButtons(); peInspector(); peDraw(); });
-}

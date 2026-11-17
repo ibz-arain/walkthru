@@ -48,7 +48,7 @@ async function pullDesigns() {
     }
     for (const d of DS.list) if (!d.cid || !designs.some(r => r.id === d.cid)) { delete d.cid; await pushDesign(d); }
     writeDS(); ACC.sync = 'saved';
-    if (changed && !H3P && !cloudSave) { const cur = curDesign(); if (cur) { BM = cur.bm; resetBID(); normalizeStairs(BM); rebuildHouse3(); } designLabel(); }
+    if (changed && !H3P && !cloudSave && parseRoute().kind === 'none') { /* never swap out a project's or a shared link's house: view-only links have no save */ const cur = curDesign(); if (cur) { BM = cur.bm; resetBID(); normalizeStairs(BM); rebuildHouse3(); } designLabel(); }
   })().catch(() => { ACC.sync = 'error'; }).finally(() => { syncing = null; accRender(); });
   return syncing;
 }

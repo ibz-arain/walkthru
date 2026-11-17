@@ -1,4 +1,5 @@
 // Studio:   POST  /api/share {projectId, customer, email, access, message, expiresDays?, password?} → new customer link
+//           POST  /api/share {projectId, public: true} → the project's public view-only link (made once, then reused)
 //           PATCH /api/share?token= {access?, revoked?, expiresDays?, password?}   (password '' removes it)
 // Customer: GET   /api/share?token=            → what they see (their copy if they changed it, else the builder's design)
 //           PUT   /api/share?token= {bm}       → save their copy (needs finishes or edit access)
@@ -11,6 +12,7 @@ import { who, canEdit, ownsProject, hashPass } from './_lib/auth.js';
 import { liveShare, expiryFrom } from './_lib/shares.js';
 import { sendMail, notifyTeam, layout, appUrl } from './_lib/mail.js';
 
+const PUBLIC = 'Anyone with the link'; // the customer name on a project's public view-only link
 const project = async (c, id) => (await c.execute({ sql: 'SELECT * FROM projects WHERE id = ?', args: [id] })).rows[0];
 const shareUrl = (req, token) => `${appUrl(req)}/playground#c/${token}`;
 const studioUrl = (req, id) => `${appUrl(req)}/playground#admin/p/${id}`;
@@ -39,6 +41,15 @@ export default route({
     }
     const w = await who(req); if (!canEdit(w)) return fail(res, w ? 403 : 401, w ? 'Viewers can’t share projects' : 'Sign in to open the Studio');
     const b = body(req), access = ACCESS.includes(b.access) ? b.access : 'view';
+    if (b.public) { // "Share link": anyone with it can look around, no sign-in, nothing they do is saved
+      const p = await project(c, b.projectId); if (!ownsProject(w, p)) return fail(res, 404, 'Project not found');
+      const old = (await c.execute({ sql: "SELECT token FROM shares WHERE project_id = ? AND customer = ? AND access = 'view' AND revoked = 0 AND pass_hash IS NULL AND expires_at IS NULL LIMIT 1", args: [p.id, PUBLIC] })).rows[0];
+      if (old) return send(res, 200, { token: old.token });
+      const token = newId(16);
+      await c.execute({ sql: 'INSERT INTO shares (token, project_id, customer, email, access, message, created_at, expires_at, pass_hash) VALUES (?, ?, ?, NULL, ?, NULL, ?, NULL, NULL)', args: [token, p.id, PUBLIC, 'view', now()] });
+      await logEvent(c, p.id, 'shared', { token, detail: { customer: PUBLIC, access: 'view' } });
+      return send(res, 201, { token });
+    }
     if (!b.projectId || !b.customer) return fail(res, 400, 'Pick a project and enter the customer name');
     const p = await project(c, b.projectId); if (!ownsProject(w, p)) return fail(res, 404, 'Project not found');
     const token = newId(16), email = b.email ? String(b.email).trim().slice(0, 160) : null;
@@ -77,7 +88,7 @@ export default route({
     const bm = s.has_copy ? await getJSON(keys.share(s.token)) : await getJSON(keys.version(p.id, p.version));
     const comments = await c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? AND (share_token = ? OR (share_token IS NULL AND author_role = ?)) ORDER BY created_at ASC', args: [p.id, s.token, 'studio-public'] });
     const org = p.org_id && (await c.execute({ sql: 'SELECT name FROM orgs WHERE id = ?', args: [p.org_id] })).rows[0];
-    send(res, 200, { brand: { ...brand(), name: org?.name || brand().name }, project: { name: p.name, address: p.address, version: p.version, base_price: p.base_price }, customer: s.customer, access: s.access, status: s.status, message: s.message,
+    send(res, 200, { brand: { ...brand(), name: org?.name || brand().name }, project: { name: p.name, address: p.address, version: p.version, base_price: p.base_price }, customer: s.customer, public: s.customer === PUBLIC, access: s.access, status: s.status, message: s.message,
       changed: !!s.has_copy, expires_at: s.expires_at, bm, comments: comments.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null })) });
   },
   async PUT(req, res) {

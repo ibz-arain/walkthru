@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.b6495ba8ad.js">
-<link rel="stylesheet" href="/assets/playground.de126b1268.css">
+<link rel="modulepreload" href="/assets/playground.1a3b69b2f4.js">
+<link rel="stylesheet" href="/assets/playground.1abe8227fa.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -38,6 +38,7 @@
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-ruler" viewBox="0 0 24 24"><path d="m3.5 15.5 12-12 5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path d="M6 21V4h10v17"/><path d="M4 21h16"/><circle cx="13" cy="12.5" r=".9"/></symbol>
     <symbol id="i-roof" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5.5 13v7h13v-7" stroke-dasharray="2.2 2.2"/></symbol>
     <symbol id="i-shot" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></symbol>
     <symbol id="i-full" viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5"/></symbol>
@@ -111,14 +112,12 @@
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
     <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
-    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span class="tb-t">Checks</span><span id="checkCount"></span></button>
     <button class="tb-b" id="edMoreBtn" type="button" data-pop="edMorePop" data-tip="More plan tools"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
-    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Versions and activity"><svg class="ic"><use href="#i-reset"/></svg><span class="tb-t">History</span><span id="clSideCount"></span></button>
     <button class="tb-b" type="button" data-panel-btn="export" data-tip="Download images, PDFs and files"><svg class="ic"><use href="#i-down"/></svg><span class="tb-t">Export</span></button>
     <button class="tb-b" id="moreBtn" type="button" data-pop="morePop" data-tip="More"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
@@ -135,6 +134,7 @@
   <div class="menu">
     <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
     <button type="button" id="roofBtn" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg>Hide the roof<kbd>H</kbd></button>
+    <button type="button" id="doorsBtn"><svg class="ic"><use href="#i-door"/></svg><span id="doorsLbl">Close all doors</span><kbd>O</kbd></button>
     <button type="button" data-panel-btn="display"><svg class="ic"><use href="#i-sun"/></svg>Lighting and display</button>
     <button type="button" data-panel-btn="info"><svg class="ic"><use href="#i-info"/></svg>Areas and estimate</button>
   </div>
@@ -150,8 +150,6 @@
 </div>
 <div class="pop" id="edMorePop" hidden role="menu" aria-label="More plan tools">
   <div class="menu">
-    <button type="button" id="peAutoBtn" data-pop="peAuto"><svg class="ic"><use href="#i-wand"/></svg>Lay out a house for me</button>
-    <button type="button" id="peNoteBtn" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg>Add a note</button>
     <button type="button" id="peDimBtn" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg>Draw a dimension</button>
     <button type="button" id="peGaps"><svg class="ic"><use href="#i-gaps"/></svg>Close gaps between rooms</button>
     <button type="button" id="peTrace" hidden><svg class="ic"><use href="#i-trace"/></svg>Copy main floor to basement</button>
@@ -217,18 +215,6 @@
   <h6>Start this design over</h6>
   <div class="menu"><button type="button" id="peReset">From the sample plan</button><button type="button" id="peClear">From a blank page</button></div>
 </div>
-<form class="pop" id="peAuto" hidden onsubmit="return false" aria-label="Auto layout">
-  <h6>Lay out a house for me</h6>
-  <div class="form2">
-    <label class="fld" for="paBeds">Bedrooms <select id="paBeds"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
-    <label class="fld" for="paBaths">Bathrooms <select id="paBaths"><option>1</option><option selected>2</option><option>3</option></select></label>
-    <label class="fld" for="paGarage">Garage <select id="paGarage"><option value="0">None</option><option value="1">1 car</option><option value="2" selected>2 car</option></select></label>
-    <label class="fld" for="paStoreys">Storeys <select id="paStoreys"><option value="1">1</option><option value="2" selected>2</option></select></label>
-  </div>
-  <label class="sw-row">Home office <input id="paOffice" type="checkbox" checked><span class="tg"></span></label>
-  <label class="sw-row">Basement <input id="paBase" type="checkbox"><span class="tg"></span></label>
-  <div class="dm-row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="peAutoCancel" type="button">Cancel</button><button class="btn btn-primary" id="peAutoGo" type="button">Build it</button></div>
-</form>
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 <div id="tip" role="tooltip" hidden></div>
 
@@ -325,14 +311,10 @@
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule</span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file</span></button>
         <button type="button" id="exImport"><svg class="ic"><use href="#i-up"/></svg><span>Import a design</span></button>
-        <button type="button" id="exLink"><svg class="ic"><use href="#i-link"/></svg><span>Copy link</span></button>
+        <button type="button" id="exLink"><svg class="ic"><use href="#i-link"/></svg><span>Share link</span></button>
       </div>
       <p class="sp-note" id="exMsg" aria-live="polite"></p>
     </div>
-  </section>
-  <section class="sp" data-panel="checks" hidden>
-    <header class="sp-h"><h2>Code checks</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
-    <div class="sp-b"><div id="checkList"></div><p class="sp-note" style="color:var(--ink-3);font-size:11.5px">Based on common US residential code (IRC). Local rules vary; confirm with your building department.</p></div>
   </section>
   <section class="sp" data-panel="help" hidden>
     <header class="sp-h"><h2>Keyboard shortcuts</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
@@ -340,7 +322,7 @@
       <h3>Viewing</h3>
       <p><span>Front · Rear · Top · Aerial</span><kbd>F</kbd><kbd>B</kbd><kbd>T</kbd><kbd>V</kbd></p>
       <p><span>Basement · Main · Upper</span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></p>
-      <p><span>Measure</span><kbd>M</kbd></p><p><span>Hide roof</span><kbd>H</kbd></p><p><span>Room labels</span><kbd>L</kbd></p>
+      <p><span>Measure</span><kbd>M</kbd></p><p><span>Hide roof</span><kbd>H</kbd></p><p><span>Open or close all doors</span><kbd>O</kbd></p><p><span>Room labels</span><kbd>L</kbd></p>
       <p><span>Screenshot</span><kbd>P</kbd></p><p><span>Edit floor plan</span><kbd>E</kbd></p><p><span>Hide interface</span><kbd>\</kbd></p><p><span>Close panel / leave</span><kbd>Esc</kbd></p>
       <h3>Walking</h3>
       <p><span>Move</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></p><p><span>Jump · hurry</span><kbd>Space</kbd><kbd>Shift</kbd></p>
@@ -391,7 +373,7 @@
   </form>
   <form id="stDelForm" class="panel st-modal" hidden onsubmit="return false">
     <h2>Delete project?</h2>
-    <p class="st-msg"><b id="sdName"></b> and all its versions will be deleted. This can’t be undone.</p>
+    <p class="st-msg"><b id="sdName"></b> will be deleted. This can’t be undone.</p>
     <p class="st-err" id="sdErr"></p>
     <div class="st-row"><button class="btn st-ghost" id="sdCancel" type="button">Cancel</button><button class="btn st-danger" id="sdGo" type="submit">Delete project</button></div>
   </form>
@@ -399,11 +381,6 @@
 
 <!-- ===== Project / customer chrome over the 3D view ===== -->
 <div class="panel" id="clBanner" hidden role="status"></div>
-<aside id="clSide" hidden aria-label="Project panel">
-  <nav class="cl-tabs seg" id="clTabs"></nav>
-  <div class="cl-body" id="clBody"></div>
-  <div class="cl-foot" id="clFoot"></div>
-</aside>
 <div class="panel st-modal" id="clWelcome" hidden role="dialog" aria-label="Welcome"></div>
 
 
@@ -421,5 +398,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.b6495ba8ad.js"></script>
+<script type="module" src="/assets/playground.1a3b69b2f4.js"></script>
 </html>

@@ -157,7 +157,7 @@ const EPS = .06;
 function opAt(w, key, defW, defH) { const o = BM.ops?.[key] || {}, L = w.b - w.a, ww = Math.max(2, Math.min(o.w || defW, L - .5)), h = Math.max(6, Math.min(o.h || defH, 9.5));
   const c = o.pos == null ? (w.a + w.b) / 2 : Math.max(w.a + ww / 2 + .25, Math.min(w.b - ww / 2 - .25, w.a + o.pos * L)); return { c, w: ww, h, o }; }
 // Outside doors: the style picks the kind of unit; single doors can hinge either side and swing out.
-const extDoorOp = (o, def) => { const st = o.o.style; return { k: st === 'slider' ? 'slider' : st === 'double' || st === 'french' ? 'front' : st === 'single' ? 'extdoor' : def, style: st, hinge: o.o.hinge, outSwing: !!o.o.out }; };
+const extDoorOp = (o, def) => { const st = o.o.style; return { k: st === 'slider' ? 'slider' : st === 'double' || st === 'french' ? 'front' : st === 'single' ? 'extdoor' : def, style: st, hinge: o.o.hinge, outSwing: !!o.o.out, color: o.o.color }; };
 const openPair = (a, b) => (RT[a.type]?.open && RT[b.type]?.open && !(a.type === 'stairs' && b.type === 'stairs')) || (a.group && a.group === b.group) || (a.type === b.type && (a.type === 'hall' || a.type === 'garage'));
 function doorPair(a, b) {
   const t = [likeOf(a.type), likeOf(b.type)], has = x => t.includes(x);
@@ -195,6 +195,10 @@ function closeGaps(ids, maxGap = 1.5) {
   }
   return n;
 }
+// Basement windows: small ones up under the joists while the basement is deep in the ground; once enough of it stands
+// above grade (raised or bi-level houses) they become proper windows from just above the ground to the top of the foundation.
+function baseWin(c, L) { const exposed = TF - .3; if (exposed < 3.2) return { c, w: 3.5, b: BC - 2.2, h: 1.6 };
+  const sill = Math.max(.6, BF + 2.5); return { c, w: Math.min(5, L - 1.5), b: sill, h: TF - .3 - sill }; }
 function planLevel(lv) {
   const rs = BM.rooms.filter(r => r.level === lv && !isOut(r)), outs = BM.rooms.filter(r => r.level === lv && isOut(r)), walls = [];
   for (const A of rs) for (const e of edgesOf(A)) {
@@ -221,7 +225,7 @@ function planLevel(lv) {
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
-    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style }); } continue; }
+    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style, color: o.o.color }); } continue; }
     if (w.front) continue;
     const xm = extMode(w.room, w.out);
     if (xm === 'solid') continue;
@@ -230,7 +234,7 @@ function planLevel(lv) {
     if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, ...extDoorOp(o, o.w >= 5.5 ? 'slider' : 'extdoor') }); continue; }
     if (xm === 'window' && lv !== 'B' && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
       for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh, style: ov.style, lites: ov.style === 'grid' }); } continue; }
-    if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
+    if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push(baseWin(mid, L)); continue; }
     const T = RT[w.room.type] || {};
     if (T.garage && lv === 'M' && BM.style === 'modern' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { w.ops.push({ c: (w.a + w.b) / 2, w: 16, b: GF, h: 8, k: 'garage', fm: M.gdoorDark, plain: true }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'stone' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { // two single doors with a stone pier between
@@ -238,7 +242,7 @@ function planLevel(lv) {
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
-    if (lv === 'B') { if (L >= 5 && (T.win || T.private)) w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
+    if (lv === 'B') { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L)); continue; }
     if (T.small) { if (L >= 4) w.ops.push({ c: mid, w: 2.5, b: y + 4.2, h: 3 }); continue; }
     if (T.win && L >= 4.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.6);
       const inPt = c => { const d = { '-z': [0, .8], '+z': [0, -.8], '-x': [.8, 0], '+x': [-.8, 0] }[w.out]; return w.axis === 'x' ? [c, w.c + d[1]] : [w.c + d[0], c]; };
@@ -285,7 +289,7 @@ function turnTop(S, dir) { // where a turning stair arrives: just past its start
   const r = stairRect(S, dir), s = dir[0] === '+' ? 1 : -1, ax = dir[1] === 'x', lo = ax ? (s > 0 ? r.x : r.x + r.w) : (s > 0 ? r.z : r.z + r.d), c2 = ax ? r.z + r.d * .75 : r.x + r.w * .75;
   return ax ? [lo - 2 * s, c2] : [c2, lo - 2 * s]; }
 const stairShape = S => { // Auto: curved when the box is wide enough and the turn lands on 2nd-floor floor, otherwise straight
-  if (S.level === 'B') return 'straight'; if (S.shape && S.shape !== 'auto') return S.shape; if (!(S.W >= 5.5 && S.L >= 8)) return 'straight';
+  if (S.shape && S.shape !== 'auto') return S.shape; if (S.level === 'B' || !(S.W >= 5.5 && S.L >= 8)) return 'straight'; // Auto keeps basement flights straight; pick a shape to turn them
   const dirs = S.dir ? [S.dir] : STAIR_DIRS;
   return dirs.some(d => roomAt3('U', ...turnTop(S, d))) ? 'curved' : 'straight'; };
 const turns = S => stairShape(S) !== 'straight';
@@ -333,7 +337,7 @@ function normalizeStairs(m) {
 function flightLanes(lv) { // footprints of the flights that arrive at this level from the one below
   const from = lv === 'U' ? 'M' : lv === 'M' ? 'B' : null; if (!from) return [];
   if (from === 'M' && !BM.rooms.some(r => r.level === 'U')) return [];
-  return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, from === 'M' && turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); }
+  return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); } // a turning flight opens its whole box above
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
 // ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
@@ -451,6 +455,7 @@ function turnRun(par, S, dir, y0, y1) { // U-turn or curved staircase filling th
 
 // ---------- Build the 3D house from the rooms ----------
 function buildHouse3() {
+  applyLevels(BM); // this design's floor heights (see core.js)
   for (const k in G3) clearGroup(G3[k]);
   for (const m of H3_WALK) { const i = walkables.indexOf(m); if (i >= 0) walkables.splice(i, 1); }
   const before = walkables.length;
@@ -547,8 +552,8 @@ function buildHouse3() {
         if (horiz) wall(P, a, w.c, b, w.c, o); else wall(P, w.c, a, w.c, b, o);
       }
       if (lv === 'M' && !ext && w.rooms.some(q => q.type === 'garage') && !w.rooms.every(q => q.type === 'garage')) for (const op of w.ops) if (op.k === 'door') {
-        const gar = w.rooms.find(q => q.type === 'garage'), gc = horiz ? gar.z + gar.d / 2 : gar.x + gar.w / 2, sgn = gc > w.c ? 1 : -1, n = 3, rise = (MF - GF) / n;
-        op.b = MF; // door sits at house floor height; three steps climb to it from the garage
+        const gar = w.rooms.find(q => q.type === 'garage'), gc = horiz ? gar.z + gar.d / 2 : gar.x + gar.w / 2, sgn = gc > w.c ? 1 : -1, n = Math.max(1, Math.ceil((MF - GF) / .65)), rise = (MF - GF) / n;
+        op.b = MF; // door sits at house floor height; steps (as many as the height needs) climb to it from the garage
         for (let k = 1; k <= n; k++) { const top = GF + k * rise, n0 = w.c + sgn * t / 2, n1 = n0 + sgn * (n + 1 - k) * .95, a0 = op.c - op.w / 2 - .4, a1 = op.c + op.w / 2 + .4;
           if (horiz) box(P, a0, a1, GF, top, Math.min(n0, n1), Math.max(n0, n1), M.concrete, { walk: true }); else box(P, Math.min(n0, n1), Math.max(n0, n1), GF, top, a0, a1, M.concrete, { walk: true }); }
       }
@@ -632,7 +637,8 @@ function buildHouse3() {
     fence('x', fz1, fx0, fx1); fence('z', fx0, fz0, fz1); fence('z', fx1, fz0, fz1); fence('x', fz0, fx0, wallAtZ(fz0, -1)); fence('x', fz0, wallAtZ(fz0, 1), fx1);
     const sx = fx1 - 12, sz = fz1 - 10; box(G3.site, sx, sx + 10, 0, .3, sz, sz + 8, M.concrete, { walk: true }); box(G3.site, sx, sx + 10, .3, 7.5, sz, sz + 8, M.batten, { solid: true });
     box(G3.site, sx + 3.5, sx + 6.5, .3, 6.8, sz - .05, sz, M.trim); hipRoof(G3.site, { x0: sx, x1: sx + 10, z0: sz, z1: sz + 8, plate: 7.5, pitch: 4 / 12, ov: .6, slopes: { n: true, e: true, s: true, w: true } }); }
-  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, MF - .35, fd.c - 4, fd.c - .3, M.concrete, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, 1.0, fd.c - 5.2, fd.c - 4, M.concrete, { walk: true }); H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
+  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+    { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
   for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
@@ -649,36 +655,3 @@ function buildHouse3() {
 }
 let showFurnBuild = true;
 
-// ---------- Auto-layout from a brief ----------
-// Rows of rooms, each row touching a central hall so every room connects; the last room in a row stretches to square it off.
-function autoLayout({ beds = 3, baths = 2, garage = 2, storeys = 2, office = true, basement = false }) {
-  BID = 1; const rooms = [];
-  const row = (lv, x0, z, d, items, total) => {
-    let x = x0; const sum = items.reduce((s, it) => s + it[1], 0), grow = total ? Math.max(0, total - sum) : 0;
-    items.forEach((it, i) => { const w = it[1] + (i === items.length - 1 ? grow : 0); if (w > .5) rooms.push(R(it[0], lv, x, x + w, z, z + d, it[2] || {})); x += w; });
-    return x - x0; };
-  const gW = garage ? (garage === 2 ? 22 : 13) : 0;
-  const front = []; if (garage) front.push(['garage', gW]); front.push(['foyer', 8], ['living', 16], ['kitchen', 14], ['dining', 12]);
-  const tot = row('M', 0, 0, 22, front);
-  if (storeys === 1) {
-    row('M', 0, 22, 5, basement ? [['stairs', 12], ['hall', 0]] : [['hall', 0]], tot);
-    const b = []; for (let i = 0; i < beds; i++) b.push(i === 0 ? ['primary', 15] : ['bedroom', 12]);
-    for (let i = 0; i < baths; i++) b.push(['bath', 9]); if (office) b.push(['office', 11]); b.push(['laundry', 8]);
-    row('M', 0, 27, 14, b, tot);
-  } else {
-    row('M', 0, 22, 6, [...(garage ? [['mud', gW]] : []), ['stairs', 13], ['hall', 0]], tot);
-    row('M', 0, 28, 12, [...(garage ? [['laundry', gW]] : [['laundry', 8]]), ['bath', 7, { name: 'Powder' }], office ? ['office', 12] : ['dining', 12, { name: 'Den' }], ['great', 0, { name: 'Family Room' }]], tot);
-    const uw = tot - gW, ub = []; for (let i = 0; i < beds; i++) ub.push(i === 0 ? ['primary', 16] : ['bedroom', 12]);
-    const nf = Math.max(1, Math.ceil(beds / 2));
-    row('U', gW, 0, 15, ub.slice(0, nf), uw);
-    row('U', gW, 15, 7, [['hall', 0]], uw);
-    row('U', gW, 22, 6, [['stairs', 13], ['hall', 0]], uw);
-    const bk = ub.slice(nf); for (let i = 0; i < Math.max(1, baths - 1); i++) bk.push(['bath', 9]); bk.push(['closet', 6, { name: 'Linen' }]);
-    row('U', gW, 28, 12, bk, uw);
-  }
-  if (basement) { const s = rooms.find(r => r.level === 'M' && r.type === 'stairs'), mD = Math.max(...rooms.filter(r => r.level === 'M').map(r => r.z + r.d));
-    rooms.push(R('stairs', 'B', s.x, s.x + s.w, s.z, s.z + s.d));
-    if (s.x - gW > 3) rooms.push(R('rec', 'B', gW, s.x, 0, mD, { group: 'rec' }));
-    rooms.push(R('rec', 'B', s.x + s.w, tot, 0, mD, { group: 'rec' })); rooms.push(R('storage', 'B', s.x, s.x + s.w, 0, s.z)); rooms.push(R('bath', 'B', s.x, s.x + s.w, s.z + s.d, mD)); }
-  BM = normalizeStairs({ roof: BM.roof || 'hip', rooms });
-}

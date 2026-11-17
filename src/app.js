@@ -169,7 +169,7 @@ function exitWalk() {
   if (locked) document.exitPointerLock?.();
   avatar.visible = false; AV.blob.visible = false; AV.third = false; queueMicrotask(syncModes);
   mode = 'orbit'; controls.enabled = true; camera.fov = orbitFov; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true;
+  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true; doorHint.hidden = true;
 }
 function collide() {
   const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
@@ -234,7 +234,7 @@ function stepWalk(dt) {
     if (g !== null && player.feet <= g) { player.feet = g; player.vy = 0; }
   } else if (g !== null) player.feet += (g - player.feet) * Math.min(1, dt * (g > player.feet ? 14 : 9));
   // HUD room lookup (also tells the camera whether there is a ceiling overhead)
-  const lv = player.feet < -0.6 ? 'B' : player.feet < 9 ? 'M' : 'U';
+  const lv = player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
   const RM = roomsOf(curHouse);
   let hit = null; for (const rm of RM) if (rm[1] === lv && rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3])) { hit = rm; break; }
   if (AV.third) {
@@ -273,7 +273,7 @@ function stepWalk(dt) {
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
   document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
-  drawMini(lv);
+  stepDoors(dt); updateDoorHint(); drawMini(lv);
 }
 // drag to look
 let drag = null;
@@ -309,6 +309,8 @@ addEventListener('keydown', e => {
   if (e.metaKey || (e.ctrlKey && e.code !== 'ControlLeft' && e.code !== 'ControlRight')) { releaseAll(); return; } // shortcuts, not movement
   keys[e.code] = true;
   if (e.code === 'Escape' && mode === 'walk') goView(curView);
+  if (e.code === 'KeyE' && mode === 'walk' && !e.repeat) { const d = doorAhead(); if (d) toggleDoor(d); }
+  if (e.code === 'KeyO' && mode === 'walk' && !e.repeat && !e.target.closest?.('select,input,textarea')) setAllDoors(!allDoorsClosed());
   if (mode === 'walk' && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.key === 'Meta' || e.key === 'Control') releaseAll(); });
@@ -323,18 +325,57 @@ document.querySelectorAll('#pad button').forEach(b => {
 // minimap
 const mini = document.getElementById('miniC'), mg = mini.getContext('2d');
 const OUTLINE = { B: [P_B], M: [P_M, P_GAR], U: [P_U.map(([x, z]) => [x, z + UZ])] };
-function drawMini(lv) {
-  const W = mini.width, H = mini.height, s = 4.6, ox = 70, oz = 14;
-  const X = x => (x + ox - 50) * s + 20, Z = z => (z + oz) * s;
-  const css = getComputedStyle(document.documentElement);
-  mg.clearRect(0, 0, W, H);
-  mg.lineWidth = 2; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.fillStyle = css.getPropertyValue('--paper-2');
-  for (const poly of outlineOf(curHouse)[lv] || []) { mg.beginPath(); poly.forEach(([x, z], i) => i ? mg.lineTo(X(x), Z(z)) : mg.moveTo(X(x), Z(z))); mg.closePath(); mg.fill(); mg.stroke(); }
-  mg.lineWidth = 1; mg.strokeStyle = css.getPropertyValue('--rule');
-  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) for (const r of rm[2]) mg.strokeRect(X(r[0]), Z(r[2]), (r[1] - r[0]) * s, (r[3] - r[2]) * s);
-  const px = X(player.x), pz = Z(player.z), fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+function drawMini(lv) { // heading-up: you stay in the middle pointing up, the plan turns and slides under you
+  const W = mini.width, H = mini.height, s = 4.6, css = getComputedStyle(document.documentElement);
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  mg.setTransform(1, 0, 0, 1, 0, 0); mg.clearRect(0, 0, W, H);
+  mg.setTransform(1, 0, 0, 1, W / 2, H / 2); mg.rotate(-Math.atan2(fx, -fz)); mg.scale(s, s); mg.translate(-player.x, -player.z);
+  mg.lineWidth = 2 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.fillStyle = css.getPropertyValue('--paper-2');
+  for (const poly of outlineOf(curHouse)[lv] || []) { mg.beginPath(); poly.forEach(([x, z], i) => i ? mg.lineTo(x, z) : mg.moveTo(x, z)); mg.closePath(); mg.fill(); mg.stroke(); }
+  mg.lineWidth = 1 / s; mg.strokeStyle = css.getPropertyValue('--rule');
+  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) for (const r of rm[2]) mg.strokeRect(r[0], r[2], r[1] - r[0], r[3] - r[2]);
+  // doors you can open: a dot, filled when shut
+  for (const d of DOORS) { if (!shown(d.parts[0].g) || Math.abs(d.at[1] - 3 - (player.feet)) > 5) continue; mg.beginPath(); mg.arc(d.at[0], d.at[2], 4.5 / s, 0, Math.PI * 2);
+    if (doorClosed(d)) { mg.fillStyle = css.getPropertyValue('--ink-2'); mg.fill(); } else { mg.lineWidth = 1.5 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.stroke(); } }
+  mg.setTransform(1, 0, 0, 1, W / 2, H / 2);
   mg.fillStyle = css.getPropertyValue('--accent');
-  mg.beginPath(); mg.moveTo(px + fx * 16, pz + fz * 16); mg.lineTo(px - fz * 7 - fx * 5, pz + fx * 7 - fz * 5); mg.lineTo(px + fz * 7 - fx * 5, pz - fx * 7 - fz * 5); mg.closePath(); mg.fill();
+  mg.beginPath(); mg.moveTo(0, -16); mg.lineTo(-8, 7); mg.lineTo(0, 3); mg.lineTo(8, 7); mg.closePath(); mg.fill();
+  mg.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// ---------- doors: E opens or shuts the one you're facing ----------
+function doorAhead() {
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), eye = player.feet + 3; let best = null, bs = Infinity;
+  for (const d of DOORS) {
+    if (!shown(d.parts[0].g) || Math.abs(d.at[1] - eye) > 4) continue;
+    const dx = d.at[0] - player.x, dz = d.at[2] - player.z, dist = Math.hypot(dx, dz), reach = d.kind === 'garage' ? 12 : 7;
+    if (dist > reach) continue; const facing = dist < 1.5 ? 1 : (dx * fx + dz * fz) / dist; if (facing < .35) continue;
+    const sc = dist * (2 - facing); if (sc < bs) { bs = sc; best = d; }
+  }
+  return best;
+}
+function toggleDoor(d) { d.target = d.target > .5 ? 0 : 1; }
+// open or shut every door in the house you're looking at (swing doors are drawn open: closed = 1; the garage panel is drawn shut: closed = 0)
+const houseDoors = () => DOORS.filter(d => { let o = d.parts[0].g; while (o && o !== scene) { if (o === HOUSES[curHouse]?.root) return true; o = o.parent; } return false; });
+function allDoorsClosed() { const L = houseDoors(); return L.length > 0 && L.every(d => (d.kind === 'garage') === (d.target < .5)); }
+function setAllDoors(close) { for (const d of houseDoors()) d.target = (d.kind === 'garage') === close ? 0 : 1; uiSync(); }
+function stepDoors(dt) {
+  let moved = false; if (mode !== 'walk' && !DOORS.some(d => d.cur !== d.target)) return;
+  for (const d of DOORS) { if (d.cur === d.target) continue;
+    const was = doorClosed(d); d.cur += Math.sign(d.target - d.cur) * Math.min(Math.abs(d.target - d.cur), dt * (d.kind === 'garage' ? .6 : 1.6)); moved = true;
+    const e = d.cur * d.cur * (3 - 2 * d.cur); for (const q of d.parts) q.g.rotation[q.axis] = q.ang * e;
+    if (was !== doorClosed(d) || d.cur === d.target) syncDoorColliders(); }
+  if (moved) renderer.shadowMap.needsUpdate = true;
+}
+// a shut door blocks you; an open one doesn't (its leaf stands against the wall)
+function syncDoorColliders() {
+  colliders = colliders.filter(b => !b.door);
+  for (const d of DOORS) { if (!doorClosed(d)) continue; for (const q of d.parts) { q.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(q.g); if (b.isEmpty()) continue; b.mesh = q.g; b.door = true; colliders.push(b); } }
+}
+const doorHint = document.createElement('div'); doorHint.id = 'doorHint'; doorHint.hidden = true; document.body.appendChild(doorHint);
+function updateDoorHint() {
+  const d = mode === 'walk' ? doorAhead() : null; if (!d) { doorHint.hidden = true; return; }
+  doorHint.hidden = false; doorHint.innerHTML = `<kbd>E</kbd> ${doorClosed(d) ? 'Open' : 'Close'} ${d.kind === 'garage' ? 'garage door' : 'door'}`;
 }
 
 // =====================================================================
@@ -391,6 +432,10 @@ const FIN = [
       FT('paint', 'Paint', 'paint', .9, 0, [['Gallery white', '#f4f3ef'], ['Greige', '#ddd4c6'], ['Warm grey', '#c9c4bc'], ['Sage', '#c7cdb9'], ['Mist blue', '#cbd5dc'], ['Charcoal', '#5e6166']]),
       FT('lime', 'Limewash', 'stucco', .97, 0, [['Chalk', '#efebe2'], ['Clay', '#d9c3ab'], ['Stone', '#c2bdb2'], ['Olive', '#a9a68c']]),
       FT('panel', 'Wood panelling', 'panel', .7, 0, FC_WOODS), FT('brick', 'Exposed brick', 'brick', .92, 0, FC_BRICK)]],
+    ['door', 'Doors', () => M.doorLeaf, [
+      FT('paint', 'Painted', null, .5, 0, [['White', '#f6f6f3'], ['Warm white', '#ece5d6'], ['Greige', '#cfc6b8'], ['Charcoal', '#4a4e54'], ['Black', '#1f2022'], ['Navy', '#2f3b52'], ['Sage', '#8f9c86']]),
+      FT('wood', 'Wood grain', 'panel', .55, 0, [['White oak', '#d6b48c'], ['Natural oak', '#bf9364'], ['Walnut', '#7a563c'], ['Ebony', '#4a3a2e']]),
+      FT('gloss', 'High gloss', null, .12, 0, [['White', '#f6f6f4'], ['Grey', '#9a9ea3'], ['Black', '#1f2022']])]],
     ['cab', 'Cabinets', () => M.cab, [
       FT('paint', 'Painted', null, .5, 0, [['White', '#f2f2ef'], ['Navy', '#2f3b52'], ['Walnut', '#6c4a31'], ['Matte black', '#2a2b2c'], ['Sage', '#97a38b']]),
       FT('wood', 'Wood grain', 'panel', .55, 0, [['White oak', '#d6b48c'], ['Walnut', '#7a563c'], ['Rift oak', '#b98f63'], ['Ebony', '#4a3a2e']]),
@@ -441,7 +486,6 @@ for (const [sec, items] of FIN) {
       g.querySelector('.cur').textContent = `${types.length > 1 ? T0.name + ' · ' : ''}${typeof p.c === 'string' ? 'Custom colour' : T0.colors[p.c][0]}`;
       custom.setAttribute('aria-pressed', String(typeof p.c === 'string')); if (typeof p.c === 'string') { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
       const val = `${T0.id}:${p.c}`;
-      if (key === 'roof' && typeof uiReady !== 'undefined' && uiReady) renderChecks(); // roofing material sets the minimum slope
       if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
     types.forEach(T0 => ty.add(new Option(T0.name, T0.id))); ty.onchange = () => pick(`${ty.value}:0`);
@@ -554,13 +598,15 @@ function mergeStatic(root) {
   });
 }
 setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
-const baseColliders = colliders.slice();
+const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
   buildHouse3();
   scene.updateMatrixWorld(true);
   const cols = []; HOUSE3.traverse(o => { if (o.isMesh && o.userData.solid) { const b = new THREE.Box3().setFromObject(o); b.mesh = o.parent; cols.push(b); } });
   colliders = baseColliders.concat(cols);
+  for (let i = DOORS.length - 1; i >= 0; i--) { let o = DOORS[i].parts[0].g; while (o && o !== scene) o = o.parent; if (!o) DOORS.splice(i, 1); } // drop the old build's doors
+  syncDoorColliders();
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
@@ -601,6 +647,7 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (mode === 'walk') stepWalk(dt);
   else {
+    stepDoors(dt); // doors keep swinging after Close all doors in the 3D view
     if (anim) { anim.t = Math.min(1, anim.t + dt / 0.9); const e = 1 - Math.pow(1 - anim.t, 3);
       camera.position.lerpVectors(anim.from.p, anim.to.p, e); controls.target.lerpVectors(anim.from.t, anim.to.t, e); if (anim.t >= 1) anim = null; }
     controls.update();

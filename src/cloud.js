@@ -4,7 +4,7 @@
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -22,7 +22,7 @@ async function cloudApi(method, path, data) {
 }
 
 // Forms here are handled in JS; never let the browser submit them (that would reload the page).
-document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome')) e.preventDefault(); }, true);
+document.addEventListener('submit', e => { if (e.target.closest('#studio, #clWelcome')) e.preventDefault(); }, true);
 
 // ---------- design helpers ----------
 const BEDS = new Set(['bedroom', 'primary', 'guest', 'nursery']);
@@ -78,13 +78,12 @@ function parseRoute() {
   return { kind: 'none' };
 }
 async function cloudRoute() {
-  const r = parseRoute(), prev = CL.route; CL.route = r; clearInterval(CL.poll); clStopPin();
+  const r = parseRoute(), prev = CL.route; CL.route = r; clearInterval(CL.poll);
   $c('studio').hidden = r.kind !== 'studio';
   const inDesign = r.kind === 'project' || r.kind === 'customer';
   document.body.classList.toggle('cl-on', inDesign);
-  $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = !inDesign; $c('clSideBtn').setAttribute('aria-pressed', String(inDesign)); if (inDesign) closePanel(); $c('clBanner').hidden = true; $c('clWelcome').hidden = true;
-  document.body.classList.toggle('cl-side-open', inDesign);
-  if (!inDesign) { clearPins(); if (prev && (prev.kind === 'project' || prev.kind === 'customer')) leaveCloudDesign(); }
+  $c('clHead').hidden = !inDesign; if (inDesign) closePanel(); $c('clBanner').hidden = true; $c('clWelcome').hidden = true;
+  if (!inDesign) { if (prev && (prev.kind === 'project' || prev.kind === 'customer')) leaveCloudDesign(); }
   if (r.kind === 'studio') return studioHome();
   if (r.kind === 'project') return openProject(r.id);
   if (r.kind === 'customer') return openShare(r.token);
@@ -111,7 +110,6 @@ function renderStudio() {
       <button class="st-more" type="button" aria-label="Project options" aria-haspopup="menu" data-tip="Options"><svg class="ic"><use href="#i-dots"/></svg></button>
       <div class="st-meta">
       <h3 title="${clEsc(p.name)}">${clEsc(p.name)}</h3>${sub ? `<p title="${clEsc(sub)}">${clEsc(sub)}</p>` : ''}<span class="st-spec">${clEsc(specLine(p.summary))}</span>
-      <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
       <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></div>`; }).join('');
   $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview);
     const open = () => { if (!b.querySelector('.st-rename')) goRoute(`#admin/p/${b.dataset.pid}`); };
@@ -191,112 +189,28 @@ function fitHead() { requestAnimationFrame(() => document.documentElement.style.
 addEventListener('resize', fitHead);
 function chrome() { // what the toolbar shows for the current role
   const eb = $c('editBtn'), cust = CL.route?.kind === 'customer', review = CL.view && CL.view !== 'base';
-  document.body.classList.toggle('cl-customer', cust);
+  document.body.classList.toggle('cl-customer', cust); if (!cust) document.body.classList.remove('cl-view');
   if (cust) { eb.hidden = CL.share.access !== 'edit'; setEditLabel('Make changes'); }
   else if (CL.route?.kind === 'project') { eb.hidden = !!review; setEditLabel('Edit plan'); if (review && PE.open) openEditor(false); }
 }
 function banner(html) { const b = $c('clBanner'); b.hidden = !html; b.innerHTML = html || ''; return b; }
-function sideTabs(tabs) {
-  if (!tabs.some(t => t[0] === CL.tab)) CL.tab = tabs[0][0];
-  $c('clTabs').innerHTML = tabs.map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${k === CL.tab}">${n}</button>`).join('') + '<button type="button" class="x" title="Hide panel" aria-label="Hide panel"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7m0-7l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>';
-  $c('clTabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { CL.tab = b.dataset.tab; renderSide(); });
-  $c('clTabs').querySelector('.x').onclick = () => toggleSide(false);
-}
-function toggleSide(open) { if (open) closePanel(); $c('clSide').hidden = !open; $c('clSideBtn').setAttribute('aria-pressed', String(open)); document.body.classList.toggle('cl-side-open', open); updateViewOffset(); }
-$c('clSideBtn').onclick = () => toggleSide($c('clSide').hidden);
-function renderSide() { if (CL.route?.kind === 'project') renderProjectSide(); else if (CL.route?.kind === 'customer') renderShareSide(); }
-
-// ---------- comments + 3D pins ----------
-const pinObjs = [];
-function clearPins() { for (const o of pinObjs) scene.remove(o); pinObjs.length = 0; }
-function renderPins() {
-  clearPins(); let n = 0;
-  const list = CL.comments.filter(c => c.pin).map(c => [c, ++n]);
-  if (CL.pinDraft) list.push([{ id: '_draft', pin: CL.pinDraft, draft: true }, '+']);
-  for (const [c, num] of list) {
-    const el = document.createElement('div'); el.className = `pin3d${c.resolved ? ' res' : ''}${c.draft ? ' new' : ''}`; el.innerHTML = `<span>${num}</span>`; el.title = c.body || 'New comment';
-    el.onclick = e => { e.stopPropagation(); if (c.draft) return; CL.hi = c.id; CL.tab = 'comments'; toggleSide(true); renderSide(); };
-    const o = new CSS2DObject(el); o.position.set(c.pin.x, c.pin.y + .4, c.pin.z); o.userData.pin = c.pin; scene.add(o); pinObjs.push(o); c._num = num;
-  }
-}
-setInterval(() => { // only show the pins that belong to the floor being viewed
-  if (!pinObjs.length) return; const lv = mode === 'walk' ? null : ({ B: 'B', M: 'M', U: 'U' })[curView];
-  for (const o of pinObjs) o.visible = !lv || o.userData.pin.level === lv;
-}, 400);
-const rc3 = new THREE.Raycaster(), v2c = new THREE.Vector2(); let pinDown = null;
-function pickPoint(e) {
-  const r = renderer.domElement.getBoundingClientRect(); v2c.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); rc3.setFromCamera(v2c, camera);
-  for (const h of rc3.intersectObjects(scene.children, true)) { let o = h.object, vis = true; while (o) { if (!o.visible) { vis = false; break; } o = o.parent; } if (vis && h.object.material !== M.glass) return h.point; }
-  return null;
-}
-function clStartPin() { CL.pinning = true; document.body.classList.add('cl-pinning'); setSave('Click a spot in the 3D view to pin your comment'); }
-function clStopPin() { CL.pinning = false; document.body.classList.remove('cl-pinning'); }
-renderer.domElement.addEventListener('pointerdown', e => { if (CL.pinning) pinDown = [e.clientX, e.clientY]; }, true);
-renderer.domElement.addEventListener('pointerup', e => {
-  if (!CL.pinning || !pinDown || Math.hypot(e.clientX - pinDown[0], e.clientY - pinDown[1]) > 6) return; pinDown = null;
-  const p = pickPoint(e); if (!p) return;
-  CL.pinDraft = { x: p.x, y: p.y, z: p.z, level: p.y < MF - .3 ? 'B' : p.y < UF - .3 ? 'M' : 'U' }; clStopPin(); setSave('Pinned. Write your comment and post it.'); renderPins(); CL.tab = 'comments'; toggleSide(true); renderSide();
-  setTimeout(() => $c('cmText')?.focus(), 30);
-}, true);
-function commentHTML(c, studio) {
-  const who = c.author_role === 'customer' ? clEsc(c.author || 'Customer') : studio ? (c.share_token ? 'You → ' + clEsc(shareName(c.share_token)) : 'Internal note') : clEsc(CL.brand.name);
-  return `<div class="cl-item${c.resolved ? ' res' : ''}${CL.hi === c.id ? ' hi' : ''}" data-cid="${clEsc(c.id)}"><h4><span>${c._num ? `<span class="chip pin">#${c._num}</span> ` : ''}${who}</span><small>${clAgo(c.created_at)}</small></h4><p>${clEsc(c.body)}</p>
-    <div class="cl-acts">${c.pin ? '<button class="btn" type="button" data-act="show">Show in 3D</button>' : ''}${studio && c.author_role === 'customer' ? `<button class="btn" type="button" data-act="reply">Reply</button><button class="btn" type="button" data-act="resolve">${c.resolved ? 'Reopen' : 'Resolve'}</button>` : ''}</div></div>`;
-}
-function wireComments(root, studio) {
-  root.querySelectorAll('[data-cid]').forEach(el => {
-    const c = CL.comments.find(x => x.id === el.dataset.cid); if (!c) return;
-    el.querySelector('[data-act="show"]')?.addEventListener('click', () => { CL.hi = c.id; goView(c.pin.level || 'front'); renderSide(); });
-    el.querySelector('[data-act="reply"]')?.addEventListener('click', () => { CL.replyTo = c.share_token; renderSide(); $c('cmText')?.focus(); });
-    el.querySelector('[data-act="resolve"]')?.addEventListener('click', async () => { await cloudApi('PATCH', `comments?id=${encodeURIComponent(c.id)}`, { resolved: !c.resolved }); c.resolved = c.resolved ? 0 : 1; renderSide(); renderPins(); });
-  });
-  if (CL.hi) root.querySelector(`[data-cid="${CSS.escape(CL.hi)}"]`)?.scrollIntoView({ block: 'nearest' });
-}
-function composerHTML(studio) {
-  const opts = studio ? `<label>To <select id="cmTo"><option value="">Internal note (only the studio sees it)</option>${(CL.project?.shares || []).filter(s => !s.revoked).map(s => `<option value="${clEsc(s.token)}"${CL.replyTo === s.token ? ' selected' : ''}>${clEsc(s.customer)}</option>`).join('')}</select></label>` : '';
-  return `<div class="cl-form">${opts}<textarea id="cmText" rows="3" placeholder="${studio ? 'Write a note or reply' : 'Ask a question or suggest a change'}"></textarea>
-    <div class="cl-acts"><button class="btn" type="button" id="cmPin">${CL.pinDraft ? 'Pinned' : 'Pin to a spot'}</button>${CL.pinDraft ? '<button class="btn" type="button" id="cmUnpin">Remove pin</button>' : ''}<span style="flex:1"></span><button class="btn st-primary" type="button" id="cmPost">Post</button></div></div>`;
-}
-function wireComposer(studio, afterPost) {
-  $c('cmPin').onclick = () => clStartPin();
-  if ($c('cmUnpin')) $c('cmUnpin').onclick = () => { CL.pinDraft = null; renderPins(); renderSide(); };
-  $c('cmPost').onclick = async () => {
-    const text = $c('cmText').value.trim(); if (!text) return $c('cmText').focus();
-    $c('cmPost').disabled = true;
-    try {
-      if (studio) await cloudApi('POST', 'comments', { projectId: CL.route.id, token: $c('cmTo').value || null, body: text, pin: CL.pinDraft });
-      else await cloudApi('POST', `comments?token=${CL.route.token}`, { body: text, pin: CL.pinDraft });
-      CL.pinDraft = null; CL.replyTo = null; await afterPost();
-    } catch (e) { setSave(e.message); } finally { if ($c('cmPost')) $c('cmPost').disabled = false; }
-  };
-}
-
 // ---------- Studio: project workspace ----------
-const shareName = token => (CL.project?.shares || []).find(s => s.token === token)?.customer || 'customer';
-const shareURL = token => `${location.origin}${location.pathname}#c/${token}`;
 async function openProject(id, keepView) {
   let j; try { j = await cloudApi('GET', `project?id=${encodeURIComponent(id)}`); }
   catch (e) { if (e.status === 401) return goRoute('#admin'); banner(`${clEsc(e.message)} <button class="btn" type="button" onclick="location.hash='#admin'">Back to projects</button>`); return; }
   const first = !CL.project || CL.project.project.id !== id;
-  CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
+  CL.project = j; CL.view = 'base';
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBrand').textContent = '';
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
   $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
-  setSave('Saved'); banner(''); chrome(); renderPins();
-  CL.tab = 'history'; toggleSide(false); renderSide();
-  CL.poll = setInterval(refreshProject, 20000);
+  setSave('Saved'); banner(''); chrome();
   if (first) setTimeout(saveThumb, 2500);
 }
 let thumbAt = 0;
 async function saveThumb() {
   if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
   const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
-}
-async function refreshProject() {
-  if (CL.route?.kind !== 'project' || document.hidden) return;
-  try { const j = await cloudApi('GET', `project?id=${encodeURIComponent(CL.route.id)}`); const p = CL.project; p.shares = j.shares; p.events = j.events; p.versions = j.versions; CL.comments = j.comments;
-    if (CL.view === 'base') renderPins(); if (!document.activeElement?.closest?.('#clSide')) renderSide(); } catch (e) { }
 }
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
@@ -309,102 +223,45 @@ $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
   CL.project.project.name = name; await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { name }); setSave('Renamed');
 };
-async function viewCustomerVersion(token) {
-  const s = await cloudApi('GET', `share?token=${token}&as=studio`); CL.view = token;
-  showDesign(s.bm, { save: null }); chrome(); clearPins();
-  banner(`Viewing <b>${clEsc(s.customer)}</b>’s version${s.status === 'submitted' ? ' · they sent it for review' : ''} <button class="btn" type="button" id="bnAccept">Accept as version ${CL.project.project.version + 1}</button><button class="btn" type="button" id="bnBack">Back to your design</button>`);
-  $c('bnAccept').onclick = () => acceptShare(token); $c('bnBack').onclick = backToBase;
-}
-function backToBase() { CL.view = 'base'; showDesign(CL.project.bm, { save: projectSave }); banner(''); chrome(); renderPins(); renderSide(); }
-async function acceptShare(token) {
-  try { const j = await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=accept&token=${token}`); await openProject(CL.route.id, true); setSave(`Accepted · now version ${j.version}`); }
-  catch (e) { setSave(e.message); }
-}
-const EV = {
-  created: e => ['', 'Project created' + (e.detail?.from ? ` from ${e.detail.from}` : '')], shared: e => ['', `Shared with ${e.detail?.customer} (${ACCESS_NAME[e.detail?.access] || ''})`],
-  opened: e => ['', `${e.detail?.customer} opened their link`], edited: e => ['', `${e.detail?.customer} changed the floor plan`], finishes: e => ['', `${e.detail?.customer} picked finishes`],
-  comment: e => ['', `${e.detail?.customer}: “${e.detail?.text}”`], submitted: e => ['', `${e.detail?.customer} sent ${e.detail?.changed ? 'changes' : 'feedback'} for review${e.detail?.note ? `: “${e.detail.note}”` : ''}`],
-  accepted: e => ['', `You accepted ${e.detail?.customer}’s changes (v${e.detail?.version})`], reset: e => ['', `${e.detail?.customer} undid their changes`],
-  restored: e => ['', `Restored version ${e.detail?.from} as v${e.detail?.version}`], snapshot: e => ['', `Saved version ${e.detail?.version}: ${e.detail?.note}`],
-};
-function renderProjectSide() {
-  const P = CL.project;
-  sideTabs([['history', 'History']]);
-  const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this version <input id="vsNote" maxlength="120" placeholder="e.g. Sent for first review"></label><button class="btn" type="submit">Save version</button></form>
-    <div class="cl-sec">Versions</div>` + P.versions.map(v => `<div class="cl-ev ver"><i></i><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''} · ${clEsc(v.note || '')}${v.version !== P.project.version ? ` <button class="linkish" type="button" data-ver="${v.version}">Restore</button>` : ''}</span><small>${clAgo(v.created_at)}</small></div>`).join('')
-    + `<div class="cl-sec">Activity</div>` + (P.events.length ? P.events.map(e => { const [, tx] = (EV[e.kind] || (() => ['', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>');
-  $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); };
-  B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); });
-}
-
 // ---------- Customer link ----------
 async function openShare(token) {
   let j; try { j = await cloudApi('GET', `share?token=${encodeURIComponent(token)}`); }
   catch (e) { if (e.needPass) return askSharePass(token, !!sharePass()); showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
-  CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
+  CL.share = j; CL.view = 'base';
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
   $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
   const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
-  $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
-  shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
+  $c('clSub').textContent = [j.public ? null : `Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
+  document.body.classList.toggle('cl-view', j.access === 'view');
+  shareStatus(); chrome();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
-  if (!seen) welcome();
-  CL.poll = setInterval(async () => { if (document.hidden) return; try { const r = await cloudApi('GET', `comments?token=${token}`); if (r.comments.length !== CL.comments.length) { CL.comments = r.comments; renderPins(); renderSide(); } } catch (e) { } }, 20000);
+  if (!seen && !j.public) welcome();
 }
 function shareStatus() {
   const s = CL.share, sent = s.status === 'submitted', acc = s.status === 'accepted';
-  setSave(sent ? `Sent to ${CL.brand.name}` : acc ? `${CL.brand.name} accepted your changes` : s.changed ? 'Your changes are saved' : s.access === 'view' ? 'View only · you can comment' : 'Make it yours: changes save as you go');
-  if (s.changed && !sent) banner(`You’ve made changes. <button class="btn st-primary" type="button" id="bnSend">Send to ${clEsc(CL.brand.name)}</button>`).querySelector('#bnSend').onclick = () => { CL.tab = 'send'; toggleSide(true); renderSide(); };
-  else banner('');
+  setSave(sent ? `Sent to ${CL.brand.name}` : acc ? `${CL.brand.name} accepted your changes` : s.changed ? 'Your changes are saved' : s.access === 'view' ? 'View only' : 'Make it yours: changes save as you go');
+  banner('');
 }
 function shareSave() {
   CL.share.changed = true; if (CL.share.status === 'submitted' || CL.share.status === 'accepted') CL.share.status = 'editing';
   setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => { try { await cloudApi('PUT', `share?token=${CL.route.token}`, { bm: BM }); shareStatus(); } catch (e) { setSave(`Not saved: ${e.message}`); } }, 800);
 }
-function renderShareSide() {
-  const s = CL.share, canSave = s.access !== 'view';
-  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ['send', 'Send'], ['help', 'How to']]);
-  $c('clSideCount').textContent = CL.comments.length || '';
-  const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  if (CL.tab === 'comments') {
-    B.innerHTML = (s.message ? `<div class="cl-item"><h4><span>${clEsc(CL.brand.name)}</span></h4><p>${clEsc(s.message)}</p></div>` : '') +
-      (CL.comments.length ? CL.comments.map(c => commentHTML(c, false)).join('') : '<p class="cl-sub">Questions or ideas? Pin a comment to any spot in the house and we’ll see exactly what you mean.</p>');
-    wireComments(B, false); F.innerHTML = composerHTML(false);
-    wireComposer(false, async () => { const r = await cloudApi('GET', `comments?token=${CL.route.token}`); CL.comments = r.comments; renderPins(); renderSide(); setSave('Comment posted'); });
-  } else if (CL.tab === 'send') {
-    const sent = s.status === 'submitted';
-    B.innerHTML = `<p class="cl-sub">${canSave ? (s.changed ? 'Your version is saved. When you’re happy with it, send it over and we’ll review your changes and comments.' : 'You haven’t changed anything yet. You can still send your comments.') : 'Send your comments when you’re ready.'}</p>
-      <form class="cl-form" id="sdForm" onsubmit="return false"><label>Note for ${clEsc(CL.brand.name)} (optional) <textarea id="sdNote" rows="3" placeholder="Anything we should know?"></textarea></label>
-      <button class="btn st-primary" type="submit">${sent ? 'Send again' : `Send to ${clEsc(CL.brand.name)}`}</button></form>
-      ${sent ? `<p class="cl-sub">Sent. We’ll be in touch.</p>` : ''}
-      ${s.changed ? '<div class="cl-sec">Start over</div><button class="btn" type="button" id="sdReset">Undo all my changes</button>' : ''}`;
-    $c('sdForm').onsubmit = async () => { await cloudApi('POST', `share?token=${CL.route.token}&action=submit`, { note: $c('sdNote').value.trim() }); s.status = 'submitted'; shareStatus(); renderSide(); };
-    if ($c('sdReset')) { let armed = 0; $c('sdReset').onclick = async e => { if (Date.now() - armed > 3000) { armed = Date.now(); e.target.textContent = 'Click again to undo everything'; return; }
-      await cloudApi('POST', `share?token=${CL.route.token}&action=reset`); await openShare(CL.route.token); }; }
-  } else {
-    B.innerHTML = `<div class="cl-item"><h4>Look around</h4><p>Drag to orbit, scroll to zoom. Use <b>Front · Rear · Aerial</b> for views, or pick a floor to see it with the roof off.</p></div>
-      <div class="cl-item"><h4>Walk inside</h4><p>Switch to <b>Walk</b> or <b>Character</b>, or drag the little person onto the house. Move with WASD or the arrow keys.</p></div>
-      ${s.access !== 'view' ? '<div class="cl-item"><h4>Make it yours</h4><p>Pick finishes in the <b>Finishes</b> panel' + (s.access === 'edit' ? ', or press <b>Make changes</b> to move rooms and walls' : '') + '. Everything saves as you go, and the builder’s original stays untouched.</p></div>' : ''}
-      <div class="cl-item"><h4>Comment</h4><p>Press <b>Pin to a spot</b>, click anywhere in the house, and write your note.</p></div>`;
-  }
-}
 function welcome() {
   const s = CL.share, w = $c('clWelcome');
   w.innerHTML = `<h2>Hi ${clEsc(s.customer.split(' ')[0])}, welcome to your home</h2>${s.message ? `<blockquote>${clEsc(s.message)}</blockquote>` : ''}
-    <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around, walk inside, ${s.access === 'edit' ? 'try changes to the layout and finishes, ' : s.access === 'finishes' ? 'try different finishes, ' : ''}and pin comments anywhere. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
+    <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around and walk inside${s.access === 'edit' ? ', and try changes to the layout and finishes' : s.access === 'finishes' ? ', and try different finishes' : ''}. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
     <div class="st-row"><button class="btn st-primary" type="button" id="wcGo">Start exploring</button></div>`;
   w.hidden = false; $c('wcGo').onclick = () => { w.hidden = true; try { localStorage.setItem('welcomed-' + CL.route.token, '1'); } catch (e) { } };
 }
 function askSharePass(token, wrong) {
   const w = $c('clWelcome');
   w.innerHTML = `<h2>This home is password protected</h2><p>Enter the password your builder gave you.</p><form class="cl-form" id="spForm" onsubmit="return false"><input id="spIn" type="password" autocomplete="off" aria-label="Password" placeholder="Password"><p class="st-err">${wrong ? 'That password didn’t work.' : ''}</p><div class="st-row"><button class="btn st-primary" type="submit">Open</button></div></form>`;
-  w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; $c('spIn').focus();
-  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; $c('clSideBtn').hidden = false; openShare(token); };
+  w.hidden = false; $c('clHead').hidden = true; $c('spIn').focus();
+  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; openShare(token); };
 }
-function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; }
+function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = true; }
 
 // ---------- boot ----------
 (async () => {
@@ -412,7 +269,5 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg><span class="tb-t">Projects</span>'; sb.dataset.tip = 'All projects';
-  sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();

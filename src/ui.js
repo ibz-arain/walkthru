@@ -17,7 +17,7 @@ function setEditLabel(t) { const el = document.getElementById('editLabel'); if (
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
   const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
-  const side = !document.getElementById('side')?.hidden || !document.getElementById('clSide')?.hidden;
+  const side = !document.getElementById('side')?.hidden;
   return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 318 : 0 };
 }
 
@@ -95,10 +95,9 @@ addEventListener('pointerdown', hideTip, true);
 
 // ---------- side panels ----------
 let panel = null;
-const PANEL_OPEN = { info: () => renderInfo(), checks: () => renderChecks() };
+const PANEL_OPEN = { info: () => renderInfo() };
 function openPanel(name) {
   if (panel === name) return closePanel();
-  if (!$u('clSide').hidden) toggleSide(false);
   document.querySelectorAll('#side .sp').forEach(s => s.hidden = s.dataset.panel !== name);
   $u('side').hidden = false; panel = name; document.body.classList.add('panel-open');
   press('[data-panel-btn]', 'panelBtn', name); PANEL_OPEN[name]?.(); updateViewOffset();
@@ -162,6 +161,7 @@ $u('optTrees').onchange = e => { showTrees = e.target.checked; applyVisibility()
 function setRoof(on) { showRoof = on; $u('optRoof').checked = on; applyVisibility(); }
 $u('optRoof').onchange = e => setRoof(e.target.checked);
 $u('roofBtn').onclick = () => setRoof(!showRoof);
+$u('doorsBtn').onclick = () => setAllDoors(!allDoorsClosed());
 $u('optShadow').onchange = e => { sun.castShadow = e.target.checked && RS !== 'xray' && RS !== 'wire'; renderer.shadowMap.needsUpdate = true; };
 $u('optSpin').onchange = e => { controls.autoRotate = e.target.checked; controls.autoRotateSpeed = .7; };
 const SEASON = { summer: 1.15, equinox: .85, winter: .55 };
@@ -245,7 +245,10 @@ function shot(scale = 1) {
   download(url, `${slug()}-${VIEW_NAME[curView]?.toLowerCase().replace(/\s/g, '-') || 'view'}.png`); toast(scale > 1 ? 'High-res render saved' : 'Screenshot saved');
 }
 $u('shotBtn').onclick = () => shot(1); $u('exShot').onclick = () => shot(1); $u('exShot2').onclick = () => shot(2);
-$u('exPlan').onclick = () => { if (!PE.open) return toast('Open the floor plan editor first'); download(pc.toDataURL('image/png'), `${slug()}-plan-${PE.lv}.png`); toast('Floor plan saved'); };
+$u('exPlan').onclick = () => { // the level you're looking at (main floor otherwise), drawn like the plan sheet
+  const lv = PE.open ? PE.lv : ['B', 'M', 'U'].includes(curView) ? curView : 'M';
+  if (!BM.rooms.some(r => r.level === lv)) return toast('There is no floor plan to save yet');
+  download(drawSheetPlan(lv, 2000, 1250).url, `${slug()}-plan-${({ B: 'basement', M: 'main', U: 'upper' })[lv]}.png`); toast('Floor plan saved'); };
 $u('exCsv').onclick = () => {
   const A = areaData(), LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   const rows = [['Level', 'Room', `Area (${METRIC ? 'm²' : 'sf'})`], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, METRIC ? +(s * .092903).toFixed(1) : Math.round(s)]))];
@@ -264,7 +267,12 @@ $u('importFile').onchange = async e => {
     const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
   } catch (err) { toast('That file is not a Demo design'); }
 };
-$u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Link copied'); } catch (e) { toast(location.href); } };
+// Share link: a public, view-only link to the project. Anyone with it can look around, walk through and try finishes; nothing they do is saved.
+$u('exLink').onclick = async () => {
+  let url = location.href;
+  if (CL.route?.kind === 'project') { try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, public: true }); url = `${location.origin}/playground#c/${j.token}`; } catch (e) { return toast(e.message || 'Could not make a link'); } }
+  try { await navigator.clipboard.writeText(url); toast('Share link copied: anyone with it can view this home'); } catch (e) { prompt('Copy this link', url); }
+};
 
 // ---------- editor extras ----------
 let libOn = ST.get('walkthru-lib', '1') === '1';
@@ -273,7 +281,6 @@ function uiEditing(on) {
   closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
-  if (on) renderChecks();
 }
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
@@ -306,6 +313,7 @@ addEventListener('keydown', e => {
   if (k === 'e') { if (PE.open) $u('peDone').click(); else if (!$u('editBtn').hidden) $u('editBtn').click(); return; }
   if (k === 'm') return setMeasure(!MEAS.on);
   if (k === 'h') return setRoof(!showRoof);
+  if (k === 'o') return setAllDoors(!allDoorsClosed());
   if (k === 'l') return $u('optLabels').click();
   if (k === 'p') return shot(1);
   if (PE.open) return; // the plan editor owns the rest of the letters
@@ -318,6 +326,7 @@ function uiSync() {
   const t = tabHouse(); $u('designNow').textContent = t === 3 ? (curDesign()?.name || 'My design') : `Sample ${t === 4 ? 3 : t}`;
   $u('viewNow').textContent = mode === 'walk' ? 'Walking' : VIEW_NAME[curView] || 'Custom';
   $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
+  $u('doorsLbl').textContent = allDoorsClosed() ? 'Open all doors' : 'Close all doors';
   if (RS !== 'real') applyRS();
   if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();

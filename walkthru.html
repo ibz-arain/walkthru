@@ -319,6 +319,14 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 ::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box}
 ::-webkit-scrollbar-button{display:none}
 
+#doorHint{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:30;padding:7px 12px;border-radius:999px;background:rgba(17,17,20,.72);color:#fff;font-size:13px;pointer-events:none;backdrop-filter:blur(6px)}
+#doorHint kbd{display:inline-block;min-width:18px;margin-right:6px;padding:1px 6px;border-radius:5px;background:#fff;color:#111;font:600 12px/18px Inter,system-ui,sans-serif;text-align:center}
+
+/* Share link only where there is a project to share; viewers of a link get the house, views, walk and finishes, nothing of the builder's */
+body:not(.cl-on) #exLink{display:none}
+body.cl-on #exImport{display:none}
+body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,body.cl-customer #texGrp,body.cl-customer #designTab,body.cl-customer #segHouse{display:none!important}
+
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
 .pe-body{flex:1;display:flex;min-height:0;position:relative}
@@ -349,7 +357,7 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 .pe-zoom button + button{border-left:1px solid var(--rule)}
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
-#planEd:not(.has-sel) #peSide{display:none}
+#planEd:not(.has-sel) #peSide,#planEd:not(.pe-menu) #peSide{display:none}
 #peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);transition:opacity .12s}
 .pe-busy #peSide{opacity:0;pointer-events:none}
 #peSide .pe-card:last-child{border-bottom:0}
@@ -564,6 +572,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-ruler" viewBox="0 0 24 24"><path d="m3.5 15.5 12-12 5 5-12 12z"/><path d="m7.5 11.5 2 2M10.5 8.5l2 2M13.5 5.5l2 2"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><path d="M6 21V4h10v17"/><path d="M4 21h16"/><circle cx="13" cy="12.5" r=".9"/></symbol>
     <symbol id="i-roof" viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5.5 13v7h13v-7" stroke-dasharray="2.2 2.2"/></symbol>
     <symbol id="i-shot" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></symbol>
     <symbol id="i-full" viewBox="0 0 24 24"><path d="M9 4H4v5M15 4h5v5M20 15v5h-5M4 15v5h5"/></symbol>
@@ -637,14 +646,12 @@ body.editing .cl-save{display:none}
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
     <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
-    <button class="tb-b" type="button" data-panel-btn="checks" data-tip="Code checks"><svg class="ic"><use href="#i-shield"/></svg><span class="tb-t">Checks</span><span id="checkCount"></span></button>
     <button class="tb-b" id="edMoreBtn" type="button" data-pop="edMorePop" data-tip="More plan tools"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
-    <button class="tb-b" id="clSideBtn" type="button" hidden data-tip="Versions and activity"><svg class="ic"><use href="#i-reset"/></svg><span class="tb-t">History</span><span id="clSideCount"></span></button>
     <button class="tb-b" type="button" data-panel-btn="export" data-tip="Download images, PDFs and files"><svg class="ic"><use href="#i-down"/></svg><span class="tb-t">Export</span></button>
     <button class="tb-b" id="moreBtn" type="button" data-pop="morePop" data-tip="More"><svg class="ic"><use href="#i-dots"/></svg></button>
   </div>
@@ -661,6 +668,7 @@ body.editing .cl-save{display:none}
   <div class="menu">
     <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
     <button type="button" id="roofBtn" aria-pressed="false"><svg class="ic"><use href="#i-roof"/></svg>Hide the roof<kbd>H</kbd></button>
+    <button type="button" id="doorsBtn"><svg class="ic"><use href="#i-door"/></svg><span id="doorsLbl">Close all doors</span><kbd>O</kbd></button>
     <button type="button" data-panel-btn="display"><svg class="ic"><use href="#i-sun"/></svg>Lighting and display</button>
     <button type="button" data-panel-btn="info"><svg class="ic"><use href="#i-info"/></svg>Areas and estimate</button>
   </div>
@@ -676,8 +684,6 @@ body.editing .cl-save{display:none}
 </div>
 <div class="pop" id="edMorePop" hidden role="menu" aria-label="More plan tools">
   <div class="menu">
-    <button type="button" id="peAutoBtn" data-pop="peAuto"><svg class="ic"><use href="#i-wand"/></svg>Lay out a house for me</button>
-    <button type="button" id="peNoteBtn" aria-pressed="false"><svg class="ic"><use href="#i-note"/></svg>Add a note</button>
     <button type="button" id="peDimBtn" aria-pressed="false"><svg class="ic"><use href="#i-dim"/></svg>Draw a dimension</button>
     <button type="button" id="peGaps"><svg class="ic"><use href="#i-gaps"/></svg>Close gaps between rooms</button>
     <button type="button" id="peTrace" hidden><svg class="ic"><use href="#i-trace"/></svg>Copy main floor to basement</button>
@@ -743,18 +749,6 @@ body.editing .cl-save{display:none}
   <h6>Start this design over</h6>
   <div class="menu"><button type="button" id="peReset">From the sample plan</button><button type="button" id="peClear">From a blank page</button></div>
 </div>
-<form class="pop" id="peAuto" hidden onsubmit="return false" aria-label="Auto layout">
-  <h6>Lay out a house for me</h6>
-  <div class="form2">
-    <label class="fld" for="paBeds">Bedrooms <select id="paBeds"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></label>
-    <label class="fld" for="paBaths">Bathrooms <select id="paBaths"><option>1</option><option selected>2</option><option>3</option></select></label>
-    <label class="fld" for="paGarage">Garage <select id="paGarage"><option value="0">None</option><option value="1">1 car</option><option value="2" selected>2 car</option></select></label>
-    <label class="fld" for="paStoreys">Storeys <select id="paStoreys"><option value="1">1</option><option value="2" selected>2</option></select></label>
-  </div>
-  <label class="sw-row">Home office <input id="paOffice" type="checkbox" checked><span class="tg"></span></label>
-  <label class="sw-row">Basement <input id="paBase" type="checkbox"><span class="tg"></span></label>
-  <div class="dm-row" style="justify-content:flex-end;margin-top:6px"><button class="btn" id="peAutoCancel" type="button">Cancel</button><button class="btn btn-primary" id="peAutoGo" type="button">Build it</button></div>
-</form>
 <input type="file" id="importFile" accept=".json,application/json" hidden>
 <div id="tip" role="tooltip" hidden></div>
 
@@ -851,14 +845,10 @@ body.editing .cl-save{display:none}
         <button type="button" id="exCsv"><svg class="ic"><use href="#i-info"/></svg><span>Room schedule</span></button>
         <button type="button" id="exJson"><svg class="ic"><use href="#i-down"/></svg><span>Design file</span></button>
         <button type="button" id="exImport"><svg class="ic"><use href="#i-up"/></svg><span>Import a design</span></button>
-        <button type="button" id="exLink"><svg class="ic"><use href="#i-link"/></svg><span>Copy link</span></button>
+        <button type="button" id="exLink"><svg class="ic"><use href="#i-link"/></svg><span>Share link</span></button>
       </div>
       <p class="sp-note" id="exMsg" aria-live="polite"></p>
     </div>
-  </section>
-  <section class="sp" data-panel="checks" hidden>
-    <header class="sp-h"><h2>Code checks</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
-    <div class="sp-b"><div id="checkList"></div><p class="sp-note" style="color:var(--ink-3);font-size:11.5px">Based on common US residential code (IRC). Local rules vary; confirm with your building department.</p></div>
   </section>
   <section class="sp" data-panel="help" hidden>
     <header class="sp-h"><h2>Keyboard shortcuts</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
@@ -866,7 +856,7 @@ body.editing .cl-save{display:none}
       <h3>Viewing</h3>
       <p><span>Front · Rear · Top · Aerial</span><kbd>F</kbd><kbd>B</kbd><kbd>T</kbd><kbd>V</kbd></p>
       <p><span>Basement · Main · Upper</span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></p>
-      <p><span>Measure</span><kbd>M</kbd></p><p><span>Hide roof</span><kbd>H</kbd></p><p><span>Room labels</span><kbd>L</kbd></p>
+      <p><span>Measure</span><kbd>M</kbd></p><p><span>Hide roof</span><kbd>H</kbd></p><p><span>Open or close all doors</span><kbd>O</kbd></p><p><span>Room labels</span><kbd>L</kbd></p>
       <p><span>Screenshot</span><kbd>P</kbd></p><p><span>Edit floor plan</span><kbd>E</kbd></p><p><span>Hide interface</span><kbd>\</kbd></p><p><span>Close panel / leave</span><kbd>Esc</kbd></p>
       <h3>Walking</h3>
       <p><span>Move</span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></p><p><span>Jump · hurry</span><kbd>Space</kbd><kbd>Shift</kbd></p>
@@ -917,7 +907,7 @@ body.editing .cl-save{display:none}
   </form>
   <form id="stDelForm" class="panel st-modal" hidden onsubmit="return false">
     <h2>Delete project?</h2>
-    <p class="st-msg"><b id="sdName"></b> and all its versions will be deleted. This can’t be undone.</p>
+    <p class="st-msg"><b id="sdName"></b> will be deleted. This can’t be undone.</p>
     <p class="st-err" id="sdErr"></p>
     <div class="st-row"><button class="btn st-ghost" id="sdCancel" type="button">Cancel</button><button class="btn st-danger" id="sdGo" type="submit">Delete project</button></div>
   </form>
@@ -925,11 +915,6 @@ body.editing .cl-save{display:none}
 
 <!-- ===== Project / customer chrome over the 3D view ===== -->
 <div class="panel" id="clBanner" hidden role="status"></div>
-<aside id="clSide" hidden aria-label="Project panel">
-  <nav class="cl-tabs seg" id="clTabs"></nav>
-  <div class="cl-body" id="clBody"></div>
-  <div class="cl-foot" id="clFoot"></div>
-</aside>
 <div class="panel st-modal" id="clWelcome" hidden role="dialog" aria-label="Welcome"></div>
 
 
@@ -966,7 +951,18 @@ const toDisp = ft => METRIC ? +(ft * .3048).toFixed(2) : +(+ft).toFixed(2), from
 const SCALE_BAR = () => METRIC ? [3 / .3048, '3 m'] : [10, "10'"];
 
 // ---------- Levels (feet, grade = 0) from wall section A-2.01 ----------
-const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;
+let BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56; const GF = 0.5;
+// A design can set its own levels (BM.levels): how high the main floor sits above the ground (raise it and the basement
+// comes half out of the ground, as in a raised bungalow or bi-level; lower it for a slab on grade) and each storey's ceiling.
+// The defaults give exactly the numbers above. Floor build-ups stay fixed: 1'-1" under the main floor, 1'-½" under the 2nd.
+const LEVELS_DEF = { main: 2.33, mainH: 9.1, upH: 8.09, baseH: 8 };
+const LEVEL_PRESETS = { standard: ['Standard', { main: 2.33 }, 'Basement below ground, main floor a few steps up'], raised: ['Raised', { main: 4.75 }, 'Raised bungalow / bi-level: the basement sits half out of the ground'], slab: ['Slab', { main: .5 }, 'Slab on grade: main floor one step above the ground'] };
+const levelsOf = m => ({ ...LEVELS_DEF, ...(m?.levels || {}) });
+function applyLevels(m) {
+  const L = levelsOf(m); MF = L.main; MC = MF + L.mainH; UF = MC + 1.04; UC = UF + L.upH; BC = MF - 1.08; BF = BC - L.baseH; TF = MF - 1.16;
+  for (const o of [typeof LV_Y !== 'undefined' && LV_Y, typeof LEVEL_Y !== 'undefined' && LEVEL_Y]) if (o) Object.assign(o, { B: BF, M: MF, U: UF });
+  if (typeof LV_C !== 'undefined') Object.assign(LV_C, { B: BC, M: MC, U: UC });
+}
 const UZ = 2.54; // 2nd floor plan is set back 2'-6½" from the main front wall
 const EXT = 0.67, INT = 0.4;
 // Built-in sample houses and the sample plan are hidden: everything starts empty. Set true to bring them back.
@@ -1084,6 +1080,7 @@ const M = {
   metal: std({ map: null, color: '#2d2f33', roughness: .38, metalness: .55, side: THREE.DoubleSide }),
   soffit: std({ color: '#2a2b2e', roughness: .7, side: THREE.DoubleSide }),
   white: std({ color: '#f6f6f3', roughness: .55 }),
+  doorLeaf: std({ color: '#f6f6f3', roughness: .55 }), // interior door slabs: their own material, so Finishes → Doors can change them without touching trim
   glass: new THREE.MeshStandardMaterial({ color: '#9db8c6', roughness: .05, metalness: .1, transparent: true, opacity: .26, depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 1.6 }),
   frost: std({ color: '#dfe7ea', roughness: .3, transparent: true, opacity: .75 }),
   wood: std({ map: TX.wood, color: '#e0c49c', roughness: .6 }),
@@ -1261,6 +1258,30 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
     for (const [a, b] of spans) if (b - a > .05) boxAN(parent, horiz, a, b, -0.4, top, n0, n1, o.skirtMat ?? M.stone);
   }
 }
+// ---------- Doors you can open and close (E in walk mode) ----------
+// Each door leaf / garage panel is built into its own group whose origin is the hinge, so it can turn.
+// DOORS: { parts: [{ g, axis, ang }], cur 0..1 (0 = as drawn, 1 = turned by ang), target, at: [x, y, z], kind }
+const DOORS = [];
+function hingeGroup(p, horiz, h, y, n, build) { // h: position along the wall, n: across it
+  const g = new THREE.Group(); p.add(g); build(g);
+  const px = horiz ? h : n, pz = horiz ? n : h; g.position.set(px, y, pz);
+  for (const ch of g.children) { ch.position.x -= px; ch.position.y -= y; ch.position.z -= pz; }
+  return g;
+}
+// turn that takes direction N (x, z) onto direction A, about the vertical axis
+const yawBetween = (N, A) => { let d = Math.atan2(A[0], A[1]) - Math.atan2(N[0], N[1]); return Math.atan2(Math.sin(d), Math.cos(d)); };
+function addDoor(parts, at, kind, closedFirst) {
+  const d = { parts, cur: 0, target: 0, at, kind };
+  if (closedFirst) { d.cur = d.target = 1; for (const q of parts) q.g.rotation[q.axis] = q.ang; }
+  DOORS.push(d); return d;
+}
+function garageDone(P0, g, horiz, h, top, n, nIn, at) { // move the group's origin to the top edge, then register it
+  const px = horiz ? h : n, pz = horiz ? n : h; g.position.set(px, top, pz);
+  for (const ch of g.children) { ch.position.x -= px; ch.position.y -= top; ch.position.z -= pz; }
+  addDoor([{ g, axis: horiz ? 'x' : 'z', ang: (horiz ? -nIn : nIn) * Math.PI / 2 * .97 }], at, 'garage', false);
+}
+const doorMat = (hex, base) => hex ? finMat(M.white, hex) : base; // a door painted its own colour (BM.ops[key].color)
+const doorClosed = d => (d.kind === 'garage') === (d.cur < .5); // swing doors are drawn open; the garage panel is drawn closed
 function fillOpening(p, horiz, c, t, os, op) {
   const a = op.c - op.w / 2, b = op.c + op.w / 2, yb = op.b, yt = op.b + op.h;
   const k = op.k || 'win', FM = op.fm ?? M.trim;
@@ -1270,20 +1291,25 @@ function fillOpening(p, horiz, c, t, os, op) {
     const st = op.style || 'single', sw = (op.sw ?? 1), n0 = c + sw * t / 2;
     if (st !== 'barn') casing(p, horiz, c, t, a, b, yb, yt);
     if (st === 'cased') return; // just a trimmed opening
-    const leaf = (h0, len, glass) => { // a leaf standing open at hinge position h0, sticking `len` into the room
-      boxAN(p, horiz, h0, h0 + .14, yb, yt - .04, n0, n0 + sw * len, M.white);
-      if (glass) boxAN(p, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass);
+    const parts = [], N = horiz ? [0, sw] : [sw, 0];
+    const leaf = (h0, len, glass, swing = true) => { // a leaf standing open at hinge position h0, sticking `len` into the room
+      const mk = g => { boxAN(g, horiz, h0, h0 + .14, yb, yt - .04, n0, n0 + sw * len, doorMat(op.color, M.doorLeaf));
+        if (glass) boxAN(g, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass); };
+      if (!swing) return mk(p);
+      const dA = h0 < (a + b) / 2 ? 1 : -1, A = horiz ? [dA, 0] : [0, dA]; // closed, it lies along the wall toward the other jamb
+      parts.push({ g: hingeGroup(p, horiz, h0 + .07, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
     };
-    if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); return; }
-    if (st === 'bifold') { for (const h0 of [a + .05, b - .19]) leaf(h0, Math.min(1, op.w / 4), false); return; }
-    if (st === 'pocket') { const s0 = op.hinge === 'b' ? b - .4 : a - op.w + .4; boxAN(p, horiz, s0, s0 + op.w, yb, yt - .04, c - .06, c + .06, M.white); return; } // slid into the wall, the edge shows
+    const at = horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2];
+    if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); addDoor(parts, at, 'door', false); return; }
+    if (st === 'bifold') { for (const h0 of [a + .05, b - .19]) leaf(h0, Math.min(1, op.w / 4), false, false); return; }
+    if (st === 'pocket') { const s0 = op.hinge === 'b' ? b - .4 : a - op.w + .4; boxAN(p, horiz, s0, s0 + op.w, yb, yt - .04, c - .06, c + .06, doorMat(op.color, M.doorLeaf)); return; } // slid into the wall, the edge shows
     if (st === 'barn') { // a slab on the face of the wall, slid to one side, hanging from a rail
       const side = op.hinge === 'b' ? -1 : 1, s0 = side > 0 ? b - .3 : a - op.w + .3, nf = c + sw * (t / 2 + .05);
       boxAN(p, horiz, Math.min(a, s0) - .3, Math.max(b, s0 + op.w) + .3, yt + .25, yt + .4, nf + sw * .02, nf + sw * .14, M.black);
-      boxAN(p, horiz, s0, s0 + op.w, yb + .05, yt + .3, nf + sw * .14, nf + sw * .3, M.walnut);
+      boxAN(p, horiz, s0, s0 + op.w, yb + .05, yt + .3, nf + sw * .14, nf + sw * .3, doorMat(op.color, M.walnut));
       return;
     }
-    leaf(op.hinge === 'b' ? b - .19 : a + .05, op.w - .1, false);
+    leaf(op.hinge === 'b' ? b - .19 : a + .05, op.w - .1, false); addDoor(parts, at, 'door', false);
     return;
   }
   // exterior units: frame sits toward the outside face
@@ -1324,27 +1350,32 @@ function fillOpening(p, horiz, c, t, os, op) {
     return;
   }
   if (k === 'garage') {
-    const n0 = fc - .12, n1 = fc + .12;
-    boxAN(p, horiz, a + fw, b - fw, yb, yt - fw, n0, n1, FM, { solid: true });
+    const n0 = fc - .12, n1 = fc + .12, top = yt - fw, P0 = p;
+    // the panel turns up on its top edge into the garage (an overhead door): built in a group hinged there
+    const g = new THREE.Group(); P0.add(g); p = g;
+    boxAN(p, horiz, a + fw, b - fw, yb, yt - fw, n0, n1, FM);
     const pw = b - a - 2 * fw, ph = yt - yb - fw;
-    if (op.plain) { for (let r = 1; r < 8; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 8 - .02, yb + ph * r / 8, n0 - .03, n1 + .03, M.black); return; }
+    if (op.plain) { for (let r = 1; r < 8; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 8 - .02, yb + ph * r / 8, n0 - .03, n1 + .03, M.black); garageDone(P0, g, horiz, (a + b) / 2, top, nIn > 0 ? n1 : n0, nIn, [horiz ? (a + b) / 2 : fc, yb + 3, horiz ? fc : (a + b) / 2]); return; }
     if (op.top) { const n = Math.max(3, Math.round(pw / 3.4)); for (let q = 0; q < n; q++) { const sx = a + fw + pw * (q + .1) / n; boxAN(p, horiz, sx, sx + pw * .8 / n, yb + ph * .79, yb + ph * .92, n0 - .02, n1 + .02, M.frost); } } // a row of lites along the top panel
     else for (let r = 0; r < 4; r++) for (let q = 0; q < 2; q++) {
       const sx = a + fw + pw * (0.12 + q * 0.5), sy = yb + ph * (0.14 + r * 0.22);
       boxAN(p, horiz, sx, sx + pw * 0.26, sy, sy + ph * 0.09, n0 - .02, n1 + .02, M.frost);
     }
     for (let r = 1; r < 4; r++) boxAN(p, horiz, a + fw, b - fw, yb + ph * r / 4 - .03, yb + ph * r / 4, n0 - .03, n1 + .03, M.black);
-    return;
+    garageDone(P0, g, horiz, (a + b) / 2, top, nIn > 0 ? n1 : n0, nIn, [horiz ? (a + b) / 2 : fc, yb + 3, horiz ? fc : (a + b) / 2]); return;
   }
   if (k === 'front' || k === 'extdoor') {
     // leaves swung open into the house so you can walk through
     const leaves = k === 'front' ? [[a + fw, (a + b) / 2, 0], [(a + b) / 2, b - fw, 1]] : [[a + fw, b - fw, op.hinge === 'b' ? 1 : 0]];
     const dir = op.outSwing ? -nIn : nIn, glassy = op.style === 'french';
+    const parts = [], N = horiz ? [0, dir] : [dir, 0];
     for (const [la, lb, right] of leaves) {
-      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw;
-      boxAN(p, horiz, hx, hx + .18, yb, yt - fw, n0, n1, FM);
-      boxAN(p, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass);
+      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1;
+      const mk = g => { boxAN(g, horiz, hx, hx + .18, yb, yt - fw, n0, n1, doorMat(op.color, FM));
+        boxAN(g, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass); };
+      parts.push({ g: hingeGroup(p, horiz, hx + .09, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) });
     }
+    addDoor(parts, horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2], 'door', true); // outside doors start shut
     boxAN(p, horiz, a, b, yb - .02, yb + .03, c - t / 2, c + t / 2, M.walnut, { walk: true });
   }
 }
@@ -2563,7 +2594,7 @@ const EPS = .06;
 function opAt(w, key, defW, defH) { const o = BM.ops?.[key] || {}, L = w.b - w.a, ww = Math.max(2, Math.min(o.w || defW, L - .5)), h = Math.max(6, Math.min(o.h || defH, 9.5));
   const c = o.pos == null ? (w.a + w.b) / 2 : Math.max(w.a + ww / 2 + .25, Math.min(w.b - ww / 2 - .25, w.a + o.pos * L)); return { c, w: ww, h, o }; }
 // Outside doors: the style picks the kind of unit; single doors can hinge either side and swing out.
-const extDoorOp = (o, def) => { const st = o.o.style; return { k: st === 'slider' ? 'slider' : st === 'double' || st === 'french' ? 'front' : st === 'single' ? 'extdoor' : def, style: st, hinge: o.o.hinge, outSwing: !!o.o.out }; };
+const extDoorOp = (o, def) => { const st = o.o.style; return { k: st === 'slider' ? 'slider' : st === 'double' || st === 'french' ? 'front' : st === 'single' ? 'extdoor' : def, style: st, hinge: o.o.hinge, outSwing: !!o.o.out, color: o.o.color }; };
 const openPair = (a, b) => (RT[a.type]?.open && RT[b.type]?.open && !(a.type === 'stairs' && b.type === 'stairs')) || (a.group && a.group === b.group) || (a.type === b.type && (a.type === 'hall' || a.type === 'garage'));
 function doorPair(a, b) {
   const t = [likeOf(a.type), likeOf(b.type)], has = x => t.includes(x);
@@ -2601,6 +2632,10 @@ function closeGaps(ids, maxGap = 1.5) {
   }
   return n;
 }
+// Basement windows: small ones up under the joists while the basement is deep in the ground; once enough of it stands
+// above grade (raised or bi-level houses) they become proper windows from just above the ground to the top of the foundation.
+function baseWin(c, L) { const exposed = TF - .3; if (exposed < 3.2) return { c, w: 3.5, b: BC - 2.2, h: 1.6 };
+  const sill = Math.max(.6, BF + 2.5); return { c, w: Math.min(5, L - 1.5), b: sill, h: TF - .3 - sill }; }
 function planLevel(lv) {
   const rs = BM.rooms.filter(r => r.level === lv && !isOut(r)), outs = BM.rooms.filter(r => r.level === lv && isOut(r)), walls = [];
   for (const A of rs) for (const e of edgesOf(A)) {
@@ -2627,7 +2662,7 @@ function planLevel(lv) {
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
-    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style }); } continue; }
+    if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style, color: o.o.color }); } continue; }
     if (w.front) continue;
     const xm = extMode(w.room, w.out);
     if (xm === 'solid') continue;
@@ -2636,7 +2671,7 @@ function planLevel(lv) {
     if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, ...extDoorOp(o, o.w >= 5.5 ? 'slider' : 'extdoor') }); continue; }
     if (xm === 'window' && lv !== 'B' && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
       for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh, style: ov.style, lites: ov.style === 'grid' }); } continue; }
-    if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
+    if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push(baseWin(mid, L)); continue; }
     const T = RT[w.room.type] || {};
     if (T.garage && lv === 'M' && BM.style === 'modern' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { w.ops.push({ c: (w.a + w.b) / 2, w: 16, b: GF, h: 8, k: 'garage', fm: M.gdoorDark, plain: true }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'stone' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { // two single doors with a stone pier between
@@ -2644,7 +2679,7 @@ function planLevel(lv) {
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
-    if (lv === 'B') { if (L >= 5 && (T.win || T.private)) w.ops.push({ c: mid, w: 3.5, b: BC - 2.2, h: 1.6 }); continue; }
+    if (lv === 'B') { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L)); continue; }
     if (T.small) { if (L >= 4) w.ops.push({ c: mid, w: 2.5, b: y + 4.2, h: 3 }); continue; }
     if (T.win && L >= 4.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.6);
       const inPt = c => { const d = { '-z': [0, .8], '+z': [0, -.8], '-x': [.8, 0], '+x': [-.8, 0] }[w.out]; return w.axis === 'x' ? [c, w.c + d[1]] : [w.c + d[0], c]; };
@@ -2691,7 +2726,7 @@ function turnTop(S, dir) { // where a turning stair arrives: just past its start
   const r = stairRect(S, dir), s = dir[0] === '+' ? 1 : -1, ax = dir[1] === 'x', lo = ax ? (s > 0 ? r.x : r.x + r.w) : (s > 0 ? r.z : r.z + r.d), c2 = ax ? r.z + r.d * .75 : r.x + r.w * .75;
   return ax ? [lo - 2 * s, c2] : [c2, lo - 2 * s]; }
 const stairShape = S => { // Auto: curved when the box is wide enough and the turn lands on 2nd-floor floor, otherwise straight
-  if (S.level === 'B') return 'straight'; if (S.shape && S.shape !== 'auto') return S.shape; if (!(S.W >= 5.5 && S.L >= 8)) return 'straight';
+  if (S.shape && S.shape !== 'auto') return S.shape; if (S.level === 'B' || !(S.W >= 5.5 && S.L >= 8)) return 'straight'; // Auto keeps basement flights straight; pick a shape to turn them
   const dirs = S.dir ? [S.dir] : STAIR_DIRS;
   return dirs.some(d => roomAt3('U', ...turnTop(S, d))) ? 'curved' : 'straight'; };
 const turns = S => stairShape(S) !== 'straight';
@@ -2739,7 +2774,7 @@ function normalizeStairs(m) {
 function flightLanes(lv) { // footprints of the flights that arrive at this level from the one below
   const from = lv === 'U' ? 'M' : lv === 'M' ? 'B' : null; if (!from) return [];
   if (from === 'M' && !BM.rooms.some(r => r.level === 'U')) return [];
-  return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, from === 'M' && turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); }
+  return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); } // a turning flight opens its whole box above
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
 // ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
@@ -2857,6 +2892,7 @@ function turnRun(par, S, dir, y0, y1) { // U-turn or curved staircase filling th
 
 // ---------- Build the 3D house from the rooms ----------
 function buildHouse3() {
+  applyLevels(BM); // this design's floor heights (see core.js)
   for (const k in G3) clearGroup(G3[k]);
   for (const m of H3_WALK) { const i = walkables.indexOf(m); if (i >= 0) walkables.splice(i, 1); }
   const before = walkables.length;
@@ -2953,8 +2989,8 @@ function buildHouse3() {
         if (horiz) wall(P, a, w.c, b, w.c, o); else wall(P, w.c, a, w.c, b, o);
       }
       if (lv === 'M' && !ext && w.rooms.some(q => q.type === 'garage') && !w.rooms.every(q => q.type === 'garage')) for (const op of w.ops) if (op.k === 'door') {
-        const gar = w.rooms.find(q => q.type === 'garage'), gc = horiz ? gar.z + gar.d / 2 : gar.x + gar.w / 2, sgn = gc > w.c ? 1 : -1, n = 3, rise = (MF - GF) / n;
-        op.b = MF; // door sits at house floor height; three steps climb to it from the garage
+        const gar = w.rooms.find(q => q.type === 'garage'), gc = horiz ? gar.z + gar.d / 2 : gar.x + gar.w / 2, sgn = gc > w.c ? 1 : -1, n = Math.max(1, Math.ceil((MF - GF) / .65)), rise = (MF - GF) / n;
+        op.b = MF; // door sits at house floor height; steps (as many as the height needs) climb to it from the garage
         for (let k = 1; k <= n; k++) { const top = GF + k * rise, n0 = w.c + sgn * t / 2, n1 = n0 + sgn * (n + 1 - k) * .95, a0 = op.c - op.w / 2 - .4, a1 = op.c + op.w / 2 + .4;
           if (horiz) box(P, a0, a1, GF, top, Math.min(n0, n1), Math.max(n0, n1), M.concrete, { walk: true }); else box(P, Math.min(n0, n1), Math.max(n0, n1), GF, top, a0, a1, M.concrete, { walk: true }); }
       }
@@ -3038,7 +3074,8 @@ function buildHouse3() {
     fence('x', fz1, fx0, fx1); fence('z', fx0, fz0, fz1); fence('z', fx1, fz0, fz1); fence('x', fz0, fx0, wallAtZ(fz0, -1)); fence('x', fz0, wallAtZ(fz0, 1), fx1);
     const sx = fx1 - 12, sz = fz1 - 10; box(G3.site, sx, sx + 10, 0, .3, sz, sz + 8, M.concrete, { walk: true }); box(G3.site, sx, sx + 10, .3, 7.5, sz, sz + 8, M.batten, { solid: true });
     box(G3.site, sx + 3.5, sx + 6.5, .3, 6.8, sz - .05, sz, M.trim); hipRoof(G3.site, { x0: sx, x1: sx + 10, z0: sz, z1: sz + 8, plate: 7.5, pitch: 4 / 12, ov: .6, slopes: { n: true, e: true, s: true, w: true } }); }
-  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, MF - .35, fd.c - 4, fd.c - .3, M.concrete, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, 1.0, fd.c - 5.2, fd.c - 4, M.concrete, { walk: true }); H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
+  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+    { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
   for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
@@ -3055,39 +3092,6 @@ function buildHouse3() {
 }
 let showFurnBuild = true;
 
-// ---------- Auto-layout from a brief ----------
-// Rows of rooms, each row touching a central hall so every room connects; the last room in a row stretches to square it off.
-function autoLayout({ beds = 3, baths = 2, garage = 2, storeys = 2, office = true, basement = false }) {
-  BID = 1; const rooms = [];
-  const row = (lv, x0, z, d, items, total) => {
-    let x = x0; const sum = items.reduce((s, it) => s + it[1], 0), grow = total ? Math.max(0, total - sum) : 0;
-    items.forEach((it, i) => { const w = it[1] + (i === items.length - 1 ? grow : 0); if (w > .5) rooms.push(R(it[0], lv, x, x + w, z, z + d, it[2] || {})); x += w; });
-    return x - x0; };
-  const gW = garage ? (garage === 2 ? 22 : 13) : 0;
-  const front = []; if (garage) front.push(['garage', gW]); front.push(['foyer', 8], ['living', 16], ['kitchen', 14], ['dining', 12]);
-  const tot = row('M', 0, 0, 22, front);
-  if (storeys === 1) {
-    row('M', 0, 22, 5, basement ? [['stairs', 12], ['hall', 0]] : [['hall', 0]], tot);
-    const b = []; for (let i = 0; i < beds; i++) b.push(i === 0 ? ['primary', 15] : ['bedroom', 12]);
-    for (let i = 0; i < baths; i++) b.push(['bath', 9]); if (office) b.push(['office', 11]); b.push(['laundry', 8]);
-    row('M', 0, 27, 14, b, tot);
-  } else {
-    row('M', 0, 22, 6, [...(garage ? [['mud', gW]] : []), ['stairs', 13], ['hall', 0]], tot);
-    row('M', 0, 28, 12, [...(garage ? [['laundry', gW]] : [['laundry', 8]]), ['bath', 7, { name: 'Powder' }], office ? ['office', 12] : ['dining', 12, { name: 'Den' }], ['great', 0, { name: 'Family Room' }]], tot);
-    const uw = tot - gW, ub = []; for (let i = 0; i < beds; i++) ub.push(i === 0 ? ['primary', 16] : ['bedroom', 12]);
-    const nf = Math.max(1, Math.ceil(beds / 2));
-    row('U', gW, 0, 15, ub.slice(0, nf), uw);
-    row('U', gW, 15, 7, [['hall', 0]], uw);
-    row('U', gW, 22, 6, [['stairs', 13], ['hall', 0]], uw);
-    const bk = ub.slice(nf); for (let i = 0; i < Math.max(1, baths - 1); i++) bk.push(['bath', 9]); bk.push(['closet', 6, { name: 'Linen' }]);
-    row('U', gW, 28, 12, bk, uw);
-  }
-  if (basement) { const s = rooms.find(r => r.level === 'M' && r.type === 'stairs'), mD = Math.max(...rooms.filter(r => r.level === 'M').map(r => r.z + r.d));
-    rooms.push(R('stairs', 'B', s.x, s.x + s.w, s.z, s.z + s.d));
-    if (s.x - gW > 3) rooms.push(R('rec', 'B', gW, s.x, 0, mD, { group: 'rec' }));
-    rooms.push(R('rec', 'B', s.x + s.w, tot, 0, mD, { group: 'rec' })); rooms.push(R('storage', 'B', s.x, s.x + s.w, 0, s.z)); rooms.push(R('bath', 'B', s.x, s.x + s.w, s.z + s.d, mD)); }
-  BM = normalizeStairs({ roof: BM.roof || 'hip', rooms });
-}
 
 
 // =====================================================================
@@ -3340,7 +3344,8 @@ function peDraw() {
     const here = S.level === PE.lv, above = stairUp(S) === PE.lv; if (!here && !above) continue;
     const dir = stairDirOf(S), r = stairRect(S, dir), [a, b] = W2S(r.x, r.z), st = stairStatus(S), ax = dir[1] === 'x', n = 14;
     if (above) { px.setLineDash([5, 4]); px.strokeStyle = css('--accent'); px.lineWidth = 1.5; px.strokeRect(a, b, r.w * s, r.d * s); px.setLineDash([]);
-      px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText('STAIRS FROM BELOW', a + r.w * s / 2, b + r.d * s / 2); continue; }
+      px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText('STAIRS FROM BELOW', a + r.w * s / 2, b + r.d * s / 2);
+      if (PE.selStair === S.id) { px.strokeStyle = css('--accent'); px.lineWidth = 3; px.strokeRect(a - 2, b - 2, r.w * s + 4, r.d * s + 4); } continue; }
     px.fillStyle = 'rgba(215,195,168,.92)'; px.fillRect(a, b, r.w * s, r.d * s);
     px.strokeStyle = 'rgba(24,32,43,.55)'; px.lineWidth = 1; px.beginPath();
     if (turns(S)) { // two flights side by side, joined at the far end (dashed: the turn)
@@ -3394,6 +3399,9 @@ function wallAt(wx, wz, tol) {
   while (grew) { grew = false; for (const m of all) { if (used.has(m)) continue; if (m.e.b >= a - EPS && m.e.a <= b + EPS) { used.add(m); members.push(m); a = Math.min(a, m.e.a); b = Math.max(b, m.e.b); grew = true; } } }
   return { kind: 'wall', axis: e0.axis, c: e0.c, a, b, members };
 }
+// the staircase under a point: one starting on this level, else one arriving from the level below (shown dashed), so every flight can be picked
+function stairHit(wx, wz) { const inS = o => { const r = stairRect(o, stairDirOf(o)); return wx > r.x && wx < r.x + r.w && wz > r.z && wz < r.z + r.d; }, L = BM.stairs || [];
+  return L.find(o => o.level === PE.lv && inS(o)) || L.find(o => stairUp(o) === PE.lv && inS(o)) || null; }
 function stairEdgeAt(wx, wz, tol) {
   for (const S of (BM.stairs || [])) { if (S.level !== PE.lv) continue; const r = stairRect(S, stairDirOf(S));
     const inX = wx > r.x - tol && wx < r.x + r.w + tol, inZ = wz > r.z - tol && wz < r.z + r.d + tol;
@@ -3410,17 +3418,19 @@ function roomAt(wx, wz) { const rs = lvRooms(); for (let i = rs.length - 1; i >=
 const snapshot = () => JSON.stringify(BM);
 function pushHist() { PE.redo = []; PE.hist.push(snapshot()); if (PE.hist.length > 80) PE.hist.shift(); }
 let peTimer = 0;
-function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); renderChecks(); }, 260); }
+function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); }, 260); }
 
 pc.addEventListener('pointerdown', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   try { pc.setPointerCapture(e.pointerId); } catch (er) { }
+  if (e.button === 2) { peMenuAt(sx, sy, wx, wz); return; }
+  PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
   if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
   PE.selWall = null;
   const se = e.button === 0 ? stairEdgeAt(wx, wz, 6 / PE.s) : null;
   if (se) { const dir = stairDirOf(se.S); PE.selStair = se.S.id; PE.sel = null; PE.drag = { kind: 'stairEdge', S: se.S, side: se.side, r0: { ...se.r }, dir, before: snapshot() }; peInspector(); peDraw(); return; }
-  const S = e.button === 0 ? (BM.stairs || []).find(o => { if (o.level !== PE.lv) return false; const r = stairRect(o, stairDirOf(o)); return wx > r.x && wx < r.x + r.w && wz > r.z && wz < r.z + r.d; }) : null;
+  const S = e.button === 0 ? stairHit(wx, wz) : null;
   if (S) { PE.selStair = S.id; PE.sel = null; PE.drag = { kind: 'stair', S, dx: wx - S.cx, dz: wz - S.cz, before: snapshot() }; peInspector(); peDraw(); return; }
   PE.selStair = null;
   if (w) { PE.drag = { ...w, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: w.members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
@@ -3485,6 +3495,21 @@ pc.addEventListener('pointerup', () => {
   if (D?.kind === 'wall') { pickWall(D); PE.sel = null; peInspector(); }
   peDraw();
 });
+// Right-click: select whatever is under the pointer (keeping a multi-selection it's part of) and open its menu there.
+function peMenuAt(sx, sy, wx, wz) {
+  const clear = () => { PE.sel = null; PE.selStair = null; PE.selWall = null; PE.selX = null; };
+  const n = noteAt(sx, sy), it = n ? null : itemAt(wx, wz), d = n || it ? null : dimAt(sx, sy);
+  if (n || it || d) selectX(n ? { kind: 'note', id: n.id } : it ? { kind: 'item', id: it.id } : { kind: 'dim', id: d.id });
+  else {
+    const w = wallAt(wx, wz, 7 / PE.s), S = w ? null : stairHit(wx, wz), q = w || S ? null : roomAt(wx, wz);
+    if (w) { clear(); PE.multi.clear(); pickWall({ ...w, pickAlong: w.axis === 'x' ? wx : wz }); }
+    else if (S) { clear(); PE.multi.clear(); PE.selStair = S.id; }
+    else if (q) { if (!PE.multi.has(q.id)) { PE.multi.clear(); clear(); PE.sel = q.id; } }
+    else { clear(); PE.multi.clear(); }
+  }
+  PE.menu = !!(PE.sel || PE.selStair || PE.selWall || PE.selX || PE.multi.size); PE.drag = null;
+  peInspector(); peDraw(); requestAnimationFrame(pePlaceSide);
+}
 // Find the two rooms either side of the clicked spot on a wall line.
 function pickWall(D) {
   const at = D.pickAlong, side = (m, s) => m.e.side === s && at >= m.e.a - .05 && at <= m.e.b + .05;
@@ -3544,7 +3569,7 @@ function peStairPanel() {
   const S = (BM.stairs || []).find(o => o.id === PE.selStair), el = document.getElementById('peStair'); el.hidden = !S; if (!S) return;
   const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
-  document.getElementById('peSShape').hidden = S.level === 'B';
+  document.getElementById('peSShape').hidden = false; // every flight can be straight, U-turn or curved, basement ones too
   const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
 }
 const curStair = () => (BM.stairs || []).find(o => o.id === PE.selStair);
@@ -3565,7 +3590,8 @@ function peInspector() {
   peSideFollow(); peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
-  document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
+  const anySel = !!(q || PE.selStair || PE.selWall || extra); if (!anySel) PE.menu = false;
+  document.getElementById('planEd').classList.toggle('has-sel', anySel); document.getElementById('planEd').classList.toggle('pe-menu', anySel && !!PE.menu); if (!q) return;
   document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
@@ -3614,14 +3640,6 @@ function peLvlButtons() {
   document.querySelectorAll('[data-guide]').forEach(b => { b.disabled = !can[b.dataset.guide]; b.setAttribute('aria-pressed', String(b.dataset.guide === gm)); });
   document.getElementById('peTrace').hidden = PE.lv !== 'B'; document.querySelectorAll('[data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv))); document.querySelectorAll('[data-roof]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.roof === (BM.roof || 'hip')))); }
 document.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); planChanged(); });
-// auto-layout form
-const peAuto = document.getElementById('peAuto');
-document.getElementById('peAutoCancel').onclick = () => closePops();
-document.getElementById('peAutoGo').onclick = () => {
-  pushHist(); const v = id => document.getElementById(id);
-  autoLayout({ beds: +v('paBeds').value, baths: +v('paBaths').value, garage: +v('paGarage').value, storeys: +v('paStoreys').value, office: v('paOffice').checked, basement: v('paBase').checked });
-  closePops(); PE.sel = null; PE.lv = 'M'; peLvlButtons(); peFit(); planChanged();
-};
 addEventListener('keydown', e => {
   if (!PE.open || e.target.closest?.('input,select,textarea')) return;
   if ((e.key === 'Delete' || e.key === 'Backspace') && PE.selStair) { e.preventDefault(); peDeleteStair(); }
@@ -3709,7 +3727,7 @@ let peDown = null;
 pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peDown = pePt; });
 addEventListener('pointermove', e => { if (peDown && Math.hypot(e.clientX - peDown[0], e.clientY - peDown[1]) > 4) pc.parentElement.parentElement.classList.add('pe-busy'); });
 addEventListener('pointerup', () => { peDown = null; const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
-pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too; no browser menu over the plan
+pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click opens the selection menu (peMenuAt), not the browser's
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 
@@ -3820,7 +3838,6 @@ function dimAt(sx, sy) {
 // editor.js asks these first; returning true means the event was handled here.
 function peToolDown(e, sx, sy, wx, wz) {
   if (e.button !== 0) return false;
-  if (PE.tool === 'note') { const text = prompt('Note text'); setTool(null); if (!text?.trim()) return true; pushHist(); const n = { id: BID++, level: PE.lv, x: snapH(wx), z: snapH(wz), text: text.trim().slice(0, 140) }; (BM.notes = BM.notes || []).push(n); selectX({ kind: 'note', id: n.id }); planChanged(); return true; }
   if (PE.tool === 'dim') { const p = [snapToWalls(wx, 'x', .8), snapToWalls(wz, 'z', .8)]; PE.drag = { kind: 'dimNew', x1: p[0], z1: p[1], x2: p[0], z2: p[1] }; return true; }
   const n = noteAt(sx, sy); if (n) { selectX({ kind: 'note', id: n.id }); PE.drag = { kind: 'noteMove', n, dx: wx - n.x, dz: wz - n.z, before: snapshot() }; return true; }
   const it = itemAt(wx, wz); if (it) { selectX({ kind: 'item', id: it.id }); PE.drag = { kind: 'itemMove', it, dx: wx - it.x, dz: wz - it.z, before: snapshot() }; return true; }
@@ -3841,8 +3858,7 @@ function peToolUp() {
   if (D.before !== snapshot()) { PE.hist.push(D.before); PE.redo = []; planChanged(); } else peDraw();
   return true;
 }
-function setTool(t) { PE.tool = t; document.getElementById('peNoteBtn').setAttribute('aria-pressed', String(t === 'note')); document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
-document.getElementById('peNoteBtn').onclick = () => setTool(PE.tool === 'note' ? null : 'note');
+function setTool(t) { PE.tool = t; document.getElementById('peDimBtn').setAttribute('aria-pressed', String(t === 'dim')); pc.style.cursor = t ? 'crosshair' : ''; }
 document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? null : 'dim');
 
 // ---------- drawing (called at the end of peDraw) ----------
@@ -3964,6 +3980,7 @@ function mirrorPlan(axis) {
 }
 
 // ---------- door and window sizes on the selected wall ----------
+const DOOR_COLORS = [['#f6f6f3', 'White'], ['#1d1e20', 'Black'], ['#4a4e54', 'Charcoal'], ['#7a563c', 'Walnut'], ['#c69c6d', 'Oak'], ['#2f4a6b', 'Navy'], ['#5f7a5c', 'Sage'], ['#9b3b32', 'Red'], ['#d9b44a', 'Mustard']];
 document.getElementById('peWall').insertAdjacentHTML('beforeend', '<div id="peOp" hidden></div>');
 function opKey() { const w = PE.selWall; if (!w) return null; return w.ext ? extKey(w.R, w.out) : pairKey(w.A, w.B); }
 function peOpPanel() {
@@ -3981,6 +3998,7 @@ function peOpPanel() {
     ${kind === 'door' && !['double', 'french', 'bifold', 'cased', 'slider'].includes(o.style) && !(isFront && !o.style && (w.b - w.a) >= 7.5) ? `<div class="seg full pe-wm"><button type="button" data-hinge="a" aria-pressed="${o.hinge !== 'b'}">Hinge left</button><button type="button" data-hinge="b" aria-pressed="${o.hinge === 'b'}">Hinge right</button></div>` : ''}
     ${kind === 'door' && !['pocket', 'barn', 'cased', 'slider'].includes(o.style) ? `<div class="seg full pe-wm"><button type="button" data-swing="in" aria-pressed="${w.ext ? !o.out : !o.flip}">${w.ext ? 'Swings in' : 'Swing this side'}</button><button type="button" data-swing="out" aria-pressed="${w.ext ? !!o.out : !!o.flip}">${w.ext ? 'Swings out' : 'Other side'}</button></div>` : ''}
     ${kind === 'door' || (o.n || 1) === 1 ? `<label class="fld">Position along the wall <input id="opP" type="range" min="0" max="100" value="${o.pos == null ? 50 : Math.round(o.pos * 100)}"></label>` : ''}
+    ${kind === 'door' && o.style !== 'cased' ? `<div class="fld fld-stack">Door colour <div class="chips"><button type="button" data-dc="" class="def" aria-pressed="${!o.color}" title="Default" aria-label="Default"></button>${DOOR_COLORS.map(([c, n]) => `<button type="button" data-dc="${c}" title="${n}" aria-pressed="${o.color === c}" style="background:${c}"></button>`).join('')}<label class="chip-c" title="Any colour"><input type="color" id="dcC" value="${o.color || '#f6f6f3'}"></label></div></div>` : ''}
     <div class="pe-row"><button class="btn" id="opReset" type="button">Reset to auto</button></div>`;
   const set = (k, v) => { pushHist(); BM.ops = BM.ops || {}; const cur = { ...(BM.ops[opKey()] || {}) }; if (v === null || Number.isNaN(v)) delete cur[k]; else cur[k] = v; BM.ops[opKey()] = cur; planChanged(); };
   for (const [id, k] of [['opN', 'n'], ['opW', 'w'], ['opH', 'h'], ['opS', 'sill']]) { const i = el.querySelector('#' + id); if (i) i.onchange = () => set(k, i.value === '' ? null : k === 'n' ? +i.value : +fromDisp(+i.value).toFixed(3)); }
@@ -3988,6 +4006,8 @@ function peOpPanel() {
   el.querySelector('#opSt').onchange = e => set('style', e.target.value || null);
   el.querySelectorAll('[data-hinge]').forEach(b => b.onclick = () => set('hinge', b.dataset.hinge === 'b' ? 'b' : null));
   el.querySelectorAll('[data-swing]').forEach(b => b.onclick = () => set(w.ext ? 'out' : 'flip', b.dataset.swing === 'out' ? true : null));
+  el.querySelectorAll('[data-dc]').forEach(b => b.onclick = () => set('color', b.dataset.dc || null));
+  el.querySelector('#dcC')?.addEventListener('change', e => set('color', e.target.value));
   el.querySelector('#opReset').onclick = () => { pushHist(); if (BM.ops) delete BM.ops[opKey()]; planChanged(); };
 }
 
@@ -4003,7 +4023,26 @@ document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
 roofSeg.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); syncPlanPop(); planChanged(); });
+// ---------- levels: how the house sits in the ground and how tall each storey is ----------
+const LEVEL_SLIDERS = [['lvMain', 'main', 'Main floor above ground', .5, 6, .25], ['lvMainH', 'mainH', 'Main floor ceiling', 8, 12, .5], ['lvUpH', 'upH', '2nd floor ceiling', 7.5, 10, .5], ['lvBaseH', 'baseH', 'Basement ceiling', 7, 10, .5]];
+document.getElementById('pePlanPop').insertAdjacentHTML('afterbegin', `<h6>Levels</h6>
+  <div class="seg full" id="lvPreset">${Object.entries(LEVEL_PRESETS).map(([k, [n, , t]]) => `<button type="button" data-lvp="${k}" title="${t}">${n}</button>`).join('')}</div>
+  ${LEVEL_SLIDERS.map(([id, , label, min, max, step]) => `<h6>${label} <output id="${id}V" class="pop-out"></output></h6><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" class="pop-range">`).join('')}
+  <p class="pop-note" id="lvNote"></p>`);
+function setLevels(patch) { const L = { ...(BM.levels || {}), ...patch }; for (const k in L) if (Math.abs(L[k] - LEVELS_DEF[k]) < .01) delete L[k]; if (Object.keys(L).length) BM.levels = L; else delete BM.levels; }
+function syncLevels() {
+  const L = levelsOf(BM); for (const [id, k] of LEVEL_SLIDERS) { const el = document.getElementById(id); if (document.activeElement !== el) el.value = L[k]; document.getElementById(id + 'V').textContent = ftin(L[k]); }
+  const pk = Object.entries(LEVEL_PRESETS).find(([, [, v]]) => Math.abs(v.main - L.main) < .01)?.[0];
+  document.querySelectorAll('[data-lvp]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvp === pk)));
+  const exposed = L.main - 1.16, base = BM.rooms.some(r => r.level === 'B'); // top of the foundation above the ground, as in baseWin()
+  document.getElementById('lvNote').textContent = L.main < .8 ? 'Slab on grade: the main floor is a step above the ground.' + (base ? ' The basement sits fully underground.' : '')
+    : !base ? `Main floor ${ftin(L.main)} above the ground.` : exposed >= 3.5 ? `The basement stands ${ftin(Math.min(exposed, L.baseH))} out of the ground, with full-size windows.` : 'The basement is below ground, with small windows near the ceiling.';
+}
+document.querySelectorAll('[data-lvp]').forEach(b => b.onclick = () => { pushHist(); setLevels({ ...LEVELS_DEF, ...LEVEL_PRESETS[b.dataset.lvp][1] }); syncLevels(); planChanged(false); });
+for (const [id, k] of LEVEL_SLIDERS) { const el = document.getElementById(id); el.onpointerdown = () => pushHist();
+  el.oninput = () => { setLevels({ [k]: +el.value }); syncLevels(); clearTimeout(el.t); el.t = setTimeout(() => planChanged(false), 150); }; }
 function syncPlanPop() {
+  syncLevels();
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
@@ -4115,79 +4154,6 @@ function snapToWall(it, reach = 1.6) {
   it.rot = best.rot; if (best.horiz) it.z = +best.want.toFixed(2); else it.x = +best.want.toFixed(2);
 }
 
-// ---------- code checks (common US residential rules, IRC-style). Each issue can point at a room or staircase. ----------
-const BEDROOMS = new Set(['bedroom', 'primary', 'guest', 'nursery']), LVN = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
-function codeChecks() {
-  const out = [], add = (sev, text, at) => out.push({ sev, text, at });
-  const walls = { B: planLevel('B'), M: planLevel('M'), U: planLevel('U') };
-  for (const r of BM.rooms) {
-    const T = RT[r.type] || {}, nm = `${rname(r)} (${LVN[r.level]})`;
-    if (BEDROOMS.has(r.type)) {
-      const ext = walls[r.level].filter(w => w.ext && w.room === r), opens = ext.flatMap(w => w.ops);
-      const egress = opens.some(o => o.k === 'extdoor' || o.k === 'slider' || o.k === 'front' || (!o.k && o.w * o.h >= 5.7 && o.w >= 1.67 && o.h >= 2));
-      if (!opens.length) add('error', `${nm} has no window or outside door. Bedrooms need an emergency exit (egress).`, { room: r.id });
-      else if (!egress) add('warn', `${nm}: windows look too small for egress (5.7 sq ft opening, 20" wide, 24" high).`, { room: r.id });
-      if (r.w * r.d < 70 || Math.min(r.w, r.d) < 7) add('warn', `${nm} is ${fmtArea(r.w * r.d)}, ${ftin(Math.min(r.w, r.d))} wide. Bedrooms need 70 sq ft and 7' in each direction.`, { room: r.id });
-    }
-    if (likeOf(r.type) === 'hall' && Math.min(r.w, r.d) < 3) add('warn', `${nm} is ${ftin(Math.min(r.w, r.d))} wide. Hallways need 36".`, { room: r.id });
-    if ((r.type === 'bath' || r.type === 'ensuite') && Math.min(r.w, r.d) < 5) add('info', `${nm} is narrow (${ftin(Math.min(r.w, r.d))}). A full bath usually needs 5' for a tub.`, { room: r.id });
-  }
-  for (const S of BM.stairs || []) {
-    const st = stairStatus(S), nm = `Stairs (${LVN[S.level]})`;
-    if (!st.ok) { add('error', `${nm}: ${st.msg}`, { stair: S.id }); continue; }
-    const rise = (st.up === 'U' ? UF - MF : MF - BF), risers = Math.ceil(rise * 12 / 7.75), need = (risers - 1) * 10 / 12;
-    if (S.W < 3) add('error', `${nm} are ${ftin(S.W)} wide. Stairs need 36".`, { stair: S.id });
-    if (!turns(S) && S.L < need - .05) add('error', `${nm}: ${risers} risers of ${(rise * 12 / risers).toFixed(1)}" need ${ftin(need)} of run with 10" treads; this flight has ${ftin(S.L)}.`, { stair: S.id });
-  }
-  for (const lv of ['B', 'M', 'U']) for (const w of walls[lv]) for (const o of w.ops) {
-    if (o.k === 'door' && o.style !== 'cased' && o.w < 2.67) add('warn', `A door on the ${LVN[lv].toLowerCase()} is ${ftin(o.w)}. 34" doors give the 32" clear opening needed for wheelchairs.`, { wall: { lv, c: w.c, a: o.c } });
-    if ((o.k === 'extdoor' || o.k === 'front') && w.front && o.w < 3) add('error', `The front door is ${ftin(o.w)}. The main exit needs a 36" door.`, {});
-  }
-  for (const it of (BM.items || []).filter(i => i.kind === 'island')) {
-    const [w, d] = itemDims(it), box = [it.x - w / 2, it.x + w / 2, it.z - d / 2, it.z + d / 2];
-    const others = (BM.items || []).filter(o => o !== it && o.level === it.level && WALL_ITEMS.has(o.kind) && !['upper', 'hood', 'microwave'].includes(o.kind));
-    for (const o of others) { const [ow, od] = itemDims(o), gx = Math.max(o.x - ow / 2 - box[1], box[0] - (o.x + ow / 2)), gz = Math.max(o.z - od / 2 - box[3], box[2] - (o.z + od / 2)), gap = Math.max(gx, gz);
-      if (gap >= 0 && gap < 3.5) { add('warn', `Only ${ftin(gap)} between the island and the ${CATALOG[o.kind][0].toLowerCase()}. Leave 42" (48" for two cooks).`, { item: it.id }); break; } }
-  }
-  const S = BM.site || {}, main = BM.rooms.filter(r => r.level === 'M');
-  if (S.lotW && S.lotD && main.length) { const foot = main.filter(r => !RT[r.type]?.outdoor || RT[r.type]?.covered).reduce((a, r) => a + r.w * r.d, 0), cov = foot / (S.lotW * S.lotD);
-    if (cov > .4) add('warn', `Lot coverage is ${Math.round(cov * 100)}%. Many zones cap it near 35–40%.`, {}); }
-  if ((S.setback ?? 48) < 20) add('warn', `The house is ${ftin(S.setback)} from the street. Front setbacks are usually 20–25' or more.`, {});
-  roofChecks(add);
-  return out;
-}
-// ---------- roof checks (minimum slopes are the usual code minimums, e.g. IRC R905) ----------
-const ROOF_MIN = { shingle: [2, 4, 'Asphalt shingles'], clay: [2.5, 4, 'Clay tile'], slate: [4, 4, 'Slate'], cedar: [3, 3, 'Cedar shakes'], metal: [.25, .25, 'Standing seam metal'] };
-const pitchTxt = p => `${+p.toFixed(1)}:12`;
-function roofChecks(add) {
-  if (curHouse !== 3 || !ROOF3.length) return;
-  const mat = document.querySelector('#finishBody select[aria-label="Roofing material"]')?.value || 'shingle', R = ROOF_MIN[mat] || ROOF_MIN.shingle;
-  for (const r of ROOF3) {
-    if (r.style === 'flat') { add('info', `${r.name}: flat roofs need a membrane and at least ¼" per foot of slope to drains or scuppers.`, {}); continue; }
-    const p = r.pitch * 12;
-    if (r.pitch < r.asked - .004) { add(p < R[0] - .01 ? 'error' : 'warn', `${r.name}: where it meets the 2nd floor it has to flatten to ${pitchTxt(p)} to stay under the windows above${p < R[0] - .01 ? `, too flat for ${R[2].toLowerCase()} (${pitchTxt(R[0])} minimum)` : ''}. Move or raise those windows, make that part of the house shallower, or use standing seam metal there.`, {}); continue; }
-    if (p < R[0] - .01) add('error', `${r.name} is ${pitchTxt(p)}. ${R[2]} need at least ${pitchTxt(R[0])}. Steepen the roof or pick a material for low slopes (standing seam metal).`, {});
-    else if (p < R[1] - .01) add('info', `${r.name} is ${pitchTxt(p)}. ${R[2]} below ${pitchTxt(R[1])} need two layers of underlayment.`, {});
-  }
-  const top = Math.max(...ROOF3.map(r => r.maxH));
-  if (top > 35) add('warn', `The roof peaks ${ftin(top)} above the ground. Many zoning bylaws cap house height near 35' (10.7 m); check yours.`, {});
-  if (H3_LOT) { const b = ROOF3.reduce((a, r) => r.bounds ? [Math.min(a[0], r.bounds[0]), Math.max(a[1], r.bounds[1]), Math.min(a[2], r.bounds[2]), Math.max(a[3], r.bounds[3])] : a, [1e9, -1e9, 1e9, -1e9]);
-    const side = Math.min(b[0] - H3_LOT[0], H3_LOT[1] - b[1]), back = H3_LOT[3] - b[3];
-    if (side < 0 || back < 0) add('error', `The roof hangs over the lot line. Eaves must stay on your own lot.`, {});
-    else if (side < 2) add('warn', `The eaves are ${ftin(side)} from the side lot line. Most bylaws want more room than that, and roof water kept on your lot.`, {}); }
-}
-function renderChecks() {
-  const list = codeChecks(), n = list.filter(i => i.sev !== 'info').length, badge = document.getElementById('checkCount');
-  if (badge) { badge.textContent = n || ''; badge.className = list.some(i => i.sev === 'error') ? 'err' : ''; }
-  const box = document.getElementById('checkList'); if (!box || document.getElementById('side').hidden) return;
-  box.innerHTML = list.length ? list.map((c, i) => `<button type="button" class="chk ${c.sev}" data-chk="${i}"><i></i><span>${c.text}</span></button>`).join('') : '<p class="sp-note">No issues found.</p>';
-  box.querySelectorAll('[data-chk]').forEach(b => b.onclick = () => { const a = list[+b.dataset.chk].at; if (!PE.open) openEditor(true);
-    if (a.room) { const r = BM.rooms.find(q => q.id === a.room); PE.lv = r.level; PE.sel = r.id; PE.selStair = PE.selX = null; }
-    else if (a.stair) { const S = BM.stairs.find(q => q.id === a.stair); PE.lv = S.level; PE.selStair = S.id; PE.sel = PE.selX = null; }
-    else if (a.item) { const it = BM.items.find(q => q.id === a.item); PE.lv = it.level; selectX({ kind: 'item', id: it.id }); }
-    else if (a.wall) PE.lv = a.wall.lv;
-    peLvlButtons(); peInspector(); peDraw(); });
-}
 
 
 // =====================================================================
@@ -4360,7 +4326,7 @@ function exitWalk() {
   if (locked) document.exitPointerLock?.();
   avatar.visible = false; AV.blob.visible = false; AV.third = false; queueMicrotask(syncModes);
   mode = 'orbit'; controls.enabled = true; camera.fov = orbitFov; camera.updateProjectionMatrix();
-  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true;
+  for (const id of ['room', 'mini', 'pad']) document.getElementById(id).hidden = true; doorHint.hidden = true;
 }
 function collide() {
   const r = 0.85, lo = player.feet + 1.0, hi = player.feet + Math.max(4, ME.h - .1);
@@ -4425,7 +4391,7 @@ function stepWalk(dt) {
     if (g !== null && player.feet <= g) { player.feet = g; player.vy = 0; }
   } else if (g !== null) player.feet += (g - player.feet) * Math.min(1, dt * (g > player.feet ? 14 : 9));
   // HUD room lookup (also tells the camera whether there is a ceiling overhead)
-  const lv = player.feet < -0.6 ? 'B' : player.feet < 9 ? 'M' : 'U';
+  const lv = player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
   const RM = roomsOf(curHouse);
   let hit = null; for (const rm of RM) if (rm[1] === lv && rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3])) { hit = rm; break; }
   if (AV.third) {
@@ -4464,7 +4430,7 @@ function stepWalk(dt) {
   const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
   document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
-  drawMini(lv);
+  stepDoors(dt); updateDoorHint(); drawMini(lv);
 }
 // drag to look
 let drag = null;
@@ -4500,6 +4466,8 @@ addEventListener('keydown', e => {
   if (e.metaKey || (e.ctrlKey && e.code !== 'ControlLeft' && e.code !== 'ControlRight')) { releaseAll(); return; } // shortcuts, not movement
   keys[e.code] = true;
   if (e.code === 'Escape' && mode === 'walk') goView(curView);
+  if (e.code === 'KeyE' && mode === 'walk' && !e.repeat) { const d = doorAhead(); if (d) toggleDoor(d); }
+  if (e.code === 'KeyO' && mode === 'walk' && !e.repeat && !e.target.closest?.('select,input,textarea')) setAllDoors(!allDoorsClosed());
   if (mode === 'walk' && (e.code.startsWith('Arrow') || e.code === 'Space')) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.key === 'Meta' || e.key === 'Control') releaseAll(); });
@@ -4514,18 +4482,57 @@ document.querySelectorAll('#pad button').forEach(b => {
 // minimap
 const mini = document.getElementById('miniC'), mg = mini.getContext('2d');
 const OUTLINE = { B: [P_B], M: [P_M, P_GAR], U: [P_U.map(([x, z]) => [x, z + UZ])] };
-function drawMini(lv) {
-  const W = mini.width, H = mini.height, s = 4.6, ox = 70, oz = 14;
-  const X = x => (x + ox - 50) * s + 20, Z = z => (z + oz) * s;
-  const css = getComputedStyle(document.documentElement);
-  mg.clearRect(0, 0, W, H);
-  mg.lineWidth = 2; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.fillStyle = css.getPropertyValue('--paper-2');
-  for (const poly of outlineOf(curHouse)[lv] || []) { mg.beginPath(); poly.forEach(([x, z], i) => i ? mg.lineTo(X(x), Z(z)) : mg.moveTo(X(x), Z(z))); mg.closePath(); mg.fill(); mg.stroke(); }
-  mg.lineWidth = 1; mg.strokeStyle = css.getPropertyValue('--rule');
-  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) for (const r of rm[2]) mg.strokeRect(X(r[0]), Z(r[2]), (r[1] - r[0]) * s, (r[3] - r[2]) * s);
-  const px = X(player.x), pz = Z(player.z), fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+function drawMini(lv) { // heading-up: you stay in the middle pointing up, the plan turns and slides under you
+  const W = mini.width, H = mini.height, s = 4.6, css = getComputedStyle(document.documentElement);
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+  mg.setTransform(1, 0, 0, 1, 0, 0); mg.clearRect(0, 0, W, H);
+  mg.setTransform(1, 0, 0, 1, W / 2, H / 2); mg.rotate(-Math.atan2(fx, -fz)); mg.scale(s, s); mg.translate(-player.x, -player.z);
+  mg.lineWidth = 2 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.fillStyle = css.getPropertyValue('--paper-2');
+  for (const poly of outlineOf(curHouse)[lv] || []) { mg.beginPath(); poly.forEach(([x, z], i) => i ? mg.lineTo(x, z) : mg.moveTo(x, z)); mg.closePath(); mg.fill(); mg.stroke(); }
+  mg.lineWidth = 1 / s; mg.strokeStyle = css.getPropertyValue('--rule');
+  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) for (const r of rm[2]) mg.strokeRect(r[0], r[2], r[1] - r[0], r[3] - r[2]);
+  // doors you can open: a dot, filled when shut
+  for (const d of DOORS) { if (!shown(d.parts[0].g) || Math.abs(d.at[1] - 3 - (player.feet)) > 5) continue; mg.beginPath(); mg.arc(d.at[0], d.at[2], 4.5 / s, 0, Math.PI * 2);
+    if (doorClosed(d)) { mg.fillStyle = css.getPropertyValue('--ink-2'); mg.fill(); } else { mg.lineWidth = 1.5 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.stroke(); } }
+  mg.setTransform(1, 0, 0, 1, W / 2, H / 2);
   mg.fillStyle = css.getPropertyValue('--accent');
-  mg.beginPath(); mg.moveTo(px + fx * 16, pz + fz * 16); mg.lineTo(px - fz * 7 - fx * 5, pz + fx * 7 - fz * 5); mg.lineTo(px + fz * 7 - fx * 5, pz - fx * 7 - fz * 5); mg.closePath(); mg.fill();
+  mg.beginPath(); mg.moveTo(0, -16); mg.lineTo(-8, 7); mg.lineTo(0, 3); mg.lineTo(8, 7); mg.closePath(); mg.fill();
+  mg.setTransform(1, 0, 0, 1, 0, 0);
+}
+
+// ---------- doors: E opens or shuts the one you're facing ----------
+function doorAhead() {
+  const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw), eye = player.feet + 3; let best = null, bs = Infinity;
+  for (const d of DOORS) {
+    if (!shown(d.parts[0].g) || Math.abs(d.at[1] - eye) > 4) continue;
+    const dx = d.at[0] - player.x, dz = d.at[2] - player.z, dist = Math.hypot(dx, dz), reach = d.kind === 'garage' ? 12 : 7;
+    if (dist > reach) continue; const facing = dist < 1.5 ? 1 : (dx * fx + dz * fz) / dist; if (facing < .35) continue;
+    const sc = dist * (2 - facing); if (sc < bs) { bs = sc; best = d; }
+  }
+  return best;
+}
+function toggleDoor(d) { d.target = d.target > .5 ? 0 : 1; }
+// open or shut every door in the house you're looking at (swing doors are drawn open: closed = 1; the garage panel is drawn shut: closed = 0)
+const houseDoors = () => DOORS.filter(d => { let o = d.parts[0].g; while (o && o !== scene) { if (o === HOUSES[curHouse]?.root) return true; o = o.parent; } return false; });
+function allDoorsClosed() { const L = houseDoors(); return L.length > 0 && L.every(d => (d.kind === 'garage') === (d.target < .5)); }
+function setAllDoors(close) { for (const d of houseDoors()) d.target = (d.kind === 'garage') === close ? 0 : 1; uiSync(); }
+function stepDoors(dt) {
+  let moved = false; if (mode !== 'walk' && !DOORS.some(d => d.cur !== d.target)) return;
+  for (const d of DOORS) { if (d.cur === d.target) continue;
+    const was = doorClosed(d); d.cur += Math.sign(d.target - d.cur) * Math.min(Math.abs(d.target - d.cur), dt * (d.kind === 'garage' ? .6 : 1.6)); moved = true;
+    const e = d.cur * d.cur * (3 - 2 * d.cur); for (const q of d.parts) q.g.rotation[q.axis] = q.ang * e;
+    if (was !== doorClosed(d) || d.cur === d.target) syncDoorColliders(); }
+  if (moved) renderer.shadowMap.needsUpdate = true;
+}
+// a shut door blocks you; an open one doesn't (its leaf stands against the wall)
+function syncDoorColliders() {
+  colliders = colliders.filter(b => !b.door);
+  for (const d of DOORS) { if (!doorClosed(d)) continue; for (const q of d.parts) { q.g.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(q.g); if (b.isEmpty()) continue; b.mesh = q.g; b.door = true; colliders.push(b); } }
+}
+const doorHint = document.createElement('div'); doorHint.id = 'doorHint'; doorHint.hidden = true; document.body.appendChild(doorHint);
+function updateDoorHint() {
+  const d = mode === 'walk' ? doorAhead() : null; if (!d) { doorHint.hidden = true; return; }
+  doorHint.hidden = false; doorHint.innerHTML = `<kbd>E</kbd> ${doorClosed(d) ? 'Open' : 'Close'} ${d.kind === 'garage' ? 'garage door' : 'door'}`;
 }
 
 // =====================================================================
@@ -4582,6 +4589,10 @@ const FIN = [
       FT('paint', 'Paint', 'paint', .9, 0, [['Gallery white', '#f4f3ef'], ['Greige', '#ddd4c6'], ['Warm grey', '#c9c4bc'], ['Sage', '#c7cdb9'], ['Mist blue', '#cbd5dc'], ['Charcoal', '#5e6166']]),
       FT('lime', 'Limewash', 'stucco', .97, 0, [['Chalk', '#efebe2'], ['Clay', '#d9c3ab'], ['Stone', '#c2bdb2'], ['Olive', '#a9a68c']]),
       FT('panel', 'Wood panelling', 'panel', .7, 0, FC_WOODS), FT('brick', 'Exposed brick', 'brick', .92, 0, FC_BRICK)]],
+    ['door', 'Doors', () => M.doorLeaf, [
+      FT('paint', 'Painted', null, .5, 0, [['White', '#f6f6f3'], ['Warm white', '#ece5d6'], ['Greige', '#cfc6b8'], ['Charcoal', '#4a4e54'], ['Black', '#1f2022'], ['Navy', '#2f3b52'], ['Sage', '#8f9c86']]),
+      FT('wood', 'Wood grain', 'panel', .55, 0, [['White oak', '#d6b48c'], ['Natural oak', '#bf9364'], ['Walnut', '#7a563c'], ['Ebony', '#4a3a2e']]),
+      FT('gloss', 'High gloss', null, .12, 0, [['White', '#f6f6f4'], ['Grey', '#9a9ea3'], ['Black', '#1f2022']])]],
     ['cab', 'Cabinets', () => M.cab, [
       FT('paint', 'Painted', null, .5, 0, [['White', '#f2f2ef'], ['Navy', '#2f3b52'], ['Walnut', '#6c4a31'], ['Matte black', '#2a2b2c'], ['Sage', '#97a38b']]),
       FT('wood', 'Wood grain', 'panel', .55, 0, [['White oak', '#d6b48c'], ['Walnut', '#7a563c'], ['Rift oak', '#b98f63'], ['Ebony', '#4a3a2e']]),
@@ -4632,7 +4643,6 @@ for (const [sec, items] of FIN) {
       g.querySelector('.cur').textContent = `${types.length > 1 ? T0.name + ' · ' : ''}${typeof p.c === 'string' ? 'Custom colour' : T0.colors[p.c][0]}`;
       custom.setAttribute('aria-pressed', String(typeof p.c === 'string')); if (typeof p.c === 'string') { custom.querySelector('i').style.background = hex; custom.querySelector('input').value = hex; }
       const val = `${T0.id}:${p.c}`;
-      if (key === 'roof' && typeof uiReady !== 'undefined' && uiReady) renderChecks(); // roofing material sets the minimum slope
       if (finishHook) { if (!finishMute) finishHook(key, val); return; } saved[key] = val; try { localStorage.setItem('walkthru-finishes-v2', JSON.stringify(saved)); } catch (e) { } };
     FIN_PICK[key] = pick;
     types.forEach(T0 => ty.add(new Option(T0.name, T0.id))); ty.onchange = () => pick(`${ty.value}:0`);
@@ -4745,13 +4755,15 @@ function mergeStatic(root) {
   });
 }
 setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
-const baseColliders = colliders.slice();
+const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
   buildHouse3();
   scene.updateMatrixWorld(true);
   const cols = []; HOUSE3.traverse(o => { if (o.isMesh && o.userData.solid) { const b = new THREE.Box3().setFromObject(o); b.mesh = o.parent; cols.push(b); } });
   colliders = baseColliders.concat(cols);
+  for (let i = DOORS.length - 1; i >= 0; i--) { let o = DOORS[i].parts[0].g; while (o && o !== scene) o = o.parent; if (!o) DOORS.splice(i, 1); } // drop the old build's doors
+  syncDoorColliders();
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
@@ -4792,6 +4804,7 @@ renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (mode === 'walk') stepWalk(dt);
   else {
+    stepDoors(dt); // doors keep swinging after Close all doors in the 3D view
     if (anim) { anim.t = Math.min(1, anim.t + dt / 0.9); const e = 1 - Math.pow(1 - anim.t, 3);
       camera.position.lerpVectors(anim.from.p, anim.to.p, e); controls.target.lerpVectors(anim.from.t, anim.to.t, e); if (anim.t >= 1) anim = null; }
     controls.update();
@@ -4896,7 +4909,7 @@ async function pullDesigns() {
     }
     for (const d of DS.list) if (!d.cid || !designs.some(r => r.id === d.cid)) { delete d.cid; await pushDesign(d); }
     writeDS(); ACC.sync = 'saved';
-    if (changed && !H3P && !cloudSave) { const cur = curDesign(); if (cur) { BM = cur.bm; resetBID(); normalizeStairs(BM); rebuildHouse3(); } designLabel(); }
+    if (changed && !H3P && !cloudSave && parseRoute().kind === 'none') { /* never swap out a project's or a shared link's house: view-only links have no save */ const cur = curDesign(); if (cur) { BM = cur.bm; resetBID(); normalizeStairs(BM); rebuildHouse3(); } designLabel(); }
   })().catch(() => { ACC.sync = 'error'; }).finally(() => { syncing = null; accRender(); });
   return syncing;
 }
@@ -4931,7 +4944,7 @@ accEl('homeLink').onclick = () => { location.hash = '#admin'; };
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, comments: [], pinning: false, pinDraft: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -4949,7 +4962,7 @@ async function cloudApi(method, path, data) {
 }
 
 // Forms here are handled in JS; never let the browser submit them (that would reload the page).
-document.addEventListener('submit', e => { if (e.target.closest('#studio, #clSide, #clWelcome')) e.preventDefault(); }, true);
+document.addEventListener('submit', e => { if (e.target.closest('#studio, #clWelcome')) e.preventDefault(); }, true);
 
 // ---------- design helpers ----------
 const BEDS = new Set(['bedroom', 'primary', 'guest', 'nursery']);
@@ -5005,13 +5018,12 @@ function parseRoute() {
   return { kind: 'none' };
 }
 async function cloudRoute() {
-  const r = parseRoute(), prev = CL.route; CL.route = r; clearInterval(CL.poll); clStopPin();
+  const r = parseRoute(), prev = CL.route; CL.route = r; clearInterval(CL.poll);
   $c('studio').hidden = r.kind !== 'studio';
   const inDesign = r.kind === 'project' || r.kind === 'customer';
   document.body.classList.toggle('cl-on', inDesign);
-  $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = !inDesign; $c('clSideBtn').setAttribute('aria-pressed', String(inDesign)); if (inDesign) closePanel(); $c('clBanner').hidden = true; $c('clWelcome').hidden = true;
-  document.body.classList.toggle('cl-side-open', inDesign);
-  if (!inDesign) { clearPins(); if (prev && (prev.kind === 'project' || prev.kind === 'customer')) leaveCloudDesign(); }
+  $c('clHead').hidden = !inDesign; if (inDesign) closePanel(); $c('clBanner').hidden = true; $c('clWelcome').hidden = true;
+  if (!inDesign) { if (prev && (prev.kind === 'project' || prev.kind === 'customer')) leaveCloudDesign(); }
   if (r.kind === 'studio') return studioHome();
   if (r.kind === 'project') return openProject(r.id);
   if (r.kind === 'customer') return openShare(r.token);
@@ -5038,7 +5050,6 @@ function renderStudio() {
       <button class="st-more" type="button" aria-label="Project options" aria-haspopup="menu" data-tip="Options"><svg class="ic"><use href="#i-dots"/></svg></button>
       <div class="st-meta">
       <h3 title="${clEsc(p.name)}">${clEsc(p.name)}</h3>${sub ? `<p title="${clEsc(sub)}">${clEsc(sub)}</p>` : ''}<span class="st-spec">${clEsc(specLine(p.summary))}</span>
-      <div class="st-flags"><span class="chip">Version ${p.version}</span></div>
       <p><small>${p.last_activity ? 'Active ' + clAgo(p.last_activity) : ''}</small></p></div></div>`; }).join('');
   $c('stList').querySelectorAll('[data-pid]').forEach((b, i) => { const cv = b.querySelector('canvas'); if (cv) drawPreview(cv, list[i].preview);
     const open = () => { if (!b.querySelector('.st-rename')) goRoute(`#admin/p/${b.dataset.pid}`); };
@@ -5118,112 +5129,28 @@ function fitHead() { requestAnimationFrame(() => document.documentElement.style.
 addEventListener('resize', fitHead);
 function chrome() { // what the toolbar shows for the current role
   const eb = $c('editBtn'), cust = CL.route?.kind === 'customer', review = CL.view && CL.view !== 'base';
-  document.body.classList.toggle('cl-customer', cust);
+  document.body.classList.toggle('cl-customer', cust); if (!cust) document.body.classList.remove('cl-view');
   if (cust) { eb.hidden = CL.share.access !== 'edit'; setEditLabel('Make changes'); }
   else if (CL.route?.kind === 'project') { eb.hidden = !!review; setEditLabel('Edit plan'); if (review && PE.open) openEditor(false); }
 }
 function banner(html) { const b = $c('clBanner'); b.hidden = !html; b.innerHTML = html || ''; return b; }
-function sideTabs(tabs) {
-  if (!tabs.some(t => t[0] === CL.tab)) CL.tab = tabs[0][0];
-  $c('clTabs').innerHTML = tabs.map(([k, n]) => `<button type="button" data-tab="${k}" aria-pressed="${k === CL.tab}">${n}</button>`).join('') + '<button type="button" class="x" title="Hide panel" aria-label="Hide panel"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5l7 7m0-7l-7 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>';
-  $c('clTabs').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { CL.tab = b.dataset.tab; renderSide(); });
-  $c('clTabs').querySelector('.x').onclick = () => toggleSide(false);
-}
-function toggleSide(open) { if (open) closePanel(); $c('clSide').hidden = !open; $c('clSideBtn').setAttribute('aria-pressed', String(open)); document.body.classList.toggle('cl-side-open', open); updateViewOffset(); }
-$c('clSideBtn').onclick = () => toggleSide($c('clSide').hidden);
-function renderSide() { if (CL.route?.kind === 'project') renderProjectSide(); else if (CL.route?.kind === 'customer') renderShareSide(); }
-
-// ---------- comments + 3D pins ----------
-const pinObjs = [];
-function clearPins() { for (const o of pinObjs) scene.remove(o); pinObjs.length = 0; }
-function renderPins() {
-  clearPins(); let n = 0;
-  const list = CL.comments.filter(c => c.pin).map(c => [c, ++n]);
-  if (CL.pinDraft) list.push([{ id: '_draft', pin: CL.pinDraft, draft: true }, '+']);
-  for (const [c, num] of list) {
-    const el = document.createElement('div'); el.className = `pin3d${c.resolved ? ' res' : ''}${c.draft ? ' new' : ''}`; el.innerHTML = `<span>${num}</span>`; el.title = c.body || 'New comment';
-    el.onclick = e => { e.stopPropagation(); if (c.draft) return; CL.hi = c.id; CL.tab = 'comments'; toggleSide(true); renderSide(); };
-    const o = new CSS2DObject(el); o.position.set(c.pin.x, c.pin.y + .4, c.pin.z); o.userData.pin = c.pin; scene.add(o); pinObjs.push(o); c._num = num;
-  }
-}
-setInterval(() => { // only show the pins that belong to the floor being viewed
-  if (!pinObjs.length) return; const lv = mode === 'walk' ? null : ({ B: 'B', M: 'M', U: 'U' })[curView];
-  for (const o of pinObjs) o.visible = !lv || o.userData.pin.level === lv;
-}, 400);
-const rc3 = new THREE.Raycaster(), v2c = new THREE.Vector2(); let pinDown = null;
-function pickPoint(e) {
-  const r = renderer.domElement.getBoundingClientRect(); v2c.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); rc3.setFromCamera(v2c, camera);
-  for (const h of rc3.intersectObjects(scene.children, true)) { let o = h.object, vis = true; while (o) { if (!o.visible) { vis = false; break; } o = o.parent; } if (vis && h.object.material !== M.glass) return h.point; }
-  return null;
-}
-function clStartPin() { CL.pinning = true; document.body.classList.add('cl-pinning'); setSave('Click a spot in the 3D view to pin your comment'); }
-function clStopPin() { CL.pinning = false; document.body.classList.remove('cl-pinning'); }
-renderer.domElement.addEventListener('pointerdown', e => { if (CL.pinning) pinDown = [e.clientX, e.clientY]; }, true);
-renderer.domElement.addEventListener('pointerup', e => {
-  if (!CL.pinning || !pinDown || Math.hypot(e.clientX - pinDown[0], e.clientY - pinDown[1]) > 6) return; pinDown = null;
-  const p = pickPoint(e); if (!p) return;
-  CL.pinDraft = { x: p.x, y: p.y, z: p.z, level: p.y < MF - .3 ? 'B' : p.y < UF - .3 ? 'M' : 'U' }; clStopPin(); setSave('Pinned. Write your comment and post it.'); renderPins(); CL.tab = 'comments'; toggleSide(true); renderSide();
-  setTimeout(() => $c('cmText')?.focus(), 30);
-}, true);
-function commentHTML(c, studio) {
-  const who = c.author_role === 'customer' ? clEsc(c.author || 'Customer') : studio ? (c.share_token ? 'You → ' + clEsc(shareName(c.share_token)) : 'Internal note') : clEsc(CL.brand.name);
-  return `<div class="cl-item${c.resolved ? ' res' : ''}${CL.hi === c.id ? ' hi' : ''}" data-cid="${clEsc(c.id)}"><h4><span>${c._num ? `<span class="chip pin">#${c._num}</span> ` : ''}${who}</span><small>${clAgo(c.created_at)}</small></h4><p>${clEsc(c.body)}</p>
-    <div class="cl-acts">${c.pin ? '<button class="btn" type="button" data-act="show">Show in 3D</button>' : ''}${studio && c.author_role === 'customer' ? `<button class="btn" type="button" data-act="reply">Reply</button><button class="btn" type="button" data-act="resolve">${c.resolved ? 'Reopen' : 'Resolve'}</button>` : ''}</div></div>`;
-}
-function wireComments(root, studio) {
-  root.querySelectorAll('[data-cid]').forEach(el => {
-    const c = CL.comments.find(x => x.id === el.dataset.cid); if (!c) return;
-    el.querySelector('[data-act="show"]')?.addEventListener('click', () => { CL.hi = c.id; goView(c.pin.level || 'front'); renderSide(); });
-    el.querySelector('[data-act="reply"]')?.addEventListener('click', () => { CL.replyTo = c.share_token; renderSide(); $c('cmText')?.focus(); });
-    el.querySelector('[data-act="resolve"]')?.addEventListener('click', async () => { await cloudApi('PATCH', `comments?id=${encodeURIComponent(c.id)}`, { resolved: !c.resolved }); c.resolved = c.resolved ? 0 : 1; renderSide(); renderPins(); });
-  });
-  if (CL.hi) root.querySelector(`[data-cid="${CSS.escape(CL.hi)}"]`)?.scrollIntoView({ block: 'nearest' });
-}
-function composerHTML(studio) {
-  const opts = studio ? `<label>To <select id="cmTo"><option value="">Internal note (only the studio sees it)</option>${(CL.project?.shares || []).filter(s => !s.revoked).map(s => `<option value="${clEsc(s.token)}"${CL.replyTo === s.token ? ' selected' : ''}>${clEsc(s.customer)}</option>`).join('')}</select></label>` : '';
-  return `<div class="cl-form">${opts}<textarea id="cmText" rows="3" placeholder="${studio ? 'Write a note or reply' : 'Ask a question or suggest a change'}"></textarea>
-    <div class="cl-acts"><button class="btn" type="button" id="cmPin">${CL.pinDraft ? 'Pinned' : 'Pin to a spot'}</button>${CL.pinDraft ? '<button class="btn" type="button" id="cmUnpin">Remove pin</button>' : ''}<span style="flex:1"></span><button class="btn st-primary" type="button" id="cmPost">Post</button></div></div>`;
-}
-function wireComposer(studio, afterPost) {
-  $c('cmPin').onclick = () => clStartPin();
-  if ($c('cmUnpin')) $c('cmUnpin').onclick = () => { CL.pinDraft = null; renderPins(); renderSide(); };
-  $c('cmPost').onclick = async () => {
-    const text = $c('cmText').value.trim(); if (!text) return $c('cmText').focus();
-    $c('cmPost').disabled = true;
-    try {
-      if (studio) await cloudApi('POST', 'comments', { projectId: CL.route.id, token: $c('cmTo').value || null, body: text, pin: CL.pinDraft });
-      else await cloudApi('POST', `comments?token=${CL.route.token}`, { body: text, pin: CL.pinDraft });
-      CL.pinDraft = null; CL.replyTo = null; await afterPost();
-    } catch (e) { setSave(e.message); } finally { if ($c('cmPost')) $c('cmPost').disabled = false; }
-  };
-}
-
 // ---------- Studio: project workspace ----------
-const shareName = token => (CL.project?.shares || []).find(s => s.token === token)?.customer || 'customer';
-const shareURL = token => `${location.origin}${location.pathname}#c/${token}`;
 async function openProject(id, keepView) {
   let j; try { j = await cloudApi('GET', `project?id=${encodeURIComponent(id)}`); }
   catch (e) { if (e.status === 401) return goRoute('#admin'); banner(`${clEsc(e.message)} <button class="btn" type="button" onclick="location.hash='#admin'">Back to projects</button>`); return; }
   const first = !CL.project || CL.project.project.id !== id;
-  CL.project = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
+  CL.project = j; CL.view = 'base';
   showDesign(j.bm, { save: projectSave }); if (first && !keepView) goView('front', true);
   $c('clBrand').textContent = '';
   const t = $c('clTitle'); t.readOnly = false; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${CL.brand.name}`;
   $c('clSub').textContent = [j.project.client, j.project.address].filter(Boolean).join(' · '); t.title = $c('clSub').textContent || 'Click to rename';
-  setSave('Saved'); banner(''); chrome(); renderPins();
-  CL.tab = 'history'; toggleSide(false); renderSide();
-  CL.poll = setInterval(refreshProject, 20000);
+  setSave('Saved'); banner(''); chrome();
   if (first) setTimeout(saveThumb, 2500);
 }
 let thumbAt = 0;
 async function saveThumb() {
   if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
   const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
-}
-async function refreshProject() {
-  if (CL.route?.kind !== 'project' || document.hidden) return;
-  try { const j = await cloudApi('GET', `project?id=${encodeURIComponent(CL.route.id)}`); const p = CL.project; p.shares = j.shares; p.events = j.events; p.versions = j.versions; CL.comments = j.comments;
-    if (CL.view === 'base') renderPins(); if (!document.activeElement?.closest?.('#clSide')) renderSide(); } catch (e) { }
 }
 function projectSave() {
   if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
@@ -5236,102 +5163,45 @@ $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
   CL.project.project.name = name; await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { name }); setSave('Renamed');
 };
-async function viewCustomerVersion(token) {
-  const s = await cloudApi('GET', `share?token=${token}&as=studio`); CL.view = token;
-  showDesign(s.bm, { save: null }); chrome(); clearPins();
-  banner(`Viewing <b>${clEsc(s.customer)}</b>’s version${s.status === 'submitted' ? ' · they sent it for review' : ''} <button class="btn" type="button" id="bnAccept">Accept as version ${CL.project.project.version + 1}</button><button class="btn" type="button" id="bnBack">Back to your design</button>`);
-  $c('bnAccept').onclick = () => acceptShare(token); $c('bnBack').onclick = backToBase;
-}
-function backToBase() { CL.view = 'base'; showDesign(CL.project.bm, { save: projectSave }); banner(''); chrome(); renderPins(); renderSide(); }
-async function acceptShare(token) {
-  try { const j = await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=accept&token=${token}`); await openProject(CL.route.id, true); setSave(`Accepted · now version ${j.version}`); }
-  catch (e) { setSave(e.message); }
-}
-const EV = {
-  created: e => ['', 'Project created' + (e.detail?.from ? ` from ${e.detail.from}` : '')], shared: e => ['', `Shared with ${e.detail?.customer} (${ACCESS_NAME[e.detail?.access] || ''})`],
-  opened: e => ['', `${e.detail?.customer} opened their link`], edited: e => ['', `${e.detail?.customer} changed the floor plan`], finishes: e => ['', `${e.detail?.customer} picked finishes`],
-  comment: e => ['', `${e.detail?.customer}: “${e.detail?.text}”`], submitted: e => ['', `${e.detail?.customer} sent ${e.detail?.changed ? 'changes' : 'feedback'} for review${e.detail?.note ? `: “${e.detail.note}”` : ''}`],
-  accepted: e => ['', `You accepted ${e.detail?.customer}’s changes (v${e.detail?.version})`], reset: e => ['', `${e.detail?.customer} undid their changes`],
-  restored: e => ['', `Restored version ${e.detail?.from} as v${e.detail?.version}`], snapshot: e => ['', `Saved version ${e.detail?.version}: ${e.detail?.note}`],
-};
-function renderProjectSide() {
-  const P = CL.project;
-  sideTabs([['history', 'History']]);
-  const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  B.innerHTML = `<form class="cl-form" id="vsForm" onsubmit="return false"><label>Save this version <input id="vsNote" maxlength="120" placeholder="e.g. Sent for first review"></label><button class="btn" type="submit">Save version</button></form>
-    <div class="cl-sec">Versions</div>` + P.versions.map(v => `<div class="cl-ev ver"><i></i><span>Version ${v.version}${v.version === P.project.version ? ' <span class="chip ok">current</span>' : ''} · ${clEsc(v.note || '')}${v.version !== P.project.version ? ` <button class="linkish" type="button" data-ver="${v.version}">Restore</button>` : ''}</span><small>${clAgo(v.created_at)}</small></div>`).join('')
-    + `<div class="cl-sec">Activity</div>` + (P.events.length ? P.events.map(e => { const [, tx] = (EV[e.kind] || (() => ['', e.kind]))(e); return `<div class="cl-ev ev-${clEsc(e.kind)}"><i></i><span>${clEsc(tx)}</span><small>${clAgo(e.created_at)}</small></div>`; }).join('') : '<p class="cl-sub">Nothing yet.</p>');
-  $c('vsForm').onsubmit = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=snapshot`, { note: $c('vsNote').value.trim() || 'Saved version' }); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); };
-  B.querySelectorAll('[data-ver]').forEach(b => b.onclick = async () => { await cloudApi('POST', `project?id=${encodeURIComponent(CL.route.id)}&action=restore&version=${b.dataset.ver}`); await openProject(CL.route.id, true); CL.tab = 'history'; renderSide(); });
-}
-
 // ---------- Customer link ----------
 async function openShare(token) {
   let j; try { j = await cloudApi('GET', `share?token=${encodeURIComponent(token)}`); }
   catch (e) { if (e.needPass) return askSharePass(token, !!sharePass()); showNotice('This link isn’t available', e.message === 'This link is no longer active' ? 'Ask your builder for a new link.' : e.message); return; }
-  CL.share = j; CL.comments = j.comments; CL.view = 'base'; CL.hi = null; CL.pinDraft = null;
+  CL.share = j; CL.view = 'base';
   const canSave = j.access !== 'view';
   showDesign(j.bm, { save: canSave ? shareSave : null }); goView('front', true);
   $c('clBrand').textContent = j.brand.name; CL.brand = j.brand;
   const t = $c('clTitle'); t.readOnly = true; t.value = j.project.name; fitTitle(); document.title = `${j.project.name} · ${j.brand.name}`;
-  $c('clSub').textContent = [`Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
-  shareStatus(); chrome(); renderPins(); CL.tab = 'comments'; toggleSide(innerWidth > 760); renderSide();
+  $c('clSub').textContent = [j.public ? null : `Prepared for ${j.customer}`, j.project.address].filter(Boolean).join(' · ');
+  document.body.classList.toggle('cl-view', j.access === 'view');
+  shareStatus(); chrome();
   let seen = false; try { seen = localStorage.getItem('welcomed-' + token) === '1'; } catch (e) { }
-  if (!seen) welcome();
-  CL.poll = setInterval(async () => { if (document.hidden) return; try { const r = await cloudApi('GET', `comments?token=${token}`); if (r.comments.length !== CL.comments.length) { CL.comments = r.comments; renderPins(); renderSide(); } } catch (e) { } }, 20000);
+  if (!seen && !j.public) welcome();
 }
 function shareStatus() {
   const s = CL.share, sent = s.status === 'submitted', acc = s.status === 'accepted';
-  setSave(sent ? `Sent to ${CL.brand.name}` : acc ? `${CL.brand.name} accepted your changes` : s.changed ? 'Your changes are saved' : s.access === 'view' ? 'View only · you can comment' : 'Make it yours: changes save as you go');
-  if (s.changed && !sent) banner(`You’ve made changes. <button class="btn st-primary" type="button" id="bnSend">Send to ${clEsc(CL.brand.name)}</button>`).querySelector('#bnSend').onclick = () => { CL.tab = 'send'; toggleSide(true); renderSide(); };
-  else banner('');
+  setSave(sent ? `Sent to ${CL.brand.name}` : acc ? `${CL.brand.name} accepted your changes` : s.changed ? 'Your changes are saved' : s.access === 'view' ? 'View only' : 'Make it yours: changes save as you go');
+  banner('');
 }
 function shareSave() {
   CL.share.changed = true; if (CL.share.status === 'submitted' || CL.share.status === 'accepted') CL.share.status = 'editing';
   setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => { try { await cloudApi('PUT', `share?token=${CL.route.token}`, { bm: BM }); shareStatus(); } catch (e) { setSave(`Not saved: ${e.message}`); } }, 800);
 }
-function renderShareSide() {
-  const s = CL.share, canSave = s.access !== 'view';
-  sideTabs([['comments', `Comments${CL.comments.length ? ` (${CL.comments.length})` : ''}`], ['send', 'Send'], ['help', 'How to']]);
-  $c('clSideCount').textContent = CL.comments.length || '';
-  const B = $c('clBody'), F = $c('clFoot'); F.innerHTML = '';
-  if (CL.tab === 'comments') {
-    B.innerHTML = (s.message ? `<div class="cl-item"><h4><span>${clEsc(CL.brand.name)}</span></h4><p>${clEsc(s.message)}</p></div>` : '') +
-      (CL.comments.length ? CL.comments.map(c => commentHTML(c, false)).join('') : '<p class="cl-sub">Questions or ideas? Pin a comment to any spot in the house and we’ll see exactly what you mean.</p>');
-    wireComments(B, false); F.innerHTML = composerHTML(false);
-    wireComposer(false, async () => { const r = await cloudApi('GET', `comments?token=${CL.route.token}`); CL.comments = r.comments; renderPins(); renderSide(); setSave('Comment posted'); });
-  } else if (CL.tab === 'send') {
-    const sent = s.status === 'submitted';
-    B.innerHTML = `<p class="cl-sub">${canSave ? (s.changed ? 'Your version is saved. When you’re happy with it, send it over and we’ll review your changes and comments.' : 'You haven’t changed anything yet. You can still send your comments.') : 'Send your comments when you’re ready.'}</p>
-      <form class="cl-form" id="sdForm" onsubmit="return false"><label>Note for ${clEsc(CL.brand.name)} (optional) <textarea id="sdNote" rows="3" placeholder="Anything we should know?"></textarea></label>
-      <button class="btn st-primary" type="submit">${sent ? 'Send again' : `Send to ${clEsc(CL.brand.name)}`}</button></form>
-      ${sent ? `<p class="cl-sub">Sent. We’ll be in touch.</p>` : ''}
-      ${s.changed ? '<div class="cl-sec">Start over</div><button class="btn" type="button" id="sdReset">Undo all my changes</button>' : ''}`;
-    $c('sdForm').onsubmit = async () => { await cloudApi('POST', `share?token=${CL.route.token}&action=submit`, { note: $c('sdNote').value.trim() }); s.status = 'submitted'; shareStatus(); renderSide(); };
-    if ($c('sdReset')) { let armed = 0; $c('sdReset').onclick = async e => { if (Date.now() - armed > 3000) { armed = Date.now(); e.target.textContent = 'Click again to undo everything'; return; }
-      await cloudApi('POST', `share?token=${CL.route.token}&action=reset`); await openShare(CL.route.token); }; }
-  } else {
-    B.innerHTML = `<div class="cl-item"><h4>Look around</h4><p>Drag to orbit, scroll to zoom. Use <b>Front · Rear · Aerial</b> for views, or pick a floor to see it with the roof off.</p></div>
-      <div class="cl-item"><h4>Walk inside</h4><p>Switch to <b>Walk</b> or <b>Character</b>, or drag the little person onto the house. Move with WASD or the arrow keys.</p></div>
-      ${s.access !== 'view' ? '<div class="cl-item"><h4>Make it yours</h4><p>Pick finishes in the <b>Finishes</b> panel' + (s.access === 'edit' ? ', or press <b>Make changes</b> to move rooms and walls' : '') + '. Everything saves as you go, and the builder’s original stays untouched.</p></div>' : ''}
-      <div class="cl-item"><h4>Comment</h4><p>Press <b>Pin to a spot</b>, click anywhere in the house, and write your note.</p></div>`;
-  }
-}
 function welcome() {
   const s = CL.share, w = $c('clWelcome');
   w.innerHTML = `<h2>Hi ${clEsc(s.customer.split(' ')[0])}, welcome to your home</h2>${s.message ? `<blockquote>${clEsc(s.message)}</blockquote>` : ''}
-    <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around, walk inside, ${s.access === 'edit' ? 'try changes to the layout and finishes, ' : s.access === 'finishes' ? 'try different finishes, ' : ''}and pin comments anywhere. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
+    <p>This is <b>${clEsc(s.project.name)}</b> in 3D. Look around and walk inside${s.access === 'edit' ? ', and try changes to the layout and finishes' : s.access === 'finishes' ? ', and try different finishes' : ''}. ${s.access !== 'view' ? 'Your changes save to your own copy as you go.' : ''}</p>
     <div class="st-row"><button class="btn st-primary" type="button" id="wcGo">Start exploring</button></div>`;
   w.hidden = false; $c('wcGo').onclick = () => { w.hidden = true; try { localStorage.setItem('welcomed-' + CL.route.token, '1'); } catch (e) { } };
 }
 function askSharePass(token, wrong) {
   const w = $c('clWelcome');
   w.innerHTML = `<h2>This home is password protected</h2><p>Enter the password your builder gave you.</p><form class="cl-form" id="spForm" onsubmit="return false"><input id="spIn" type="password" autocomplete="off" aria-label="Password" placeholder="Password"><p class="st-err">${wrong ? 'That password didn’t work.' : ''}</p><div class="st-row"><button class="btn st-primary" type="submit">Open</button></div></form>`;
-  w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; $c('spIn').focus();
-  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; $c('clSideBtn').hidden = false; openShare(token); };
+  w.hidden = false; $c('clHead').hidden = true; $c('spIn').focus();
+  $c('spForm').onsubmit = () => { try { sessionStorage.setItem('share-pass-' + token, $c('spIn').value); } catch (e) { } w.hidden = true; $c('clHead').hidden = false; openShare(token); };
 }
-function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = $c('clSide').hidden = $c('clSideBtn').hidden = true; }
+function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2>${clEsc(title)}</h2><p>${clEsc(text)}</p>`; w.hidden = false; $c('clHead').hidden = true; }
 
 // ---------- boot ----------
 (async () => {
@@ -5339,8 +5209,6 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
-  const sb = document.createElement('button'); sb.className = 'tb-b'; sb.id = 'studioBtn'; sb.type = 'button'; sb.innerHTML = '<svg class="ic"><use href="#i-studio"/></svg><span class="tb-t">Projects</span>'; sb.dataset.tip = 'All projects';
-  sb.onclick = () => goRoute('#admin'); $c('tbCloud').append(sb);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
 
@@ -5363,7 +5231,7 @@ function setEditLabel(t) { const el = document.getElementById('editLabel'); if (
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
   const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
-  const side = !document.getElementById('side')?.hidden || !document.getElementById('clSide')?.hidden;
+  const side = !document.getElementById('side')?.hidden;
   return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 318 : 0 };
 }
 
@@ -5441,10 +5309,9 @@ addEventListener('pointerdown', hideTip, true);
 
 // ---------- side panels ----------
 let panel = null;
-const PANEL_OPEN = { info: () => renderInfo(), checks: () => renderChecks() };
+const PANEL_OPEN = { info: () => renderInfo() };
 function openPanel(name) {
   if (panel === name) return closePanel();
-  if (!$u('clSide').hidden) toggleSide(false);
   document.querySelectorAll('#side .sp').forEach(s => s.hidden = s.dataset.panel !== name);
   $u('side').hidden = false; panel = name; document.body.classList.add('panel-open');
   press('[data-panel-btn]', 'panelBtn', name); PANEL_OPEN[name]?.(); updateViewOffset();
@@ -5508,6 +5375,7 @@ $u('optTrees').onchange = e => { showTrees = e.target.checked; applyVisibility()
 function setRoof(on) { showRoof = on; $u('optRoof').checked = on; applyVisibility(); }
 $u('optRoof').onchange = e => setRoof(e.target.checked);
 $u('roofBtn').onclick = () => setRoof(!showRoof);
+$u('doorsBtn').onclick = () => setAllDoors(!allDoorsClosed());
 $u('optShadow').onchange = e => { sun.castShadow = e.target.checked && RS !== 'xray' && RS !== 'wire'; renderer.shadowMap.needsUpdate = true; };
 $u('optSpin').onchange = e => { controls.autoRotate = e.target.checked; controls.autoRotateSpeed = .7; };
 const SEASON = { summer: 1.15, equinox: .85, winter: .55 };
@@ -5591,7 +5459,10 @@ function shot(scale = 1) {
   download(url, `${slug()}-${VIEW_NAME[curView]?.toLowerCase().replace(/\s/g, '-') || 'view'}.png`); toast(scale > 1 ? 'High-res render saved' : 'Screenshot saved');
 }
 $u('shotBtn').onclick = () => shot(1); $u('exShot').onclick = () => shot(1); $u('exShot2').onclick = () => shot(2);
-$u('exPlan').onclick = () => { if (!PE.open) return toast('Open the floor plan editor first'); download(pc.toDataURL('image/png'), `${slug()}-plan-${PE.lv}.png`); toast('Floor plan saved'); };
+$u('exPlan').onclick = () => { // the level you're looking at (main floor otherwise), drawn like the plan sheet
+  const lv = PE.open ? PE.lv : ['B', 'M', 'U'].includes(curView) ? curView : 'M';
+  if (!BM.rooms.some(r => r.level === lv)) return toast('There is no floor plan to save yet');
+  download(drawSheetPlan(lv, 2000, 1250).url, `${slug()}-plan-${({ B: 'basement', M: 'main', U: 'upper' })[lv]}.png`); toast('Floor plan saved'); };
 $u('exCsv').onclick = () => {
   const A = areaData(), LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
   const rows = [['Level', 'Room', `Area (${METRIC ? 'm²' : 'sf'})`], ...['M', 'U', 'B'].flatMap(l => A.lv[l].map(([n, s]) => [LN[l], n, METRIC ? +(s * .092903).toFixed(1) : Math.round(s)]))];
@@ -5610,7 +5481,12 @@ $u('importFile').onchange = async e => {
     const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
   } catch (err) { toast('That file is not a Demo design'); }
 };
-$u('exLink').onclick = async () => { try { await navigator.clipboard.writeText(location.href); toast('Link copied'); } catch (e) { toast(location.href); } };
+// Share link: a public, view-only link to the project. Anyone with it can look around, walk through and try finishes; nothing they do is saved.
+$u('exLink').onclick = async () => {
+  let url = location.href;
+  if (CL.route?.kind === 'project') { try { const j = await cloudApi('POST', 'share', { projectId: CL.route.id, public: true }); url = `${location.origin}/playground#c/${j.token}`; } catch (e) { return toast(e.message || 'Could not make a link'); } }
+  try { await navigator.clipboard.writeText(url); toast('Share link copied: anyone with it can view this home'); } catch (e) { prompt('Copy this link', url); }
+};
 
 // ---------- editor extras ----------
 let libOn = ST.get('walkthru-lib', '1') === '1';
@@ -5619,7 +5495,6 @@ function uiEditing(on) {
   closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
-  if (on) renderChecks();
 }
 $u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
@@ -5652,6 +5527,7 @@ addEventListener('keydown', e => {
   if (k === 'e') { if (PE.open) $u('peDone').click(); else if (!$u('editBtn').hidden) $u('editBtn').click(); return; }
   if (k === 'm') return setMeasure(!MEAS.on);
   if (k === 'h') return setRoof(!showRoof);
+  if (k === 'o') return setAllDoors(!allDoorsClosed());
   if (k === 'l') return $u('optLabels').click();
   if (k === 'p') return shot(1);
   if (PE.open) return; // the plan editor owns the rest of the letters
@@ -5664,6 +5540,7 @@ function uiSync() {
   const t = tabHouse(); $u('designNow').textContent = t === 3 ? (curDesign()?.name || 'My design') : `Sample ${t === 4 ? 3 : t}`;
   $u('viewNow').textContent = mode === 'walk' ? 'Walking' : VIEW_NAME[curView] || 'Custom';
   $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
+  $u('doorsLbl').textContent = allDoorsClosed() ? 'Open all doors' : 'Close all doors';
   if (RS !== 'real') applyRS();
   if (panel === 'info') renderInfo();
   if (popOpen === 'pePlanPop') POP_OPEN.pePlanPop();
@@ -5706,7 +5583,7 @@ function applyTex(key, url, tileFt = 4) {
     m.map = t; m.color.set('#ffffff'); m.needsUpdate = true; renderer.shadowMap.needsUpdate = true; });
 }
 const texKey = k => 'walkthru-tex-' + k;
-document.getElementById('finishBody').insertAdjacentHTML('beforeend', `<div class="grp"><h3>Your own texture</h3>
+document.getElementById('finishBody').insertAdjacentHTML('beforeend', `<div class="grp" id="texGrp"><h3>Your own texture</h3>
   
   <div class="tex-row"><select id="texFor">${Object.entries(TEX_MAT).filter(([, v]) => v[1]).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select><button class="btn" id="texUp" type="button">Upload…</button></div>
   <div class="tex-row"><label class="fld" style="margin:0">Pattern size (ft) <input id="texFt" type="number" min=".5" max="20" step=".5" value="4"></label><button class="btn" id="texClear" type="button" style="align-self:end">Remove</button></div>
@@ -5781,7 +5658,6 @@ function captureElevations(W = 1400, H = 560) {
 
 function planSheet() {
   if (curHouse !== 3) return toast('Open a design (or Sample 3) to print its plan');
-  const win = window.open('', '_blank'); if (!win) return toast('Allow pop-ups to open the plan sheet');
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -5792,13 +5668,17 @@ function planSheet() {
   const elev = captureElevations(), total = levels.length + 2;
   const elevPages = [elev.slice(0, 2), elev.slice(2)].map((pair, i) => `<section class="sheet">${pair.map(e => `<img src="${e.url}" alt="${e.name} elevation" style="margin-bottom:6px">`).join('')}<footer><div><b>${esc(name)}</b><span>Elevations</span></div><div><span>Views</span><b>${pair.map(e => e.name).join(' / ')}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${SCALE_BAR()[0] * pair[0].scale}px"></i>${SCALE_BAR()[1]}</b></div><div><span>Height</span><b>${ftin(MF)} main floor</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${levels.length + i + 1} of ${total}</b></div></footer></section>`).join('');
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
+  const html = (`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
     .sheet img{display:block;width:100%} footer{display:grid;grid-template-columns:2fr repeat(5,1fr);border-top:1.5px solid #111;margin-top:6px} footer div{padding:6px 8px;border-left:1px solid #111;display:flex;flex-direction:column} footer div:first-child{border-left:0}
     footer span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666} footer b{font-size:12px} .bar{display:flex;align-items:center;gap:4px} .bar i{display:inline-block;height:4px;background:#111}
     .fine{font-size:9px;color:#666;margin:6px 0 0} .tools{text-align:center;margin:16px} .tools button{font:500 14px Inter,sans-serif;padding:10px 16px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer} @media print{.tools{display:none}}
     </style></head><body><div class="tools"><button onclick="print()">Save as PDF or print</button></div>${pages}${elevPages}</body></html>`);
-  win.document.close(); window.wtTrack?.('plan_sheet');
+  // print from a hidden frame: the browser's print dialog has "Save as PDF", and pop-up blockers can't get in the way
+  document.getElementById('sheetFrame')?.remove(); const f = document.createElement('iframe'); f.id = 'sheetFrame'; f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none'; document.body.appendChild(f);
+  f.onload = () => setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Could not open the print dialog'); } }, 300);
+  f.srcdoc = html.replace('<div class="tools"><button onclick="print()">Save as PDF or print</button></div>', ''); toast('Opening the print dialog: choose Save as PDF'); window.wtTrack?.('plan_sheet');
 }
 
 // ---------- 360° panorama ----------

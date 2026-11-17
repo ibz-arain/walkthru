@@ -28,7 +28,7 @@
 .pe-zoom button + button{border-left:1px solid var(--rule)}
 #peZoomFit{padding:0 8px;min-width:48px}
 #peStatus{position:absolute;right:12px;bottom:12px;font:500 11.5px var(--f-ui);color:var(--ink-2);background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:6px 10px;box-shadow:var(--shadow);pointer-events:none;font-variant-numeric:tabular-nums}
-#planEd:not(.has-sel) #peSide{display:none}
+#planEd:not(.has-sel) #peSide,#planEd:not(.pe-menu) #peSide{display:none}
 #peSide{position:absolute;z-index:8;left:auto;right:12px;top:12px;width:256px;max-height:calc(100% - 16px);overflow:auto;padding:0 0 4px;background:var(--paper);border:1px solid var(--rule);border-radius:12px;box-shadow:0 2px 6px rgba(16,16,24,.08),0 18px 40px -14px rgba(16,16,24,.4);transition:opacity .12s}
 .pe-busy #peSide{opacity:0;pointer-events:none}
 #peSide .pe-card:last-child{border-bottom:0}

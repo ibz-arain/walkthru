@@ -13,7 +13,7 @@ function applyTex(key, url, tileFt = 4) {
     m.map = t; m.color.set('#ffffff'); m.needsUpdate = true; renderer.shadowMap.needsUpdate = true; });
 }
 const texKey = k => 'walkthru-tex-' + k;
-document.getElementById('finishBody').insertAdjacentHTML('beforeend', `<div class="grp"><h3>Your own texture</h3>
+document.getElementById('finishBody').insertAdjacentHTML('beforeend', `<div class="grp" id="texGrp"><h3>Your own texture</h3>
   
   <div class="tex-row"><select id="texFor">${Object.entries(TEX_MAT).filter(([, v]) => v[1]).map(([k, v]) => `<option value="${k}">${v[0]}</option>`).join('')}</select><button class="btn" id="texUp" type="button">Upload…</button></div>
   <div class="tex-row"><label class="fld" style="margin:0">Pattern size (ft) <input id="texFt" type="number" min=".5" max="20" step=".5" value="4"></label><button class="btn" id="texClear" type="button" style="align-self:end">Remove</button></div>
@@ -88,7 +88,6 @@ function captureElevations(W = 1400, H = 560) {
 
 function planSheet() {
   if (curHouse !== 3) return toast('Open a design (or Sample 3) to print its plan');
-  const win = window.open('', '_blank'); if (!win) return toast('Allow pop-ups to open the plan sheet');
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
   const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -99,13 +98,17 @@ function planSheet() {
   const elev = captureElevations(), total = levels.length + 2;
   const elevPages = [elev.slice(0, 2), elev.slice(2)].map((pair, i) => `<section class="sheet">${pair.map(e => `<img src="${e.url}" alt="${e.name} elevation" style="margin-bottom:6px">`).join('')}<footer><div><b>${esc(name)}</b><span>Elevations</span></div><div><span>Views</span><b>${pair.map(e => e.name).join(' / ')}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${SCALE_BAR()[0] * pair[0].scale}px"></i>${SCALE_BAR()[1]}</b></div><div><span>Height</span><b>${ftin(MF)} main floor</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${levels.length + i + 1} of ${total}</b></div></footer></section>`).join('');
-  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
+  const html = (`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name)} · plan sheet</title><style>
     @page{size:landscape;margin:12mm} body{margin:0;font:12px/1.4 Inter,system-ui,sans-serif;color:#111} .sheet{page-break-after:always;padding:8px;border:1.5px solid #111;margin:0 auto 16px;max-width:1000px}
     .sheet img{display:block;width:100%} footer{display:grid;grid-template-columns:2fr repeat(5,1fr);border-top:1.5px solid #111;margin-top:6px} footer div{padding:6px 8px;border-left:1px solid #111;display:flex;flex-direction:column} footer div:first-child{border-left:0}
     footer span{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666} footer b{font-size:12px} .bar{display:flex;align-items:center;gap:4px} .bar i{display:inline-block;height:4px;background:#111}
     .fine{font-size:9px;color:#666;margin:6px 0 0} .tools{text-align:center;margin:16px} .tools button{font:500 14px Inter,sans-serif;padding:10px 16px;border-radius:8px;border:0;background:#111;color:#fff;cursor:pointer} @media print{.tools{display:none}}
     </style></head><body><div class="tools"><button onclick="print()">Save as PDF or print</button></div>${pages}${elevPages}</body></html>`);
-  win.document.close(); window.wtTrack?.('plan_sheet');
+  // print from a hidden frame: the browser's print dialog has "Save as PDF", and pop-up blockers can't get in the way
+  document.getElementById('sheetFrame')?.remove(); const f = document.createElement('iframe'); f.id = 'sheetFrame'; f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none'; document.body.appendChild(f);
+  f.onload = () => setTimeout(() => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { toast('Could not open the print dialog'); } }, 300);
+  f.srcdoc = html.replace('<div class="tools"><button onclick="print()">Save as PDF or print</button></div>', ''); toast('Opening the print dialog: choose Save as PDF'); window.wtTrack?.('plan_sheet');
 }
 
 // ---------- 360° panorama ----------

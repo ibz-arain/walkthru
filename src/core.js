@@ -14,7 +14,18 @@ const toDisp = ft => METRIC ? +(ft * .3048).toFixed(2) : +(+ft).toFixed(2), from
 const SCALE_BAR = () => METRIC ? [3 / .3048, '3 m'] : [10, "10'"];
 
 // ---------- Levels (feet, grade = 0) from wall section A-2.01 ----------
-const BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56, GF = 0.5;
+let BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20.56; const GF = 0.5;
+// A design can set its own levels (BM.levels): how high the main floor sits above the ground (raise it and the basement
+// comes half out of the ground, as in a raised bungalow or bi-level; lower it for a slab on grade) and each storey's ceiling.
+// The defaults give exactly the numbers above. Floor build-ups stay fixed: 1'-1" under the main floor, 1'-½" under the 2nd.
+const LEVELS_DEF = { main: 2.33, mainH: 9.1, upH: 8.09, baseH: 8 };
+const LEVEL_PRESETS = { standard: ['Standard', { main: 2.33 }, 'Basement below ground, main floor a few steps up'], raised: ['Raised', { main: 4.75 }, 'Raised bungalow / bi-level: the basement sits half out of the ground'], slab: ['Slab', { main: .5 }, 'Slab on grade: main floor one step above the ground'] };
+const levelsOf = m => ({ ...LEVELS_DEF, ...(m?.levels || {}) });
+function applyLevels(m) {
+  const L = levelsOf(m); MF = L.main; MC = MF + L.mainH; UF = MC + 1.04; UC = UF + L.upH; BC = MF - 1.08; BF = BC - L.baseH; TF = MF - 1.16;
+  for (const o of [typeof LV_Y !== 'undefined' && LV_Y, typeof LEVEL_Y !== 'undefined' && LEVEL_Y]) if (o) Object.assign(o, { B: BF, M: MF, U: UF });
+  if (typeof LV_C !== 'undefined') Object.assign(LV_C, { B: BC, M: MC, U: UC });
+}
 const UZ = 2.54; // 2nd floor plan is set back 2'-6½" from the main front wall
 const EXT = 0.67, INT = 0.4;
 // Built-in sample houses and the sample plan are hidden: everything starts empty. Set true to bring them back.
@@ -132,6 +143,7 @@ const M = {
   metal: std({ map: null, color: '#2d2f33', roughness: .38, metalness: .55, side: THREE.DoubleSide }),
   soffit: std({ color: '#2a2b2e', roughness: .7, side: THREE.DoubleSide }),
   white: std({ color: '#f6f6f3', roughness: .55 }),
+  doorLeaf: std({ color: '#f6f6f3', roughness: .55 }), // interior door slabs: their own material, so Finishes → Doors can change them without touching trim
   glass: new THREE.MeshStandardMaterial({ color: '#9db8c6', roughness: .05, metalness: .1, transparent: true, opacity: .26, depthWrite: false, side: THREE.DoubleSide, envMapIntensity: 1.6 }),
   frost: std({ color: '#dfe7ea', roughness: .3, transparent: true, opacity: .75 }),
   wood: std({ map: TX.wood, color: '#e0c49c', roughness: .6 }),

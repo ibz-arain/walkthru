@@ -83,7 +83,8 @@ function peDraw() {
     const here = S.level === PE.lv, above = stairUp(S) === PE.lv; if (!here && !above) continue;
     const dir = stairDirOf(S), r = stairRect(S, dir), [a, b] = W2S(r.x, r.z), st = stairStatus(S), ax = dir[1] === 'x', n = 14;
     if (above) { px.setLineDash([5, 4]); px.strokeStyle = css('--accent'); px.lineWidth = 1.5; px.strokeRect(a, b, r.w * s, r.d * s); px.setLineDash([]);
-      px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText('STAIRS FROM BELOW', a + r.w * s / 2, b + r.d * s / 2); continue; }
+      px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText('STAIRS FROM BELOW', a + r.w * s / 2, b + r.d * s / 2);
+      if (PE.selStair === S.id) { px.strokeStyle = css('--accent'); px.lineWidth = 3; px.strokeRect(a - 2, b - 2, r.w * s + 4, r.d * s + 4); } continue; }
     px.fillStyle = 'rgba(215,195,168,.92)'; px.fillRect(a, b, r.w * s, r.d * s);
     px.strokeStyle = 'rgba(24,32,43,.55)'; px.lineWidth = 1; px.beginPath();
     if (turns(S)) { // two flights side by side, joined at the far end (dashed: the turn)
@@ -137,6 +138,9 @@ function wallAt(wx, wz, tol) {
   while (grew) { grew = false; for (const m of all) { if (used.has(m)) continue; if (m.e.b >= a - EPS && m.e.a <= b + EPS) { used.add(m); members.push(m); a = Math.min(a, m.e.a); b = Math.max(b, m.e.b); grew = true; } } }
   return { kind: 'wall', axis: e0.axis, c: e0.c, a, b, members };
 }
+// the staircase under a point: one starting on this level, else one arriving from the level below (shown dashed), so every flight can be picked
+function stairHit(wx, wz) { const inS = o => { const r = stairRect(o, stairDirOf(o)); return wx > r.x && wx < r.x + r.w && wz > r.z && wz < r.z + r.d; }, L = BM.stairs || [];
+  return L.find(o => o.level === PE.lv && inS(o)) || L.find(o => stairUp(o) === PE.lv && inS(o)) || null; }
 function stairEdgeAt(wx, wz, tol) {
   for (const S of (BM.stairs || [])) { if (S.level !== PE.lv) continue; const r = stairRect(S, stairDirOf(S));
     const inX = wx > r.x - tol && wx < r.x + r.w + tol, inZ = wz > r.z - tol && wz < r.z + r.d + tol;
@@ -153,17 +157,19 @@ function roomAt(wx, wz) { const rs = lvRooms(); for (let i = rs.length - 1; i >=
 const snapshot = () => JSON.stringify(BM);
 function pushHist() { PE.redo = []; PE.hist.push(snapshot()); if (PE.hist.length > 80) PE.hist.shift(); }
 let peTimer = 0;
-function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); renderChecks(); }, 260); }
+function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); }, 260); }
 
 pc.addEventListener('pointerdown', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   try { pc.setPointerCapture(e.pointerId); } catch (er) { }
+  if (e.button === 2) { peMenuAt(sx, sy, wx, wz); return; }
+  PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
   if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
   PE.selWall = null;
   const se = e.button === 0 ? stairEdgeAt(wx, wz, 6 / PE.s) : null;
   if (se) { const dir = stairDirOf(se.S); PE.selStair = se.S.id; PE.sel = null; PE.drag = { kind: 'stairEdge', S: se.S, side: se.side, r0: { ...se.r }, dir, before: snapshot() }; peInspector(); peDraw(); return; }
-  const S = e.button === 0 ? (BM.stairs || []).find(o => { if (o.level !== PE.lv) return false; const r = stairRect(o, stairDirOf(o)); return wx > r.x && wx < r.x + r.w && wz > r.z && wz < r.z + r.d; }) : null;
+  const S = e.button === 0 ? stairHit(wx, wz) : null;
   if (S) { PE.selStair = S.id; PE.sel = null; PE.drag = { kind: 'stair', S, dx: wx - S.cx, dz: wz - S.cz, before: snapshot() }; peInspector(); peDraw(); return; }
   PE.selStair = null;
   if (w) { PE.drag = { ...w, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: w.members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
@@ -228,6 +234,21 @@ pc.addEventListener('pointerup', () => {
   if (D?.kind === 'wall') { pickWall(D); PE.sel = null; peInspector(); }
   peDraw();
 });
+// Right-click: select whatever is under the pointer (keeping a multi-selection it's part of) and open its menu there.
+function peMenuAt(sx, sy, wx, wz) {
+  const clear = () => { PE.sel = null; PE.selStair = null; PE.selWall = null; PE.selX = null; };
+  const n = noteAt(sx, sy), it = n ? null : itemAt(wx, wz), d = n || it ? null : dimAt(sx, sy);
+  if (n || it || d) selectX(n ? { kind: 'note', id: n.id } : it ? { kind: 'item', id: it.id } : { kind: 'dim', id: d.id });
+  else {
+    const w = wallAt(wx, wz, 7 / PE.s), S = w ? null : stairHit(wx, wz), q = w || S ? null : roomAt(wx, wz);
+    if (w) { clear(); PE.multi.clear(); pickWall({ ...w, pickAlong: w.axis === 'x' ? wx : wz }); }
+    else if (S) { clear(); PE.multi.clear(); PE.selStair = S.id; }
+    else if (q) { if (!PE.multi.has(q.id)) { PE.multi.clear(); clear(); PE.sel = q.id; } }
+    else { clear(); PE.multi.clear(); }
+  }
+  PE.menu = !!(PE.sel || PE.selStair || PE.selWall || PE.selX || PE.multi.size); PE.drag = null;
+  peInspector(); peDraw(); requestAnimationFrame(pePlaceSide);
+}
 // Find the two rooms either side of the clicked spot on a wall line.
 function pickWall(D) {
   const at = D.pickAlong, side = (m, s) => m.e.side === s && at >= m.e.a - .05 && at <= m.e.b + .05;
@@ -287,7 +308,7 @@ function peStairPanel() {
   const S = (BM.stairs || []).find(o => o.id === PE.selStair), el = document.getElementById('peStair'); el.hidden = !S; if (!S) return;
   const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
-  document.getElementById('peSShape').hidden = S.level === 'B';
+  document.getElementById('peSShape').hidden = false; // every flight can be straight, U-turn or curved, basement ones too
   const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
 }
 const curStair = () => (BM.stairs || []).find(o => o.id === PE.selStair);
@@ -308,7 +329,8 @@ function peInspector() {
   peSideFollow(); peWallPanel(); peStairPanel(); peOpPanel(); const extra = peExtraInspector();
   const q = BM.rooms.find(r => r.id === PE.sel), box = document.getElementById('peInspect');
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
-  document.getElementById('planEd').classList.toggle('has-sel', !!(q || PE.selStair || PE.selWall || extra)); if (!q) return;
+  const anySel = !!(q || PE.selStair || PE.selWall || extra); if (!anySel) PE.menu = false;
+  document.getElementById('planEd').classList.toggle('has-sel', anySel); document.getElementById('planEd').classList.toggle('pe-menu', anySel && !!PE.menu); if (!q) return;
   document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
@@ -357,14 +379,6 @@ function peLvlButtons() {
   document.querySelectorAll('[data-guide]').forEach(b => { b.disabled = !can[b.dataset.guide]; b.setAttribute('aria-pressed', String(b.dataset.guide === gm)); });
   document.getElementById('peTrace').hidden = PE.lv !== 'B'; document.querySelectorAll('[data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv))); document.querySelectorAll('[data-roof]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.roof === (BM.roof || 'hip')))); }
 document.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); planChanged(); });
-// auto-layout form
-const peAuto = document.getElementById('peAuto');
-document.getElementById('peAutoCancel').onclick = () => closePops();
-document.getElementById('peAutoGo').onclick = () => {
-  pushHist(); const v = id => document.getElementById(id);
-  autoLayout({ beds: +v('paBeds').value, baths: +v('paBaths').value, garage: +v('paGarage').value, storeys: +v('paStoreys').value, office: v('paOffice').checked, basement: v('paBase').checked });
-  closePops(); PE.sel = null; PE.lv = 'M'; peLvlButtons(); peFit(); planChanged();
-};
 addEventListener('keydown', e => {
   if (!PE.open || e.target.closest?.('input,select,textarea')) return;
   if ((e.key === 'Delete' || e.key === 'Backspace') && PE.selStair) { e.preventDefault(); peDeleteStair(); }
@@ -452,5 +466,5 @@ let peDown = null;
 pc.addEventListener('pointerdown', e => { pePt = [e.clientX, e.clientY]; peDown = pePt; });
 addEventListener('pointermove', e => { if (peDown && Math.hypot(e.clientX - peDown[0], e.clientY - peDown[1]) > 4) pc.parentElement.parentElement.classList.add('pe-busy'); });
 addEventListener('pointerup', () => { peDown = null; const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
-pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click selects too; no browser menu over the plan
+pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click opens the selection menu (peMenuAt), not the browser's
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
