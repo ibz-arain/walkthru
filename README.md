@@ -31,7 +31,7 @@ Old links on the root URL (`/#admin`, `/#c/<token>`) redirect to the playground.
 - The old shared `ADMIN_KEY` still works as a studio key (it sees every project), so existing setups keep running.
 - **Sign-in required**: the playground and Studio only open for signed-in people; signed-out visits go to `/account#login`. Customer links (`/playground#c/<token>`) stay open for buyers.
 - **`ALLOW_SIGNUPS`** (default `true`): set to `false` to close public sign-up. Invited people can still join, and the very first account on a fresh install can always be created.
-- Visible branding is "Walkthru" by Arain Inc. (`BRAND_NAME`, default `Walkthru`); terms and privacy link to arain.org.
+- Visible branding is "Walkthru" by Arain Inc.; terms and privacy link to arain.org.
 
 ## Run locally
 
@@ -45,7 +45,7 @@ npm test           # API tests against a throwaway database
 ## Deploy (Vercel + Turso)
 
 1. `turso db create home-studio` → `turso db show home-studio --url` and `turso db tokens create home-studio`
-2. In Vercel, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_KEY`, `BRAND_NAME` (see `.env.example`).
+2. In Vercel, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_KEY` (see `.env.example`).
 3. Run `npm install && npm run build`, then deploy (`npx vercel --prod`). Tables (and new columns) are created on the first request.
 
 ## Where things live

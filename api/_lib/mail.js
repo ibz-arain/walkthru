@@ -7,7 +7,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 
 // A plain, readable layout: heading, a few lines, one button.
 export function layout({ heading, lines = [], cta, url, foot }) {
-  const brand = esc(process.env.BRAND_NAME || 'Walkthru');
+  const brand = 'Walkthru';
   const html = `<div style="font:15px/1.6 -apple-system,Segoe UI,Inter,sans-serif;color:#111114;max-width:520px;margin:0 auto;padding:32px 24px">
   <p style="font-weight:600;margin:0 0 24px">${brand}</p><h1 style="font-size:20px;letter-spacing:-.01em;margin:0 0 12px">${esc(heading)}</h1>
   ${lines.map(l => `<p style="margin:0 0 12px;color:#3f3f46">${esc(l)}</p>`).join('')}
