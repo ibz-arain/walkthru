@@ -75,7 +75,8 @@ function fillOpening(p, horiz, c, t, os, op) {
         if (glass) boxAN(g, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass); };
       if (!swing) return mk(p);
       const dA = h0 < (a + b) / 2 ? 1 : -1, A = horiz ? [dA, 0] : [0, dA]; // closed, it lies along the wall toward the other jamb
-      parts.push({ g: hingeGroup(p, horiz, h0 + .07, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
+      // hinged on the leaf's jamb-side edge: shut, it fills the opening from the jamb to its stop with no slit of light
+      parts.push({ g: hingeGroup(p, horiz, dA > 0 ? h0 : h0 + .14, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
     };
     const at = horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2];
     if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); addDoor(parts, at, 'door', false); return; }
@@ -148,10 +149,10 @@ function fillOpening(p, horiz, c, t, os, op) {
     const dir = op.outSwing ? -nIn : nIn, glassy = op.style === 'french';
     const parts = [], N = horiz ? [0, dir] : [dir, 0];
     for (const [la, lb, right] of leaves) {
-      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1;
+      const lw = lb - la, hx = right ? lb - .18 : la, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1; // leaf edge on the jamb (or the meeting line)
       const mk = g => { boxAN(g, horiz, hx, hx + .18, yb, yt - fw, n0, n1, doorMat(op.color, FM));
         boxAN(g, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass); };
-      parts.push({ g: hingeGroup(p, horiz, hx + .09, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) });
+      parts.push({ g: hingeGroup(p, horiz, right ? lb : la, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) }); // pivot on the jamb: shut, the leaves meet the frame and each other
     }
     addDoor(parts, horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2], 'door', true); // outside doors start shut
     boxAN(p, horiz, a, b, yb - .02, yb + .03, c - t / 2, c + t / 2, M.walnut, { walk: true });

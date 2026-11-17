@@ -25,7 +25,15 @@ function peSize() {
 // The plan area changes height when the bottom strip grows or shrinks (e.g. a room gets selected): keep the canvas in step.
 if (window.ResizeObserver) new ResizeObserver(() => { if (PE.open) peSize(); }).observe(pc.parentElement);
 function overlaps(a) { return lvRooms().some(b => b !== a && a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05); }
+let warnBoxes = []; // red warnings already drawn this frame: the next one moves down instead of printing over them
+function warnText(t, x, y) {
+  px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; const w = px.measureText(t).width + 8;
+  while (warnBoxes.some(([bx, by, bw]) => Math.abs(by - y) < 13 && x - w / 2 < bx + bw / 2 && x + w / 2 > bx - bw / 2)) y += 14;
+  warnBoxes.push([x, y, w]); px.fillStyle = 'rgba(255,255,255,.85)'; px.fillRect(x - w / 2, y - 7, w, 14); px.fillStyle = '#e5484d'; px.fillText(t, x, y + .5);
+}
+function warnBadge(x, y) { px.fillStyle = '#e5484d'; px.beginPath(); px.arc(x - 7, y + 7, 7, 0, Math.PI * 2); px.fill(); px.fillStyle = '#fff'; px.font = '700 10px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText('!', x - 7, y + 7.5); }
 function peDraw() {
+  warnBoxes = [];
   const r = pc.getBoundingClientRect(), W = r.width, H = r.height, s = PE.s;
   px.fillStyle = css('--paper'); px.fillRect(0, 0, W, H);
   // grid: 1 ft and 5 ft
@@ -45,7 +53,7 @@ function peDraw() {
     px.strokeStyle = 'rgba(31,63,209,.35)'; px.lineWidth = 1; px.beginPath(); for (let k = -q.d * s; k < q.w * s; k += 10) { px.moveTo(a + k, b + q.d * s); px.lineTo(a + k + q.d * s, b); } px.stroke(); px.restore();
     px.fillStyle = css('--ink-2'); px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText(`Open to below · ${rname(q)}`, a + q.w * s / 2, b + q.d * s / 2); }
   // rooms
-  px.textAlign = 'center'; px.textBaseline = 'middle';
+  px.textAlign = 'center'; px.textBaseline = 'middle'; const roomLabels = [];
   for (const q of lvRooms()) {
     const [a, b] = W2S(q.x, q.z); px.fillStyle = (RT[q.type]?.color || '#ddd') + 'd9'; px.fillRect(a, b, q.w * s, q.d * s);
     if (RT[q.type]?.outdoor) { px.setLineDash([3, 3]); px.strokeStyle = '#4c7fd6'; px.lineWidth = 1.5; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); px.setLineDash([]);
@@ -58,16 +66,24 @@ function peDraw() {
       const lab = st.msg ? '' : st.opening ? 'OPEN TO BELOW' : [st.up && 'UP', st.down && 'DOWN'].filter(Boolean).join(' / ');
       if (lab) { px.fillStyle = '#18181b'; px.font = '600 10px "JetBrains Mono", monospace'; px.fillText(({ '+x': '→ ', '-x': '← ', '+z': '↓ ', '-z': '↑ ' })[sd] + lab, a + q.w * s / 2, b + q.d * s - 9); }
       if (st.msg) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2);
-        px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(st.msg, a + q.w * s / 2, b + q.d * s + 13); }
+        if (q.id === PE.sel) warnText(st.msg, a + q.w * s / 2, b + q.d * s + 13); else warnBadge(a + q.w * s - 2, b + 2); }
     }
     if (overlaps(q)) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.setLineDash([4, 3]); px.strokeRect(a + 2, b + 2, q.w * s - 4, q.d * s - 4); px.setLineDash([]); }
-    if (q.w * s > 44 && q.d * s > 26) { px.fillStyle = '#18181b'; px.font = `500 ${Math.max(10, Math.min(14, s * 1.1))}px Inter, system-ui, sans-serif`; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2 - 7);
-      px.font = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`; px.fillStyle = '#5b5b66'; const sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && fmtArea(q.w * q.d)].filter(Boolean).join(' · '); if (sub) px.fillText(sub, a + q.w * s / 2, b + q.d * s / 2 + 8);
-      if (q.tall && q.level === 'M') { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above', a + q.w * s / 2, b + q.d * s / 2 + 21); } }
+    if (q.w * s > 44 && q.d * s > 26) roomLabels.push(() => { // name, size and notes, moved off staircases and furniture; drawn last so nothing covers them
+      const nameF = `500 ${Math.max(10, Math.min(14, s * 1.1))}px Inter, system-ui, sans-serif`, subF = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`;
+      let sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && fmtArea(q.w * q.d)].filter(Boolean).join(' · '), tallTxt = q.tall && q.level === 'M' ? (fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above') : '';
+      const measure = () => { px.font = nameF; let w = px.measureText(rname(q)).width; px.font = subF; if (sub) w = Math.max(w, px.measureText(sub).width); return [w, 16 + (sub ? 15 : 0) + (tallTxt ? 13 : 0)]; };
+      let [tw, th] = measure(), [lx, ly] = labelSpot(q, tw + 10, th + 6, s);
+      if (lx === null && (sub || tallTxt)) { const keep = [sub, tallTxt]; sub = ''; tallTxt = ''; [tw, th] = measure(); [lx, ly] = labelSpot(q, tw + 10, th + 6, s); if (lx === null) [sub, tallTxt] = keep, [tw, th] = measure(); } // squeezed: the name alone
+      if (lx === null) { px.fillStyle = 'rgba(255,255,255,.88)'; px.fillRect(a + q.w * s / 2 - tw / 2 - 5, b + q.d * s / 2 - th / 2 - 3, tw + 10, th + 6); } // nowhere free: keep it readable on top
+      const X = lx ?? a + q.w * s / 2, Y0 = (ly ?? b + q.d * s / 2) - th / 2 + 8;
+      px.fillStyle = '#18181b'; px.font = nameF; px.fillText(rname(q), X, Y0);
+      px.font = subF; px.fillStyle = '#5b5b66'; if (sub) px.fillText(sub, X, Y0 + 15);
+      if (tallTxt) { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(tallTxt, X, Y0 + (sub ? 28 : 15)); } });
   }
   // walls + openings from the same generator the 3D uses
   for (const w of planLevel(PE.lv)) {
-    if (w.rail) { px.strokeStyle = '#4c7fd6'; px.lineWidth = 2; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); continue; }
+    if (w.rail) { px.strokeStyle = w.kind === 'none' ? css('--ink-3') : '#4c7fd6'; px.lineWidth = 2; px.setLineDash(w.kind === 'none' ? [4, 4] : []); px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); px.setLineDash([]); continue; }
     if (w.open) { px.strokeStyle = css('--ink-2'); px.lineWidth = 1.5; px.setLineDash([5, 4]); px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); px.setLineDash([]); continue; }
     const hz = w.axis === 'x', th = Math.max(2, (w.ext ? EXT : INT) * s);
     const seg = (a, b, col, t) => { px.strokeStyle = col; px.lineWidth = t; px.beginPath(); if (hz) { px.moveTo(...W2S(a, w.c)); px.lineTo(...W2S(b, w.c)); } else { px.moveTo(...W2S(w.c, a)); px.lineTo(...W2S(w.c, b)); } px.stroke(); };
@@ -83,7 +99,8 @@ function peDraw() {
     const here = S.level === PE.lv, above = stairUp(S) === PE.lv; if (!here && !above) continue;
     const dir = stairDirOf(S), r = stairRect(S, dir), [a, b] = W2S(r.x, r.z), st = stairStatus(S), ax = dir[1] === 'x', n = 14;
     if (above) { px.setLineDash([5, 4]); px.strokeStyle = css('--accent'); px.lineWidth = 1.5; px.strokeRect(a, b, r.w * s, r.d * s); px.setLineDash([]);
-      px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText('STAIRS FROM BELOW', a + r.w * s / 2, b + r.d * s / 2);
+      const under = stairsOn(PE.lv).some(o => ovl(stairRect(o, stairDirOf(o)), r)); // a flight starting here sits on top: its label says enough
+      if (!under && r.w * s > 70) { px.fillStyle = css('--ink-2'); px.font = '600 10px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText(r.w * s > 120 ? 'STAIRS FROM BELOW' : 'FROM BELOW', a + r.w * s / 2, b + r.d * s / 2); }
       if (PE.selStair === S.id) { px.strokeStyle = css('--accent'); px.lineWidth = 3; px.strokeRect(a - 2, b - 2, r.w * s + 4, r.d * s + 4); } continue; }
     px.fillStyle = 'rgba(215,195,168,.92)'; px.fillRect(a, b, r.w * s, r.d * s);
     px.strokeStyle = 'rgba(24,32,43,.55)'; px.lineWidth = 1; px.beginPath();
@@ -95,8 +112,15 @@ function peDraw() {
       else ln(L - hw, 0, L - hw, Wd);
     } else for (let i = 1; i < n; i++) { if (ax) { const x = a + r.w * s * i / n; px.moveTo(x, b); px.lineTo(x, b + r.d * s); } else { const y2 = b + r.d * s * i / n; px.moveTo(a, y2); px.lineTo(a + r.w * s, y2); } }
     px.stroke(); px.strokeStyle = st.ok ? '#18202b' : '#d33'; px.lineWidth = st.ok ? 1.5 : 2.5; px.strokeRect(a, b, r.w * s, r.d * s);
-    px.fillStyle = '#18181b'; px.font = '700 13px "JetBrains Mono", monospace'; px.textAlign = 'center'; px.fillText(turns(S) ? `${ARW[dir]} UP ↺` : `${ARW[dir]} UP`, a + r.w * s / 2, b + r.d * s / 2);
-    if (!st.ok) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(st.msg, a + r.w * s / 2, b + r.d * s + 13); }
+    { const fromBelow = (BM.stairs || []).some(o => o !== S && stairUp(o) === PE.lv && ovl(stairRect(o, stairDirOf(o)), r)), t = (turns(S) ? `${ARW[dir]} UP ↺` : `${ARW[dir]} UP`) + (fromBelow ? ' · ↓' : '');
+      px.font = '700 12px "JetBrains Mono", monospace'; px.textAlign = 'center'; let tt = t, tw = px.measureText(tt).width + 10; const across = ax ? r.d * s : r.w * s, along = ax ? r.w * s : r.d * s;
+      const rot = tw > across && tw <= along ? 1 : 0; if (tw > Math.max(across, along)) { tt = ARW[dir]; tw = px.measureText(tt).width + 10; } // too narrow either way: just the arrow
+      if (rot && !ax) tt = tt.replace(/[↑↓]/g, c => c === '↓' ? '←' : '→'); // the text turns a quarter, so pre-turn the arrows to still point the way the stairs go
+      px.save(); px.translate(a + r.w * s / 2, b + r.d * s / 2); if (rot && !ax) px.rotate(-Math.PI / 2); // runs along the flight when it doesn't fit across it
+      px.fillStyle = 'rgba(255,255,255,.9)'; px.fillRect(-tw / 2, -9, tw, 18); px.fillStyle = '#18181b'; px.fillText(tt, 0, .5); px.restore(); }
+    if (!turns(S) && stairRail(S) !== 'none') { const sd = flightSides(S, r, dir, PE.lv); px.strokeStyle = '#4c7fd6'; px.lineWidth = 2.5; px.beginPath(); // railings along the flight
+      for (const c of [sd.left, sd.right]) if (c != null) { if (ax) { px.moveTo(...W2S(r.x, c)); px.lineTo(...W2S(r.x + r.w, c)); } else { px.moveTo(...W2S(c, r.z)); px.lineTo(...W2S(c, r.z + r.d)); } } px.stroke(); }
+    if (!st.ok) { if (S.id === PE.selStair) warnText(st.msg, a + r.w * s / 2, b + r.d * s + 13); else warnBadge(a + r.w * s - 2, b + 2); } // the full sentence only when selected (it is in the menu too)
     if (S.id === PE.selStair) { px.strokeStyle = css('--accent'); px.lineWidth = 3; px.strokeRect(a - 2, b - 2, r.w * s + 4, r.d * s + 4); }
   }
   // hovered / dragged wall and selected room
@@ -115,7 +139,17 @@ function peDraw() {
   // scale bar
   px.fillStyle = css('--ink-2'); px.font = '11px "JetBrains Mono", monospace'; px.textAlign = 'left'; const [bft, blab] = SCALE_BAR(), bar = bft * s; px.fillRect(14, H - 58, bar, 3); px.fillText(blab, 18 + bar, H - 56);
   peDrawExtras(s);
+  px.textAlign = 'center'; px.textBaseline = 'middle'; for (const f of roomLabels) f();
   peStatus();
+}
+// Where a room's label fits without sitting on a staircase (screen px): the centre if free, else the nearest free spot inside the room; [null, null] if none.
+function labelSpot(q, w, h, s) {
+  const [a, b] = W2S(q.x, q.z), A = q.w * s, B = q.d * s, blocks = (BM.stairs || []).filter(o => o.level === PE.lv || stairUp(o) === PE.lv).map(o => { const r = stairRect(o, stairDirOf(o)), [x, y] = W2S(r.x, r.z); return [x - 4, y - 4, r.w * s + 8, r.d * s + 8]; })
+    .concat((BM.items || []).filter(i => i.level === PE.lv && i.kind !== 'rug').map(i => { const [iw, id] = itemDims(i), [x, y] = W2S(i.x - iw / 2, i.z - id / 2); return [x - 2, y - 2, iw * s + 4, id * s + 4]; })); // and placed furniture (rugs are fine to sit on)
+  const free = (cx, cy) => cx - w / 2 >= a + 2 && cx + w / 2 <= a + A - 2 && cy - h / 2 >= b + 2 && cy + h / 2 <= b + B - 2 && !blocks.some(([x, y, bw, bh]) => cx + w / 2 > x && cx - w / 2 < x + bw && cy + h / 2 > y && cy - h / 2 < y + bh);
+  const cx0 = a + A / 2, cy0 = b + B / 2; if (free(cx0, cy0)) return [cx0, cy0];
+  let best = null, bd = Infinity; for (let gy = b + h / 2 + 2; gy <= b + B - h / 2 - 2; gy += 6) for (let gx = a + w / 2 + 2; gx <= a + A - w / 2 - 2; gx += 6) { const d = Math.hypot(gx - cx0, gy - cy0); if (d < bd && free(gx, gy)) { bd = d; best = [gx, gy]; } }
+  return best || [null, null];
 }
 const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
 function peStatus() {
@@ -253,7 +287,8 @@ function peMenuAt(sx, sy, wx, wz) {
 function pickWall(D) {
   const at = D.pickAlong, side = (m, s) => m.e.side === s && at >= m.e.a - .05 && at <= m.e.b + .05;
   const lo = D.members.find(m => side(m, D.axis === 'x' ? 's' : 'e')), hi = D.members.find(m => side(m, D.axis === 'x' ? 'n' : 'w'));
-  PE.selWall = lo && hi ? { A: lo.q, B: hi.q, axis: D.axis, c: D.c, a: Math.max(lo.e.a, hi.e.a), b: Math.min(lo.e.b, hi.e.b) } : { ext: true, R: (lo || hi).q, out: (lo || hi).e.out, axis: D.axis, c: D.c, a: (lo || hi).e.a, b: (lo || hi).e.b };
+  PE.selWall = lo && hi ? { A: lo.q, B: hi.q, axis: D.axis, c: D.c, a: Math.max(lo.e.a, hi.e.a), b: Math.min(lo.e.b, hi.e.b) } : { ext: true, R: (lo || hi).q, out: (lo || hi).e.out, axis: D.axis, c: D.c, a: (lo || hi).e.a, b: (lo || hi).e.b, at };
+  const w = PE.selWall; if (w.ext && RT[w.R.type]?.rail) { const seg = railSegments(w.R, w.out).find(([s0, s1]) => at >= s0 - .05 && at <= s1 + .05); if (seg) { w.a = seg[0]; w.b = seg[1]; w.railSeg = seg; } } // a railing stretch: just that part
 }
 pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   PE.s = Math.max(3, Math.min(40, PE.s * Math.exp(-e.deltaY * .0015))); PE.ox = sx - wx * PE.s; PE.oy = sy - wz * PE.s; peDraw(); }, { passive: false });
@@ -296,6 +331,11 @@ function peWallPanel() {
   const w = PE.selWall, el = document.getElementById('peWall'); el.hidden = !w; if (!w) return;
   const info = document.getElementById('peWallInfo'), btns = document.getElementById('peWallBtns');
   const xb = document.getElementById('peExtBtns');
+  const rb = document.getElementById('peRailBtns'); rb.hidden = true;
+  if (w.ext && RT[w.R.type]?.rail) { // catwalk, deck or balcony edge: its railing, this stretch
+    document.querySelector('#peWall h3').textContent = 'Railing'; info.textContent = `${rname(w.R)} · ${ftin(w.b - w.a)} stretch`; btns.hidden = true; xb.hidden = true; rb.hidden = false;
+    const k = railFor(w.R, w.out, w.a); rb.querySelectorAll('[data-rk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rk === k))); return; }
+  document.querySelector('#peWall h3').textContent = 'Wall';
   if (w.ext) { info.textContent = `${rname(w.R)} · outside wall`; btns.hidden = true; xb.hidden = false;
     const m = extMode(w.R, w.out); xb.querySelectorAll('[data-xm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.xm === m))); return; }
   btns.hidden = false; xb.hidden = true; info.textContent = `Between ${rname(w.A)} and ${rname(w.B)}`;
@@ -303,18 +343,36 @@ function peWallPanel() {
 }
 document.querySelectorAll('[data-xm]').forEach(b => b.onclick = () => { const w = PE.selWall; if (!w || !w.ext) return; pushHist(); BM.ext = BM.ext || {}; if (b.dataset.xm === 'auto') delete BM.ext[extKey(w.R, w.out)]; else BM.ext[extKey(w.R, w.out)] = b.dataset.xm; planChanged(); });
 document.querySelectorAll('[data-wm]').forEach(b => b.onclick = () => { const w = PE.selWall; if (!w || w.ext) return; pushHist(); BM.walls = BM.walls || {}; BM.walls[pairKey(w.A, w.B)] = b.dataset.wm; planChanged(); });
+document.querySelectorAll('[data-rk]').forEach(b => b.onclick = () => { const w = PE.selWall; if (!w?.ext) return; pushHist(); BM.rails = BM.rails || {}; BM.rails[railKey(w.R, w.out, w.a)] = b.dataset.rk; planChanged(); });
+document.getElementById('peRailAll').onclick = () => { const w = PE.selWall; if (!w?.ext) return; pushHist(); const k = railFor(w.R, w.out, w.a); BM.rails = Object.fromEntries(Object.entries(BM.rails || {}).filter(([key]) => !key.startsWith(w.R.id + ':'))); BM.rails[`${w.R.id}:*`] = k; planChanged(); toast(`${RAIL_KINDS.find(x => x[0] === k)[1]} railings on every open side`); };
 document.getElementById('peGaps').onclick = () => { pushHist(); const n = closeGaps(BM.rooms.filter(r => r.level === PE.lv).map(r => r.id)); toast(n ? `Closed ${n} gap${n > 1 ? 's' : ''}` : 'No gaps found'); planChanged(); };
 function peStairPanel() {
   const S = (BM.stairs || []).find(o => o.id === PE.selStair), el = document.getElementById('peStair'); el.hidden = !S; if (!S) return;
   const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
   document.getElementById('peSShape').hidden = false; // every flight can be straight, U-turn or curved, basement ones too
+  document.querySelectorAll('[data-srail]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.srail === stairRail(S))));
+  document.querySelectorAll('[data-ssides]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ssides === (S.railSides || 'auto'))));
+  document.getElementById('peSSides').hidden = turns(S) || stairRail(S) === 'none'; // turning stairs have their centre wall; the sides only matter with a railing
+  const gd = document.getElementById('peSGuard'); gd.checked = S.guard !== false; gd.disabled = stairRail(S) === 'none';
   const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
 }
 const curStair = () => (BM.stairs || []).find(o => o.id === PE.selStair);
 document.getElementById('peSRot').onclick = () => { const S = curStair(); if (!S) return; pushHist(); S.dir = STAIR_DIRS[(STAIR_DIRS.indexOf(stairDirOf(S)) + 1) % 4]; planChanged(); };
 document.getElementById('peSAuto').onclick = () => { const S = curStair(); if (!S) return; pushHist(); delete S.dir; planChanged(); };
 document.getElementById('peSDel').onclick = () => peDeleteStair();
+document.querySelectorAll('[data-srail]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.srail === 'glass') delete S.rail; else S.rail = b.dataset.srail; planChanged(); });
+document.querySelectorAll('[data-ssides]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.ssides === 'auto') delete S.railSides; else S.railSides = b.dataset.ssides; planChanged(); });
+document.getElementById('peSGuard').onchange = e => { const S = curStair(); if (!S) return; pushHist(); if (e.target.checked) delete S.guard; else S.guard = false; planChanged(); };
+document.getElementById('peSDup').onclick = () => peDupStair();
+// Duplicate a staircase beside itself (to the side first, then in front or behind), on the same level, same settings.
+function peDupStair() {
+  const S = curStair(); if (!S) return; pushHist(); const r = stairRect(S, stairDirOf(S));
+  const c = { ...S, id: BID++ }, free = (cx, cz) => { const t = { ...c, cx, cz }, q = stairRect(t, stairDirOf(t)); return !stairsOn(S.level).some(o => ovl(stairRect(o, stairDirOf(o)), q)); };
+  const tries = [[r.w + 1, 0], [-(r.w + 1), 0], [0, r.d + 1], [0, -(r.d + 1)]].map(([dx, dz]) => [snapH(S.cx + dx), snapH(S.cz + dz)]);
+  [c.cx, c.cz] = tries.find(([x, z]) => free(x, z)) || tries[0];
+  BM.stairs.push(c); PE.selStair = c.id; PE.sel = null; planChanged(); toast('Stairs duplicated');
+}
 document.querySelectorAll('[data-sshape]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.sshape === 'auto') delete S.shape; else S.shape = b.dataset.sshape; if (S.shape && S.shape !== 'straight' && S.W < 5.5) S.W = 6; planChanged(); });
 document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
 function peDeleteStair() { const i = (BM.stairs || []).findIndex(o => o.id === PE.selStair); if (i < 0) return; pushHist(); BM.stairs.splice(i, 1); PE.selStair = null; planChanged(); }
@@ -344,7 +402,12 @@ document.getElementById('peName').oninput = e => { const q = BM.rooms.find(r => 
 document.getElementById('peCeil').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); if (e.target.value === 'tall') q.tall = true; else delete q.tall; planChanged(); };
 document.getElementById('peType').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.type = e.target.value; delete q.name; planChanged(); };
 for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = fromDisp(parseFloat(e.target.value)); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
-document.getElementById('peDup').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); const c = { ...q, id: BID++, x: q.x + q.w }; delete c.group; BM.rooms.push(c); PE.sel = c.id; planChanged(); };
+document.getElementById('peDup').onclick = () => { // a copy next to it, on the first free side (right, left, behind, in front)
+  const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); const c = JSON.parse(JSON.stringify({ ...q, id: BID++ })); delete c.group;
+  const spots = [[q.x + q.w, q.z], [q.x - q.w, q.z], [q.x, q.z + q.d], [q.x, q.z - q.d]], clear = ([x, z]) => !BM.rooms.some(o => o.level === q.level && ovl(o, { x, z, w: q.w, d: q.d }));
+  [c.x, c.z] = spots.find(clear) || [q.x + q.w + 2, q.z];
+  for (const it of (BM.items || []).filter(i => i.level === q.level && i.x > q.x && i.x < q.x + q.w && i.z > q.z && i.z < q.z + q.d)) BM.items.push({ ...it, id: BID++, x: it.x + c.x - q.x, z: it.z + c.z - q.z }); // and its placed furniture
+  BM.rooms.push(c); PE.sel = c.id; planChanged(); toast(`${rname(q)} duplicated`); };
 document.getElementById('peDel').onclick = () => peDelete();
 document.getElementById('peRot').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.rot = ((q.rot || 0) + 1) % 4; planChanged(); };
 document.getElementById('peShuf').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.var = (q.var || 0) + 1; planChanged(); };
@@ -386,7 +449,7 @@ addEventListener('keydown', e => {
   const k = e.key.toLowerCase(), mod = e.metaKey || e.ctrlKey;
   if (mod && k === 'z') { e.preventDefault(); e.shiftKey ? peRedo() : peUndo(); return; }
   if (mod && k === 'y') { e.preventDefault(); peRedo(); return; }
-  if (mod && k === 'd') { e.preventDefault(); document.getElementById('peDup').click(); return; }
+  if (mod && k === 'd') { e.preventDefault(); if (PE.selStair) peDupStair(); else if (curItem()) document.getElementById('ixDup')?.click(); else document.getElementById('peDup').click(); return; }
   if (mod || e.altKey || mode === 'walk') return;
   if (e.key.startsWith('Arrow') && (PE.sel || PE.selStair)) { e.preventDefault(); peNudge(e.key, e.shiftKey ? 2 : .5); return; }
   if (k === 'r' && PE.sel) document.getElementById('peRot').click();

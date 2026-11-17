@@ -49,8 +49,12 @@ function drawSheetPlan(lv, W, H) {
   }
   for (const S of (BM.stairs || []).filter(t => t.level === lv)) { const r = stairRect(S, stairDirOf(S)), [a, b] = P(r.x, r.z); g.strokeStyle = '#555'; g.lineWidth = .8; g.strokeRect(a, b, r.w * s, r.d * s); const n = 12, ax = stairDirOf(S)[1] === 'x';
     g.beginPath(); for (let i = 1; i < n; i++) { if (ax) { g.moveTo(a + r.w * s * i / n, b); g.lineTo(a + r.w * s * i / n, b + r.d * s); } else { g.moveTo(a, b + r.d * s * i / n); g.lineTo(a + r.w * s, b + r.d * s * i / n); } } g.stroke(); }
-  for (const q of rs) { const [a, b] = P(q.x + q.w / 2, q.z + q.d / 2); if (q.w * s < 34) continue; g.fillStyle = '#111'; g.font = `600 ${Math.max(8, Math.min(11, s * .9))}px Inter, sans-serif`; g.fillText(rname(q).toUpperCase(), a, b - 6);
-    g.font = `${Math.max(7, Math.min(10, s * .8))}px "JetBrains Mono", monospace`; g.fillStyle = '#555'; g.fillText(`${ftin(q.w)} × ${ftin(q.d)}`, a, b + 6); }
+  const stairBoxes = (BM.stairs || []).filter(t => t.level === lv || stairUp(t) === lv).map(t => stairRect(t, stairDirOf(t)));
+  for (const q of rs) { if (q.w * s < 34) continue; const nf = `600 ${Math.max(8, Math.min(11, s * .9))}px Inter, sans-serif`, sf = `${Math.max(7, Math.min(10, s * .8))}px "JetBrains Mono", monospace`, sub = `${ftin(q.w)} × ${ftin(q.d)}`;
+    g.font = nf; let tw = g.measureText(rname(q).toUpperCase()).width; g.font = sf; tw = Math.max(tw, g.measureText(sub).width);
+    const lw = tw / s + .6, lh = 26 / s, ok = (x, z) => x - lw / 2 >= q.x && x + lw / 2 <= q.x + q.w && z - lh / 2 >= q.z && z + lh / 2 <= q.z + q.d && !stairBoxes.some(r => x + lw / 2 > r.x && x - lw / 2 < r.x + r.w && z + lh / 2 > r.z && z - lh / 2 < r.z + r.d);
+    let X = q.x + q.w / 2, Z = q.z + q.d / 2; if (!ok(X, Z)) { let bd = Infinity; for (let z = q.z + lh / 2; z <= q.z + q.d - lh / 2; z += .5) for (let x = q.x + lw / 2; x <= q.x + q.w - lw / 2; x += .5) { const d = Math.hypot(x - X, z - Z); if (d < bd && ok(x, z)) { bd = d; X = x; Z = z; } } } // off the stairs
+    const [a, b] = P(X, Z); g.fillStyle = '#111'; g.font = nf; g.fillText(rname(q).toUpperCase(), a, b - 6); g.font = sf; g.fillStyle = '#555'; g.fillText(sub, a, b + 6); }
   for (const d of (BM.dims || []).filter(i => i.level === lv)) { const [a, b] = P(d.x1, d.z1), [c2, e] = P(d.x2, d.z2); g.strokeStyle = '#c2410c'; g.lineWidth = .8; g.beginPath(); g.moveTo(a, b); g.lineTo(c2, e); g.stroke(); g.fillStyle = '#c2410c'; g.font = '600 9px "JetBrains Mono", monospace'; g.fillText(ftin(Math.hypot(d.x2 - d.x1, d.z2 - d.z1)), (a + c2) / 2, (b + e) / 2 - 7); }
   for (const n of (BM.notes || []).filter(i => i.level === lv)) { const [a, b] = P(n.x, n.z); g.fillStyle = '#111'; g.beginPath(); g.arc(a, b, 2.5, 0, 7); g.fill(); g.textAlign = 'left'; g.font = 'italic 9px Inter, sans-serif'; g.fillText(n.text, a + 6, b - 6); g.textAlign = 'center'; }
   dimChains(g, P, lv, '#444');

@@ -160,6 +160,6 @@ function furnish(F, r, y, zones = []) {
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
-  F.add(best.g); walkables.push(...best.g.userData.walk);
+  best.g.userData.room = r.id; F.add(best.g); walkables.push(...best.g.userData.walk); // tagged so a right-click in 3D finds its room
 }
 function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); }

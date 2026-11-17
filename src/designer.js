@@ -69,7 +69,7 @@ function placeItems() {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
     const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
-    furn[it.level].add(g);
+    g.userData.item = it.id; furn[it.level].add(g); // tagged so a right-click in 3D finds the piece
   }
 }
 
@@ -163,10 +163,58 @@ function drawDim(d, sel) {
   px.fillStyle = 'rgba(255,255,255,.95)'; px.fillRect(mx - tw / 2, my - 8, tw, 16); px.fillStyle = col; px.fillText(t, mx, my + .5);
 }
 
+// ---------- a room's furniture: Auto (laid out for you), Editable (real pieces you move, swap and delete) or None ----------
+const itemsIn = r => (BM.items || []).filter(i => i.level === r.level && i.x > r.x && i.x < r.x + r.w && i.z > r.z && i.z < r.z + r.d);
+const furnMode = r => r.nofurn ? (itemsIn(r).length ? 'edit' : 'off') : 'auto';
+// A starter set of catalog pieces for the room (backs to the front wall unless noted; rot 0 faces the back of the plan).
+function starterPieces(r) {
+  const x0 = r.x, x1 = r.x + r.w, z0 = r.z, z1 = r.z + r.d, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, W = r.w, D = r.d, t = likeOf(r.type), out = [];
+  const P = (kind, x, z, rot = 0, o = {}) => { const c = CATALOG[kind], [w, d] = rot % 2 ? [c[2], o.w || c[1]] : [o.w || c[1], c[2]]; if (w > W - .4 || d > D - .4) return; out.push({ kind, level: r.level, x: snapH(x), z: snapH(z), rot, ...o }); };
+  if (t === 'bedroom' || t === 'primary') { const king = t === 'primary' || W >= 14, bw = king ? 6.6 : 5.2, bd = king ? 7.2 : 7;
+    P('rug', cx, z0 + bd * .7, 0, { w: Math.min(W - 2, bw + 4), d: Math.min(D - 2, 6) }); P(king ? 'king' : 'queen', cx, z0 + .3 + bd / 2);
+    if (W >= bw + 4.4) { P('sidetable', cx - bw / 2 - 1.1, z0 + 1.1); P('sidetable', cx + bw / 2 + 1.1, z0 + 1.1); }
+    if (D >= bd + 4) P('dresser', cx, z1 - 1.1, 2); P('plant', x1 - 1, z1 - 1); return out; }
+  if (['living', 'great', 'rec', 'sunroom', 'bonus', 'playroom'].includes(t)) { const sw = Math.min(9, W - 4);
+    P('rug', cx, cz, 0, { w: Math.min(W - 3, 11), d: Math.min(D - 4, 8) }); P('tvunit', cx, z0 + .9); P('sofa', cx, Math.min(z1 - 1.8, z0 + 10), 2, { w: Math.max(5, sw) }); P('coffee', cx, (z0 + Math.min(z1 - 1.8, z0 + 10)) / 2 + .6);
+    if (W >= 15) { P('armchair', x0 + 2, cz, 3); P('armchair', x1 - 2, cz, 1); } P('lamp', x1 - 1, z1 - 1); P('plant', x0 + 1, z1 - 1); return out; }
+  if (t === 'dining') { const along = W >= D; P('rug', cx, cz, 0, { w: Math.min(W - 2, along ? 10 : 7.5), d: Math.min(D - 2, along ? 7.5 : 10) }); P('dining6', cx, cz, along ? 0 : 1); P('pendant', cx, cz, along ? 0 : 1); P('plant', x1 - 1, z1 - 1); return out; }
+  if (t === 'kitchen') { P('fridge', x0 + 1.7, z0 + 1.3); P('range', x1 - 1.45, z0 + 1.1); const bw = (x1 - 2.8) - (x0 + 3.3); if (bw >= 2) P('base', (x0 + 3.3 + x1 - 2.8) / 2, z0 + 1, 0, { w: snapH(bw) });
+    if (W >= 11 && D >= 12) P('island', cx, cz + 1); return out; }
+  if (t === 'office') { P('rug', cx, cz + 1, 0, { w: Math.min(W - 2, 8), d: Math.min(D - 3, 6) }); P('desk', cx, z0 + 2.1); P('bookcase', x1 - .7, cz, 1); P('plant', x0 + 1, z1 - 1); return out; }
+  if (t === 'bath') { P('vanity', x0 + 2.3, z0 + 1); P('toilet', x1 - 1.1, z0 + 1.3); if (r.type !== 'powder' && W >= 7 && D >= 8) P('tub', x0 + 3, z1 - 1.4); return out; }
+  if (t === 'laundry') { P('washer', x0 + 3, z0 + 1.3); return out; }
+  if (t === 'foyer' || t === 'mud' || t === 'hall') { if (W >= 6 && D >= 5) { P('console', cx, z0 + .8); P('plant', x1 - 1, z0 + 1); } return out; }
+  return out;
+}
+function setFurnMode(r, mode) {
+  pushHist(); const inRoom = new Set(itemsIn(r).map(i => i.id));
+  if (mode !== 'edit' || !inRoom.size) BM.items = (BM.items || []).filter(i => !inRoom.has(i.id)); // switching modes clears the room's placed pieces
+  if (mode === 'auto') delete r.nofurn; else r.nofurn = true;
+  if (mode === 'edit' && !inRoom.size) { BM.items = BM.items || []; for (const p of starterPieces(r)) BM.items.push({ id: BID++, ...p }); }
+  planChanged(); if (mode === 'edit') toast('Click a piece in the plan to move it, or right-click it to swap or delete');
+}
+document.querySelectorAll('[data-rf]').forEach(b => b.onclick = () => { const r = BM.rooms.find(q => q.id === PE.sel); if (r) setFurnMode(r, b.dataset.rf); });
+
+// Right-click furniture in the 3D view beside the plan: a placed piece opens its own menu (swap, rotate, duplicate, delete);
+// furniture laid out for you opens its room's menu, where it can be made editable or cleared.
+const rc3f = new THREE.Raycaster(), v2f = new THREE.Vector2();
+renderer.domElement.addEventListener('contextmenu', e => {
+  if (!PE.open) return; e.preventDefault();
+  const R = renderer.domElement.getBoundingClientRect(); v2f.set((e.clientX - R.left) / R.width * 2 - 1, -(e.clientY - R.top) / R.height * 2 + 1); rc3f.setFromCamera(v2f, camera);
+  const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  for (const h of rc3f.intersectObjects([G3.furnB, G3.furnM, G3.furnU], true)) { if (!vis(h.object)) continue;
+    let o = h.object; while (o && o.userData.item == null && o.userData.room == null) o = o.parent; if (!o) continue;
+    const it = o.userData.item != null && (BM.items || []).find(i => i.id === o.userData.item), rm = !it && BM.rooms.find(q => q.id === o.userData.room); if (!it && !rm) continue;
+    PE.lv = (it || rm).level; peLvlButtons(); PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear();
+    if (it) selectX({ kind: 'item', id: it.id }); else { PE.selX = null; PE.sel = rm.id; }
+    PE.menu = true; pePt = [e.clientX, e.clientY]; peInspector(); peDraw(); requestAnimationFrame(pePlaceSide); return; }
+});
+
 // ---------- inspector for items, notes, dimensions and several rooms ----------
 document.getElementById('peSide').insertAdjacentHTML('beforeend', '<div id="peX" class="pe-card" hidden></div>');
 function peExtraInspector() {
   roomFinishPanel();
+  { const r = BM.rooms.find(q => q.id === PE.sel); if (r) { const m = furnMode(r); document.querySelectorAll('[data-rf]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rf === m))); document.getElementById('peAutoFurn').hidden = m !== 'auto'; } }
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));

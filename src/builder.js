@@ -180,6 +180,12 @@ function edgesOf(r) {
 const OPP = { n: 's', s: 'n', w: 'e', e: 'w' };
 const extKey = (r, out) => `${r.id}:${out}`;
 const extMode = (r, out) => BM.ext?.[extKey(r, out)] || 'auto';
+// Railing on an open edge of a catwalk, deck or balcony: set per stretch (key with where it starts) or for the whole room; glass if unset.
+const railKey = (r, out, a) => `${r.id}:${out}:${(+a).toFixed(1)}`;
+// the stretches of a room's side that are open (not against another indoor room): where its railing runs
+function railSegments(R, out) { const e = edgesOf(R).find(x => x.out === out); if (!e) return [];
+  return sub1d([e.a, e.b], BM.rooms.filter(o => o.level === R.level && !isOut(o) && o !== R).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; })); }
+const railFor = (r, out, a) => BM.rails?.[railKey(r, out, a)] ?? BM.rails?.[`${r.id}:*`] ?? 'glass';
 const pairKey = (a, b) => a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`;
 const wallMode = (a, b) => BM.walls?.[pairKey(a, b)] || (openPair(a, b) ? 'open' : doorPair(a, b) ? 'door' : 'wall');
 // Close slivers of "outside" between rooms that almost touch: stretch the given rooms to meet their neighbours.
@@ -208,7 +214,7 @@ function planLevel(lv) {
     for (const [a, b] of sub1d([e.a, e.b], shared)) {
       const m = (a + b) / 2, off = { '-z': [0, -.6], '+z': [0, .6], '-x': [-.6, 0], '+x': [.6, 0] }[e.out], px = e.axis === 'x' ? m : e.c + off[0], pz = e.axis === 'x' ? e.c + off[1] : m;
       const toOut = outs.find(o => px > o.x && px < o.x + o.w && pz > o.z && pz < o.z + o.d);
-      if (A.type === 'bridge') { walls.push({ rail: true, axis: e.axis, c: e.c, a, b, room: A, ops: [] }); continue; } // catwalk edges get railings
+      if (A.type === 'bridge') { walls.push({ rail: true, kind: railFor(A, e.out, a), out: e.out, axis: e.axis, c: e.c, a, b, room: A, ops: [] }); continue; } // catwalk edges get railings (or not: per stretch)
       walls.push({ ext: true, axis: e.axis, c: e.c, a, b, out: e.out, room: A, ops: [], toOut });
     }
     for (const [a, b, B] of shared) if (A.id < B.id) {
@@ -337,7 +343,7 @@ function normalizeStairs(m) {
 function flightLanes(lv) { // footprints of the flights that arrive at this level from the one below
   const from = lv === 'U' ? 'M' : lv === 'M' ? 'B' : null; if (!from) return [];
   if (from === 'M' && !BM.rooms.some(r => r.level === 'U')) return [];
-  return stairsOn(from).map(s => { const p = stairPair(s); return laneOf(s, turns(s) ? 0 : p ? (from === 'B' ? (turns(p) ? 2 : 1) : 2) : 0); }); } // a turning flight opens its whole box above
+  return stairsOn(from).map(s => laneOf(s, 0)); } // every flight opens its whole box above (no automatic halving: stacked stairs keep the width you gave them)
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
 // ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
@@ -397,22 +403,54 @@ function clearZones(lv) {
 }
 // Guard rail round a floor opening, only along the stretches where you could actually walk up to the edge:
 // floor on the far side, no wall already on that line, not beside another flight or opening, not over a double-height void.
-function guardRail(par, lv, hole, e, a, b, y) {
+function guardRail(par, lv, hole, e, a, b, y, kind = 'glass') {
   const inward = { n: 1, s: -1, w: 1, e: -1 }[e.side], at = (t, off) => e.axis === 'x' ? [t, e.c + off] : [e.c + off, t];
   const blocked = (x, z) => stairsOn(lv).some(S => { const r = stairRect(S, stairDirOf(S)); return x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d; })
     || flightLanes(lv).some(L => L !== hole && x > L.x && x < L.x + L.w && z > L.z && z < L.z + L.d);
   const need = t => { const [ox, oz] = at(t, -inward * .45), [ix, iz] = at(t, inward * .45), out = roomAt3(lv, ox, oz), inn = roomAt3(lv, ix, iz);
     if (!out || blocked(ox, oz)) return false;                                  // nothing to stand on beside it
+    if (RT[out.type]?.rail && Math.abs((e.axis === 'x' ? (e.side === 'n' ? out.z + out.d : out.z) : (e.side === 'w' ? out.x + out.w : out.x)) - e.c) < EPS) return false; // a catwalk's own edge: its railing setting decides
     if (inn && out !== inn && wallMode(inn, out) !== 'open') return false;      // a wall already runs along this edge
     return true; };
   const step = .5; let s0 = null;
   for (let t = a; t <= b + 1e-6; t += step) { const tt = Math.min(t + step / 2, b), ok = t < b && need(tt);
-    if (ok && s0 === null) s0 = t; if ((!ok || t + step > b) && s0 !== null) { const s1 = ok ? b : t; if (s1 - s0 > .4) railing(par, e.axis, e.c, s0, s1, y); s0 = null; } }
+    if (ok && s0 === null) s0 = t; if ((!ok || t + step > b) && s0 !== null) { const s1 = ok ? b : t; if (s1 - s0 > .4) railing(par, e.axis, e.c, s0, s1, y, kind); s0 = null; } }
 }
-function railing(par, axis, c, a, b, y) { // glass panel with a dark top rail
-  if (b - a < .3) return; const h = 3.4;
-  if (axis === 'x') { box(par, a, b, y, y + h, c - .05, c + .05, M.glass, { solid: true }); box(par, a, b, y + h, y + h + .15, c - .1, c + .1, M.trim); }
-  else { box(par, c - .05, c + .05, y, y + h, a, b, M.glass, { solid: true }); box(par, c - .1, c + .1, y + h, y + h + .15, a, b, M.trim); }
+// Railings come in four kinds: glass panels, wood (walnut cap and balusters), black metal bars, or none.
+const RAIL_KINDS = [['none', 'None'], ['glass', 'Glass'], ['wood', 'Wood'], ['metal', 'Metal']];
+const railMats = k => k === 'wood' ? { cap: M.walnut, post: M.walnut } : k === 'metal' ? { cap: M.trim2, post: M.trim2 } : { cap: M.trim, post: M.trim };
+function railing(par, axis, c, a, b, y, kind = 'glass') { // level railing along a line
+  if (b - a < .3 || kind === 'none') return; const h = 3.4, R = railMats(kind), bx2 = (a0, a1, y0, y1, n0, n1, m, o) => axis === 'x' ? box(par, a0, a1, y0, y1, n0, n1, m, o) : box(par, n0, n1, y0, y1, a0, a1, m, o);
+  if (kind === 'glass') { bx2(a, b, y, y + h, c - .05, c + .05, M.glass, { solid: true }); bx2(a, b, y + h, y + h + .15, c - .1, c + .1, M.trim); return; }
+  const capW = kind === 'wood' ? .14 : .07, bar = kind === 'wood' ? .07 : .04, gap = kind === 'wood' ? .42 : .36;
+  bx2(a, b, y + h - .02, y + h + .15, c - capW, c + capW, R.cap, { solid: true });
+  if (kind === 'wood') bx2(a, b, y + .25, y + .38, c - .07, c + .07, R.cap);
+  for (const p of [a + .1, b - .1]) bx2(p - .09, p + .09, y, y + h, c - .09, c + .09, R.post);
+  for (let t = a + gap; t < b - .15; t += gap) bx2(t - bar, t + bar, y + (kind === 'wood' ? .38 : .05), y + h - .02, c - bar, c + bar, R.post);
+}
+// A railing that climbs with a flight: from (s0, y0) at the bottom step to (s1, y1) at the top, on the line c across the run.
+function slopedRail(par, alongX, c, s0, s1, y0, y1, kind) {
+  if (kind === 'none') return; const h = 3, R = railMats(kind), ds = s1 - s0, dy = y1 - y0, len = Math.hypot(ds, dy), mid = (s0 + s1) / 2, my = (y0 + y1) / 2;
+  const strip = (thick, height, yOff, mat) => { const g = new THREE.BoxGeometry(alongX ? len : thick, height, alongX ? thick : len), m = new THREE.Mesh(g, mat);
+    if (alongX) { m.position.set(mid, my + yOff, c); m.rotation.z = Math.atan2(dy, ds); } else { m.position.set(c, my + yOff, mid); m.rotation.x = Math.atan2(-dy, ds); }
+    m.castShadow = mat !== M.glass; m.receiveShadow = true; par.add(m); return m; };
+  const at = t => y0 + dy * (t - s0) / ds, post = (t, y, top, w) => alongX ? box(par, t - w, t + w, y, top, c - w, c + w, R.post) : box(par, c - w, c + w, y, top, t - w, t + w, R.post);
+  if (kind === 'glass') strip(.05, h - .3, h / 2 - .05, M.glass);
+  strip(kind === 'wood' ? .26 : .14, .16, h, R.cap);
+  for (const t of [s0, s1]) post(t, at(t) - .6, at(t) + h + .05, .09);
+  if (kind !== 'glass') { const gap = kind === 'wood' ? .42 : .36, n = Math.floor(Math.abs(ds) / gap), w = kind === 'wood' ? .06 : .035;
+    for (let i = 1; i < n; i++) { const t = s0 + ds * i / n; post(t, at(t), at(t) + h, w); } }
+}
+const stairRail = S => S.rail ?? 'glass';   // the railing kind a staircase uses (along the flight and round its opening upstairs)
+// Which long sides of a straight flight get a railing: 'auto' = the sides open to the room (a drop), or the user's pick.
+function flightSides(S, lane, dir, lv) {
+  const ax = dir[1] === 'x', s = dir[0] === '+' ? 1 : -1, lo = ax ? lane.z : lane.x, hi = lo + (ax ? lane.d : lane.w);
+  const left = ax ? (s > 0 ? lo : hi) : (s > 0 ? hi : lo), right = left === lo ? hi : lo; // facing up the stairs
+  const pick = S.railSides || 'auto'; if (pick !== 'auto') return { left: pick === 'left' || pick === 'both' ? left : null, right: pick === 'right' || pick === 'both' ? right : null };
+  const host = roomAt3(lv, S.cx, S.cz), open = side => { const off = side === lo ? -.5 : .5, run0 = ax ? lane.x : lane.z, run1 = run0 + (ax ? lane.w : lane.d);
+    return [.25, .5, .75].some(f => { const t = run0 + (run1 - run0) * f, [x, z] = ax ? [t, side + off] : [side + off, t], q = roomAt3(lv, x, z);
+      return q && (q === host || (host && wallMode(q, host) === 'open')) && !stairsOn(lv).some(o => o !== S && ovl(stairRect(o, stairDirOf(o)), { x: x - .05, z: z - .05, w: .1, d: .1 })); }); };
+  return { left: open(left) ? left : null, right: open(right) ? right : null };
 }
 // Which way a staircase climbs: starts along the room's long side, each ↻ Rotate turns it a quarter.
 const STAIR_DIRS = ['+x', '+z', '-x', '-z'];
@@ -486,7 +524,7 @@ function buildHouse3() {
           box(P, r.x, r.x + r.w, MC - .6, MC, r.z, r.z + r.d, BM.style === 'modern' ? M.trim2 : STY ? SIDE : M.stucco); flat(G3.mainCeil, rr, [], MC - .62, BM.style === 'modern' ? M.soffitM : M.soffit); }
         if (T.rail) for (const e of edgesOf(r)) { // railings on the open edges
           const segs = sub1d([e.a, e.b], BM.rooms.filter(o => o.level === lv && !isOut(o) && o !== r).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; }));
-          for (const [a, b] of segs) railing(P, e.axis, e.c, a, b, fy);
+          for (const [a, b] of segs) railing(P, e.axis, e.c, a, b, fy, railFor(r, e.out, a));
         }
         if (showFurnBuild) furnish(furn[lv], r, fy, zones);
         continue;
@@ -509,16 +547,20 @@ function buildHouse3() {
       const dir = stairDirOf(S), pair = stairPair(S), UP = parent[upLv];
       if (turns(S)) { // turning stairs: rail round the whole opening except the half you arrive on
         const g = turnRun(P, S, dir, y, upY), r = stairRect(S, dir), startSide = { '+x': 'w', '-x': 'e', '+z': 'n', '-z': 's' }[dir];
-        for (const e of edgesOf(r)) { if (e.side !== startSide) { guardRail(UP, upLv, r, e, e.a, e.b, upY); continue; } guardRail(UP, upLv, r, e, g.a0, g.a0 + g.hw, upY); }
+        const RK = stairRail(S), guard = S.guard !== false ? RK : 'none';
+        for (const e of edgesOf(r)) { if (e.side !== startSide) { guardRail(UP, upLv, r, e, e.a, e.b, upY, guard); continue; } guardRail(UP, upLv, r, e, g.a0, g.a0 + g.hw, upY, guard); }
         continue; }
-      const half = pair ? (lv === 'B' ? (turns(pair) ? 2 : 1) : 2) : 0, lane = laneOf(S, half);
+      const lane = laneOf(S, 0), RK = stairRail(S); // the whole width you gave it, never cut in half
       stairRun(P, lane, y, upY, 0, false, dir);
+      { const ax = dir[1] === 'x', sg = dir[0] === '+' ? 1 : -1, L = ax ? lane.w : lane.d, run = Math.min(L, 15 * .9) / 15, st0 = (ax ? lane.x : lane.z) + (L - run * 15) / 2,
+          b0 = sg > 0 ? st0 : st0 + run * 15, b1 = sg > 0 ? st0 + run * 15 : st0, sides = flightSides(S, lane, dir, lv); // railings up the open sides of the flight
+        for (const c of [sides.left, sides.right]) if (c != null) slopedRail(P, ax, c + (c === (ax ? lane.z : lane.x) ? .12 : -.12), b0, b1, y + (upY - y) / 16, upY, RK); }
       const topSide = { '+x': 'e', '-x': 'w', '+z': 's', '-z': 'n' }[dir]; // guard rail round the opening, open at the arrival end
-      for (const e of edgesOf(lane)) if (e.side !== topSide) guardRail(UP, upLv, lane, e, e.a, e.b, upY);
+      if (S.guard !== false) for (const e of edgesOf(lane)) if (e.side !== topSide) guardRail(UP, upLv, lane, e, e.a, e.b, upY, RK);
     }
     // walls
     for (const w of planLevel(lv)) {
-      if (w.rail) { railing(P, w.axis, w.c, w.a, w.b, LV_Y[lv]); continue; }
+      if (w.rail) { railing(P, w.axis, w.c, w.a, w.b, LV_Y[lv], w.kind); continue; }
       if (w.open) continue; // Open: nothing at all on this edge, upstairs too
       const horiz = w.axis === 'x', ext = w.ext, garageRoom = (ext ? w.room.type : w.rooms.some(q => q.type === 'garage')) === 'garage' || (!ext && w.rooms.some(q => q.type === 'garage'));
       const t = ext ? EXT : INT, ex = ext ? t / 2 : 0;
