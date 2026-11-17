@@ -33,7 +33,7 @@ function summarize(bm) {
     const T = RT[r.type] || {}; if (!T.outdoor && !T.garage && r.level !== 'B') sf += r.w * r.d; if (T.garage) garage += r.w * r.d;
     if (BEDS.has(r.type) && one(r)) beds++; else if ((r.type === 'bath' || r.type === 'ensuite') && one(r)) baths += 1; else if (r.type === 'powder' && one(r)) baths += .5;
   }
-  return { beds, baths, sf: Math.round(sf), storeys: rs.some(r => r.level === 'U') ? 2 : 1, basement: rs.some(r => r.level === 'B'), garage: Math.round(garage / 250) };
+  return { beds, baths, sf: Math.round(sf), storeys: Math.max(1, new Set(rs.filter(r => r.level !== 'B' && !levelList(bm).some(l => l.id === r.level && l.y < 0)).map(r => r.level)).size), basement: rs.some(r => levelList(bm).some(l => l.id === r.level && l.y < 0)), garage: Math.round(garage / 250) };
 }
 const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, fmtArea(s.sf), s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
 const previewOf = bm => (bm.rooms || []).filter(r => r.level === 'M').map(r => [r.x, r.z, r.w, r.d, (RT[r.type] || {}).color || '#ddd']);

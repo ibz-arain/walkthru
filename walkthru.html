@@ -547,6 +547,17 @@ body.editing .cl-save{display:none}
 .st-modal .st-msg{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.5}.st-modal .st-msg b{color:var(--ink);font-weight:600;word-break:break-word}
 #stDelForm .btn.st-danger{background:#e5484d;border-color:#e5484d;color:#fff!important}#stDelForm .btn.st-danger:hover{background:#d93d42}
 .sn-lot[data-loading] input{opacity:.5}
+/* Floors popover: one row per floor, top floor first */
+#peFloorsPop{width:340px}
+.fl-row{display:grid;grid-template-columns:1fr 62px 62px 26px;gap:4px;align-items:center;margin:3px 6px}
+.fl-row.fl-head{font:500 10.5px var(--f-ui);color:var(--ink-3);margin-bottom:0}
+.fl-row.on input[data-fl="name"]{border-color:var(--ink-3)}
+.fl-row input{font:12.5px var(--f-ui);padding:5px 7px;border:1px solid var(--rule-2);border-radius:var(--r-sm);background:var(--paper);color:var(--ink);box-sizing:border-box;width:100%;min-width:0}
+.fl-row input:focus{outline:none;border-color:var(--ink-3);box-shadow:0 0 0 3px var(--accent-soft)}
+.fl-row button{width:26px;height:26px;border:0;border-radius:var(--r-sm);background:none;color:var(--ink-3);cursor:pointer;display:grid;place-items:center}
+.fl-row button:hover:not(:disabled){background:var(--accent-soft);color:var(--ink)}
+.fl-row button:disabled{opacity:.3;cursor:default}
+.fl-row button .ic{width:14px;height:14px}
 </style>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -643,7 +654,8 @@ body.editing .cl-save{display:none}
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
   <div class="tb-g ed-only" id="tbEdit">
-    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
+    <div class="seg tb-seg" id="segPeLvl" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
+    <button class="tb-b" id="peFloorsBtn" type="button" data-pop="peFloorsPop" data-tip="Floors: add, remove, set heights"><svg class="ic"><use href="#i-sliders"/></svg><span class="tb-t">Floors</span></button>
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
     <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
@@ -735,6 +747,16 @@ body.editing .cl-save{display:none}
   <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   <div class="menu" style="margin-top:8px"><button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface <kbd>\</kbd></button><button type="button" id="helpBtn"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts <kbd>?</kbd></button></div>
 </div>
+<div class="pop" id="peFloorsPop" hidden role="dialog" aria-label="Floors">
+  <h6>Floors <span class="pop-out">heights in <span class="u-len">ft</span></span></h6>
+  <div id="peFloorList"></div>
+  <div class="menu sepd">
+    <button type="button" id="peFlTop"><svg class="ic"><use href="#i-up"/></svg>Add a floor on top</button>
+    <button type="button" id="peFlHalf"><svg class="ic"><use href="#i-plus"/></svg>Add a half level above this floor</button>
+    <button type="button" id="peFlBot"><svg class="ic"><use href="#i-down"/></svg>Add a level below</button>
+  </div>
+  <p class="pop-note">Ceiling is floor to ceiling; Level is measured from the main floor (set how high the main floor sits under Plan settings → Levels). A half level sits between two floors, like a split entry or a foyer you go up or down from. Stairs climb to the next floor with rooms where they arrive; pick another under “Goes up to”.</p>
+</div>
 <div class="pop" id="pePlanPop" hidden role="dialog" aria-label="Plan settings">
   <h6>Guide floor</h6>
   <div class="seg full" id="peGuide"><button type="button" data-guide="below">Below</button><button type="button" data-guide="above">Above</button><button type="button" data-guide="none">Off</button></div>
@@ -745,6 +767,7 @@ body.editing .cl-save{display:none}
   <label class="sw-row">Room dimensions <input type="checkbox" id="peDimsT" checked><span class="tg"></span></label>
   <label class="sw-row">Dimension strings <input type="checkbox" id="peChainT" checked><span class="tg"></span></label>
   <label class="sw-row">Room areas <input type="checkbox" id="peAreaT"><span class="tg"></span></label>
+  <label class="sw-row">Furniture <input type="checkbox" id="peFurnT"><span class="tg"></span></label>
 </div>
 <div class="pop" id="peResetPop" hidden role="dialog" aria-label="Start over">
   <h6>Start this design over</h6>
@@ -770,6 +793,7 @@ body.editing .cl-save{display:none}
       <div id="peWall" class="pe-card" hidden>
         <h3>Wall</h3>
         <p id="peWallInfo" class="pe-note"></p>
+        <p id="peWallHint" class="pe-note"></p>
         <div id="peWallBtns" class="seg full pe-wm"><button type="button" data-wm="open" title="No wall: the rooms flow together">Open</button><button type="button" data-wm="door" title="Wall with a door">Door</button><button type="button" data-wm="wall" title="Solid wall, no door">Solid</button></div>
         <div id="peRailBtns" hidden><div class="seg full pe-wm" role="group" aria-label="Railing on this stretch"><button type="button" data-rk="none">None</button><button type="button" data-rk="glass">Glass</button><button type="button" data-rk="wood">Wood</button><button type="button" data-rk="metal">Metal</button></div>
           <div class="pe-row"><button class="btn" id="peRailAll" type="button" title="Use this railing on every open edge of this room">Same on every side</button></div></div>
@@ -777,8 +801,9 @@ body.editing .cl-save{display:none}
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="10" step="any"></label>
-        <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
+        <div class="form2"><label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="12" step="any"></label><label class="fld" for="peSL"><span>Length (<span class="u-len">ft</span>)</span> <input id="peSL" type="number" min="4" max="30" step="any"></label></div>
+        <label class="fld" for="peSTo"><span>Goes up to</span> <select id="peSTo"></select></label>
+        <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a rectangular landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:10px">Railings</h3>
         <div id="peSRail" class="seg full pe-wm" role="group" aria-label="Railing"><button type="button" data-srail="none">None</button><button type="button" data-srail="glass">Glass</button><button type="button" data-srail="wood">Wood</button><button type="button" data-srail="metal">Metal</button></div>
         <div id="peSSides" class="seg full pe-wm" role="group" aria-label="Railing sides"><button type="button" data-ssides="auto" title="Only the sides open to the room">Auto</button><button type="button" data-ssides="left" title="Left as you walk up">Left</button><button type="button" data-ssides="right" title="Right as you walk up">Right</button><button type="button" data-ssides="both">Both</button></div>
@@ -968,7 +993,12 @@ let BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20
 // The defaults give exactly the numbers above. Floor build-ups stay fixed: 1'-1" under the main floor, 1'-½" under the 2nd.
 const LEVELS_DEF = { main: 2.33, mainH: 9.1, upH: 8.09, baseH: 8 };
 const LEVEL_PRESETS = { standard: ['Standard', { main: 2.33 }, 'Basement below ground, main floor a few steps up'], raised: ['Raised', { main: 4.75 }, 'Raised bungalow / bi-level: the basement sits half out of the ground'], slab: ['Slab', { main: .5 }, 'Slab on grade: main floor one step above the ground'] };
-const levelsOf = m => ({ ...LEVELS_DEF, ...(m?.levels || {}) });
+// An early build stored floors as a list [{ id, name, y, h }]: turn that into the object form (extra floors in .extra, see builder.js).
+function fixLevels(m) { if (!Array.isArray(m?.levels)) return; const A = m.levels, g = id => A.find(l => l.id === id), Mf = g('M'), o = {}, DN = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+  if (Mf) { o.main = Mf.y; o.mainH = Mf.h; } if (g('U')) o.upH = g('U').h; if (g('B')) o.baseH = g('B').h;
+  const ex = A.filter(l => !DN[l.id]).map(l => ({ id: l.id, name: l.name, rel: +(l.y - (Mf?.y ?? 2.33)).toFixed(2), h: l.h })); if (ex.length) o.extra = ex;
+  const nm = {}; for (const id in DN) if (g(id) && g(id).name !== DN[id]) nm[id] = g(id).name; if (Object.keys(nm).length) o.names = nm; m.levels = o; }
+const levelsOf = m => { fixLevels(m); return { ...LEVELS_DEF, ...(m?.levels || {}) }; };
 function applyLevels(m) {
   const L = levelsOf(m); MF = L.main; MC = MF + L.mainH; UF = MC + 1.04; UC = UF + L.upH; BC = MF - 1.08; BF = BC - L.baseH; TF = MF - 1.16;
   for (const o of [typeof LV_Y !== 'undefined' && LV_Y, typeof LEVEL_Y !== 'undefined' && LEVEL_Y]) if (o) Object.assign(o, { B: BF, M: MF, U: UF });
@@ -2493,7 +2523,53 @@ const RT = { // room types
   porch:    { name: 'Porch', color: '#d8d4cb', floor: 'concrete', outdoor: 1, covered: 1, levels: 'M', size: [16, 7] },
   bridge:   { name: 'Bridge / Catwalk', color: '#e1dccf', floor: 'wood', open: 1, rail: 1, levels: 'U', size: [4, 14] },
 };
-const LV_Y = { B: BF, M: MF, U: UF }, LV_C = { B: BC, M: MC, U: UC }, LV_NAME = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+// ---------- Floors ----------
+// The basement, main and 2nd floor heights come from BM.levels (see core.js). On top of those a design can add any number
+// of extra floors, BM.levels.extra = [{ id, name, rel (floor level, feet from the main floor), h (floor to ceiling) }]:
+// floors above the 2nd, half levels in between (split entries) or levels below the basement. BM.levels.names renames floors.
+// levelList() gives every floor as { id, name, y, h } sorted bottom to top. 'M' is always the ground floor (front door,
+// garage, porches); floors below grade are basements. Stairs climb to the next floor up with rooms where they arrive.
+const JOIST = 1.04; // floor structure between a ceiling and the floor above
+const LV_DEFNAME = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+function levelList(m = BM) {
+  const L = levelsOf(m), mf = L.main, mc = mf + L.mainH, uf = mc + JOIST, bc = mf - 1.08, nm = id => L.names?.[id] || LV_DEFNAME[id];
+  const out = [{ id: 'B', name: nm('B'), y: +(bc - L.baseH).toFixed(2), h: L.baseH }, { id: 'M', name: nm('M'), y: mf, h: L.mainH }, { id: 'U', name: nm('U'), y: +uf.toFixed(2), h: L.upH }];
+  for (const e of Array.isArray(L.extra) ? L.extra : []) out.push({ id: e.id, name: e.name || e.id, y: +(mf + e.rel).toFixed(2), h: e.h, extra: true });
+  return out.sort((a, b) => a.y - b.y);
+}
+const DEFAULT_LEVELS = levelList({});
+const lvOf = id => levelList().find(l => l.id === id);
+// LV_Y / LV_C / LV_NAME read the current design (applyLevels' Object.assign onto them is harmless)
+const LV_Y = new Proxy({}, { get: (_, k) => lvOf(k)?.y }), LV_C = new Proxy({}, { get: (_, k) => { const l = lvOf(k); return l ? l.y + l.h : undefined; } });
+const LV_NAME = new Proxy({}, { get: (_, k) => lvOf(k)?.name || String(k) });
+const levelIds = () => levelList().map(l => l.id);
+const levelAbove = id => { const L = levelList(), i = L.findIndex(l => l.id === id); return i >= 0 && i < L.length - 1 ? L[i + 1].id : null; };
+const levelBelow = id => { const L = levelList(), i = L.findIndex(l => l.id === id); return i > 0 ? L[i - 1].id : null; };
+const levelsAbove = id => { const L = levelList(), i = L.findIndex(l => l.id === id); return i < 0 ? [] : L.slice(i + 1).map(l => l.id); };
+const belowGrade = id => (LV_Y[id] ?? 0) < 0;
+const upperLevel = id => id !== 'M' && !belowGrade(id); // any floor above grade other than the main floor
+// the floor someone standing at height y is on: the highest floor at or below their feet (with a little slack for stairs)
+const levelAtY = y => { let id = levelList()[0].id; for (const l of levelList()) if (y >= l.y - .6) id = l.id; return id; };
+function editLevels(fn) { const L = { ...(BM.levels || {}) }; L.extra = (L.extra || []).map(e => ({ ...e })); L.names = { ...(L.names || {}) }; fn(L); if (!L.extra?.length) delete L.extra; if (!Object.keys(L.names || {}).length) delete L.names; BM.levels = L; applyLevels(BM); }
+// A floor's ceiling height changed: extra floors stacked on it move with it (below grade, the ones under it drop instead).
+function setLevelHeight(id, h) {
+  const l = lvOf(id); if (!l) return; const d = +(h - l.h).toFixed(2); if (!d) return;
+  const down = l.y < 0 && id !== 'M', top = l.y + l.h, mf = LV_Y.M;
+  editLevels(L => {
+    for (const e of L.extra) { if (e.id === id) continue; const y = mf + e.rel; if (down ? y <= l.y + .01 : y >= top - .01) e.rel = +(e.rel + (down ? -d : d)).toFixed(2); }
+    if (id === 'B') L.baseH = h; else if (id === 'M') L.mainH = h; else if (id === 'U') L.upH = h; else { const e = L.extra.find(q => q.id === id); e.h = h; if (down) e.rel = +(e.rel - d).toFixed(2); }
+  });
+}
+function addLevel(where, ref) { // where: 'top' | 'bottom' | 'half' (between ref and the floor above it)
+  let id = 'L1'; for (let i = 1; levelIds().includes(id = 'L' + i); i++);
+  const L = levelList(), top = L[L.length - 1], bot = L[0], mf = LV_Y.M; let e;
+  if (where === 'top') e = { id, name: `${ordinal(L.filter(q => q.y > 0).length + 1)} floor`, rel: top.y + top.h + JOIST - mf, h: 8 };
+  else if (where === 'bottom') e = { id, name: 'Lower basement', rel: bot.y - JOIST - 8 - mf, h: 8 };
+  else { const r = lvOf(ref) || lvOf('M'), up = L[L.indexOf(L.find(q => q.id === r.id)) + 1], y = up ? (r.y + up.y) / 2 : r.y + (r.h + JOIST) / 2;
+    e = { id, name: up ? `Half level (${r.name} ↕ ${up.name})` : `Half level above ${r.name}`, rel: y - mf, h: 8 }; }
+  e.rel = +e.rel.toFixed(2); editLevels(L2 => L2.extra.push(e)); return id;
+}
+const ordinal = n => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 let BID = 1;
 const R = (type, level, x0, x1, z0, z1, extra = {}) => ({ id: BID++, type, level, x: +x0.toFixed(2), z: +z0.toFixed(2), w: +(x1 - x0).toFixed(2), d: +(z1 - z0).toFixed(2), ...extra });
 
@@ -2652,8 +2728,8 @@ function closeGaps(ids, maxGap = 1.5) {
 }
 // Basement windows: small ones up under the joists while the basement is deep in the ground; once enough of it stands
 // above grade (raised or bi-level houses) they become proper windows from just above the ground to the top of the foundation.
-function baseWin(c, L) { const exposed = TF - .3; if (exposed < 3.2) return { c, w: 3.5, b: BC - 2.2, h: 1.6 };
-  const sill = Math.max(.6, BF + 2.5); return { c, w: Math.min(5, L - 1.5), b: sill, h: TF - .3 - sill }; }
+function baseWin(c, L, lv = 'B') { const fl = LV_Y[lv], ceil = LV_C[lv], top = Math.min(TF, ceil + JOIST), exposed = top - .3; if (exposed < 3.2) return { c, w: 3.5, b: ceil - 2.2, h: 1.6 };
+  const sill = Math.max(.6, fl + 2.5); return { c, w: Math.min(5, L - 1.5), b: sill, h: top - .3 - sill }; }
 function planLevel(lv) {
   const rs = BM.rooms.filter(r => r.level === lv && !isOut(r)), outs = BM.rooms.filter(r => r.level === lv && isOut(r)), walls = [];
   for (const A of rs) for (const e of edgesOf(A)) {
@@ -2675,7 +2751,7 @@ function planLevel(lv) {
   // openings
   let frontDone = lv !== 'M';
   const frontCands = walls.filter(w => w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
-  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: MF, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
+  if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
@@ -2687,9 +2763,9 @@ function planLevel(lv) {
     if (xm === 'open') { w.open = true; continue; } // no wall: the room is open to the outside here
     if (w.toOut && xm === 'auto' && L >= 3.2 && !RT[w.room.type]?.garage) { const big = L >= 8; w.ops.push({ c: mid, w: big ? 6 : 3, b: y, h: big ? 7.5 : 6.67, k: big ? 'slider' : 'extdoor' }); continue; }
     if (xm === 'door' && L >= 3.2) { const o = opAt(w, extKey(w.room, w.out), 3, 6.67); w.ops.push({ c: o.c, w: o.w, b: lv === 'M' && w.room.type === 'garage' ? GF : y, h: o.h, ...extDoorOp(o, o.w >= 5.5 ? 'slider' : 'extdoor') }); continue; }
-    if (xm === 'window' && lv !== 'B' && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
+    if (xm === 'window' && !belowGrade(lv) && L >= 3.5) { const ov = BM.ops?.[extKey(w.room, w.out)] || {}, n = Math.max(1, Math.min(8, ov.n || Math.min(3, Math.floor(L / 7)))), ww = Math.max(1.5, Math.min(ov.w || 4.5, L / n - .8)), hh = Math.min(ov.h || (lv === 'M' ? 6 : 5), 8.6 - (ov.sill ?? 2.3)), sill = ov.sill ?? 2.3;
       for (let i = 0; i < n; i++) { const c = n === 1 && ov.pos != null ? Math.max(w.a + ww / 2 + .3, Math.min(w.b - ww / 2 - .3, w.a + ov.pos * L)) : w.a + L * (i + .5) / n; w.ops.push({ c, w: ww, b: y + sill, h: hh, style: ov.style, lites: ov.style === 'grid' }); } continue; }
-    if (xm === 'window' && lv === 'B' && L >= 4) { w.ops.push(baseWin(mid, L)); continue; }
+    if (xm === 'window' && belowGrade(lv) && L >= 4) { w.ops.push(baseWin(mid, L, lv)); continue; }
     const T = RT[w.room.type] || {};
     if (T.garage && lv === 'M' && BM.style === 'modern' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { w.ops.push({ c: (w.a + w.b) / 2, w: 16, b: GF, h: 8, k: 'garage', fm: M.gdoorDark, plain: true }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'stone' && w.out === '-z' && L >= 18 && !gUsed.has(w.room.group || w.room.id)) { // two single doors with a stone pier between
@@ -2697,11 +2773,11 @@ function planLevel(lv) {
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
-    if (lv === 'B') { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L)); continue; }
+    if (belowGrade(lv)) { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L, lv)); continue; }
     if (T.small) { if (L >= 4) w.ops.push({ c: mid, w: 2.5, b: y + 4.2, h: 3 }); continue; }
     if (T.win && L >= 4.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.6);
       const inPt = c => { const d = { '-z': [0, .8], '+z': [0, -.8], '-x': [.8, 0], '+x': [-.8, 0] }[w.out]; return w.axis === 'x' ? [c, w.c + d[1]] : [w.c + d[0], c]; };
-      for (let i = 0; i < n; i++) { const c = w.a + L * (i + .5) / n, tallWin = lv === 'M' && w.room.tall && [-ww / 2, 0, ww / 2].every(k => inTall(...inPt(c + k)));
+      for (let i = 0; i < n; i++) { const c = w.a + L * (i + .5) / n, tallWin = w.room.tall && [-ww / 2, 0, ww / 2].every(k => inTall(lv, ...inPt(c + k)));
         w.ops.push({ c, w: ww, b: y + (tallWin ? 1.5 : 2.3), h: tallWin ? 14 : lv === 'M' ? 6 : 5 }); } }
   }
   return walls;
@@ -2710,7 +2786,10 @@ function planLevel(lv) {
 // ---------- 3D groups ----------
 const HOUSE3 = new THREE.Group(); scene.add(HOUSE3); HOUSE3.visible = false;
 const G3 = {};
-for (const k of ['basement', 'main', 'mainCeil', 'upper', 'upperCeil', 'roof', 'furnB', 'furnM', 'furnU', 'site', 'trees']) { G3[k] = new THREE.Group(); HOUSE3.add(G3[k]); }
+for (const k of ['basement', 'basementCeil', 'main', 'mainCeil', 'upper', 'upperCeil', 'roof', 'furnB', 'furnM', 'furnU', 'site', 'trees']) { G3[k] = new THREE.Group(); HOUSE3.add(G3[k]); }
+// each floor's groups: walls and floors, ceilings (hidden in cutaway views), furniture. Extra floors get groups on first use.
+const LG_FIX = { B: ['basement', 'basementCeil', 'furnB'], M: ['main', 'mainCeil', 'furnM'], U: ['upper', 'upperCeil', 'furnU'] };
+function LG(id) { const k = LG_FIX[id] || [`lv_${id}`, `lvCeil_${id}`, `furn_${id}`]; for (const n of k) if (!G3[n]) { G3[n] = new THREE.Group(); HOUSE3.add(G3[n]); } return { g: G3[k[0]], ceil: G3[k[1]], furn: G3[k[2]] }; }
 let H3_LOT = null, ROOMS3 = [], OUTLINE3 = { B: [], M: [], U: [] }, H3_WALK = [], H3_FRONT = [15, -20, Math.PI, 1], H3_DRIVE = [45, -30, Math.PI, 1];
 const flatRoofMat = std({ color: '#5f6266', roughness: .9 });
 const ovl = (a, b) => a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05;
@@ -2723,19 +2802,28 @@ function cutRect([a0, a1, b0, b1], c) { // rectangle minus rectangle → up to 4
 // Double-height main-floor rooms: open up to the 2nd-floor ceiling (only where nothing is built above).
 // Double height: a "tall" main-floor room rises to the 2nd-floor ceiling wherever nothing is built above it.
 // 2nd-floor rooms over part of it sit in the void as a box with its own ceiling underneath.
-const upSolid = () => BM.rooms.filter(u => u.level === 'U' && u.type !== 'bridge' && u.type !== 'balcony');
-const coveredAt = (x, z) => upSolid().some(u => x > u.x && x < u.x + u.w && z > u.z && z < u.z + u.d);
-const tallParts = r => rectCells([r], .5, upSolid());                       // the open (double-height) parts of a room
-const isTall = r => r.level === 'M' && r.tall && tallParts(r).length > 0;   // at least part of it is open above
-const fullyTall = r => isTall(r) && !upSolid().some(u => ovl(u, r));
-const inTall = (x, z) => !coveredAt(x, z) && BM.rooms.some(r => r.level === 'M' && r.tall && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
-const upperAt = (x, z) => BM.rooms.some(r => r.level === 'U' && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
+// Double height stays a main-floor feature: it opens into the 2nd floor (extra floors and half levels don't change that).
+const tallInto = lv => lv === 'M' ? 'U' : null;
+const upSolid = lv => { const up = tallInto(lv); return up ? BM.rooms.filter(u => u.level === up && u.type !== 'bridge' && u.type !== 'balcony') : []; };
+const coveredAt = (lv, x, z) => upSolid(lv).some(u => x > u.x && x < u.x + u.w && z > u.z && z < u.z + u.d);
+const canTall = lv => !!tallInto(lv);
+const tallParts = r => canTall(r.level) ? rectCells([r], .5, upSolid(r.level)) : [];   // the open (double-height) parts of a room
+const isTall = r => r.tall && tallParts(r).length > 0;   // at least part of it is open above
+const fullyTall = r => isTall(r) && !upSolid(r.level).some(u => ovl(u, r));
+const inTall = (lv, x, z) => canTall(lv) && !coveredAt(lv, x, z) && BM.rooms.some(r => r.level === lv && r.tall && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
 // ---------- Stairs layer ----------
 // Staircases are their own objects (BM.stairs), sitting inside rooms: they don't take a room slot, make walls or change connections.
-// S = { id, level: 'B'|'M' (where it starts), cx, cz (centre), W (width), L (run length), dir? ('+x','+z','-x','-z'; missing = automatic) }
+// S = { id, level (where it starts), to? (the floor it climbs to; missing = automatic), cx, cz (centre), W (width), L (run length), dir? ('+x','+z','-x','-z'; missing = automatic) }
 function stairsOn(lv) { return (BM.stairs || []).filter(s => s.level === lv); }
 function stairRect(S, dir) { const ax = dir[1] === 'x', w = ax ? S.L : S.W, d = ax ? S.W : S.L; return { x: S.cx - w / 2, z: S.cz - d / 2, w, d }; }
-const stairUp = S => S.level === 'B' ? 'M' : 'U';
+// Where a flight goes: the floor picked for it (S.to), else the next floor up with rooms around its top (so a half level off to
+// one side doesn't capture the main stair), else simply the next floor up.
+function stairUp(S) {
+  const ups = levelsAbove(S.level); if (!ups.length) return null; if (S.to && ups.includes(S.to)) return S.to;
+  const r = Math.max(S.L, S.W) / 2 + 2.5, box = { x: S.cx - r, z: S.cz - r, w: 2 * r, d: 2 * r };
+  return ups.find(l => BM.rooms.some(o => o.level === l && !isOut(o) && ovl(o, box))) || ups[0];
+}
+const stairBelow = S => levelBelow(S.level);
 function roomAt3(lv, x, z) { return BM.rooms.find(o => o.level === lv && !isOut(o) && x > o.x && x < o.x + o.w && z > o.z && z < o.z + o.d); }
 // Stair shapes: straight, U-turn (two flights side by side with a flat landing) or curved (the flights joined by a half-circle of
 // winder steps). Turning stairs climb up one half of their box, turn at the far end and arrive back beside where they started.
@@ -2744,9 +2832,9 @@ function turnTop(S, dir) { // where a turning stair arrives: just past its start
   const r = stairRect(S, dir), s = dir[0] === '+' ? 1 : -1, ax = dir[1] === 'x', lo = ax ? (s > 0 ? r.x : r.x + r.w) : (s > 0 ? r.z : r.z + r.d), c2 = ax ? r.z + r.d * .75 : r.x + r.w * .75;
   return ax ? [lo - 2 * s, c2] : [c2, lo - 2 * s]; }
 const stairShape = S => { // Auto: curved when the box is wide enough and the turn lands on 2nd-floor floor, otherwise straight
-  if (S.shape && S.shape !== 'auto') return S.shape; if (S.level === 'B' || !(S.W >= 5.5 && S.L >= 8)) return 'straight'; // Auto keeps basement flights straight; pick a shape to turn them
+  if (S.shape && S.shape !== 'auto') return S.shape; if (belowGrade(S.level) || !(S.W >= 5.5 && S.L >= 8)) return 'straight'; // Auto keeps basement flights straight; pick a shape to turn them
   const dirs = S.dir ? [S.dir] : STAIR_DIRS;
-  return dirs.some(d => roomAt3('U', ...turnTop(S, d))) ? 'curved' : 'straight'; };
+  return dirs.some(d => roomAt3(stairUp(S), ...turnTop(S, d))) ? 'curved' : 'straight'; };
 const turns = S => stairShape(S) !== 'straight';
 function stairEnds(S, dir) { // points just before the bottom step, just inside it, and just past the top
   const r = stairRect(S, dir), s = dir[0] === '+' ? 1 : -1, ax = dir[1] === 'x';
@@ -2767,15 +2855,17 @@ function stairScore(S, dir) {
 }
 const OPP_DIR = { '+x': '-x', '-x': '+x', '+z': '-z', '-z': '+z' };
 function stairDirOf(S) { if (S.dir) return S.dir;
-  // stacked stairs keep both entrances together: a turning main stair picks its way and the basement flight follows; otherwise the reverse
-  if (S.level === 'B') { const m = stairsOn('M').find(o => Math.hypot(o.cx - S.cx, o.cz - S.cz) < 3); if (m && turns(m)) return OPP_DIR[stairDirOf(m)]; }
-  if (S.level === 'M' && !turns(S)) { const b = stairsOn('B').find(o => Math.hypot(o.cx - S.cx, o.cz - S.cz) < 3); if (b) return OPP_DIR[stairDirOf(b)]; } /* stacked over basement stairs: both entrances together */
+  const near = lv => lv ? stairsOn(lv).find(o => o !== S && Math.hypot(o.cx - S.cx, o.cz - S.cz) < 3) : null;
+  // a basement flight under the stair above follows it: the same way under a straight flight (so it runs underneath with headroom
+  // all the way down, and the upper flight never starts over the opening), unless that would start it against a wall
+  if (belowGrade(S.level)) { const m = near(stairUp(S)); if (m) { const d = stairDirOf(m); if (turns(m)) return OPP_DIR[d]; return stairScore(S, d) >= stairScore(S, OPP_DIR[d]) ? d : OPP_DIR[d]; } } /* stacked over basement stairs: both entrances together */
   let best = '+x', bs = -1; for (const d of STAIR_DIRS) { const sc = stairScore(S, d); if (sc > bs) { bs = sc; best = d; } } return best; }
-function stairPair(S) { const mine = stairRect(S, stairDirOf(S)); return stairsOn(S.level === 'B' ? 'M' : 'B').find(o => ovl(stairRect(o, stairDirOf(o)), mine)); }
+function stairPair(S) { const mine = stairRect(S, stairDirOf(S)), other = belowGrade(S.level) ? stairUp(S) : stairBelow(S); return other ? stairsOn(other).find(o => ovl(stairRect(o, stairDirOf(o)), mine)) : null; }
 function stairStatus(S) {
   const dir = stairDirOf(S), e = stairEnds(S, dir), up = stairUp(S);
-  if (up === 'U' && !BM.rooms.some(r => r.level === 'U')) return { msg: 'Leads nowhere yet: add 2nd-floor rooms above it', dir };
-  if (!roomAt3(up, ...e.top)) return { msg: `The top lands outside: put a ${up === 'U' ? '2nd-floor' : 'main-floor'} room where it arrives`, dir };
+  if (!up) return { msg: 'No floor above: add one under Floors', dir };
+  if (!BM.rooms.some(r => r.level === up)) return { msg: `Leads nowhere yet: add ${LV_NAME[up]} rooms above it`, dir };
+  if (!roomAt3(up, ...e.top)) return { msg: `The top lands outside: put a ${LV_NAME[up]} room where it arrives`, dir };
   if (!roomAt3(S.level, ...e.start)) return { msg: 'The bottom step faces a wall or outside: move it or ↻ rotate it', dir };
   if (stairFits(S, dir) < 2) return { msg: 'These stairs cross a wall: move them inside one room or ↻ rotate them', dir };
   return { ok: true, dir, up };
@@ -2790,9 +2880,8 @@ function normalizeStairs(m) {
   return m;
 }
 function flightLanes(lv) { // footprints of the flights that arrive at this level from the one below
-  const from = lv === 'U' ? 'M' : lv === 'M' ? 'B' : null; if (!from) return [];
-  if (from === 'M' && !BM.rooms.some(r => r.level === 'U')) return [];
-  return stairsOn(from).map(s => laneOf(s, 0)); } // every flight opens its whole box above (no automatic halving: stacked stairs keep the width you gave them)
+  if (!BM.rooms.some(r => r.level === lv)) return [];
+  return (BM.stairs || []).filter(s => stairUp(s) === lv).map(s => laneOf(s, 0)); } // every flight opens its whole box above (no automatic halving: stacked stairs keep the width you gave them)
 function clearGroup(g) { for (const c of [...g.children]) { g.remove(c); c.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); } }
 const floorMat = t => ({ wood: M.wood, tile: M.tile, carpet: M.carpet, concrete: M.concrete, lvp: M.lvp, deck: M.deck })[RT[t]?.floor] || M.wood;
 // ---------- finishes per room (r.finish = { floor, paint, accent: { side, color } }) ----------
@@ -2847,7 +2936,7 @@ function clearZones(lv) {
   for (const A of rs) for (const Bq of rs) { if (A.id >= Bq.id || wallMode(A, Bq) !== 'open') continue; // doorway-sized openings stay clear
     for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
   for (const S of stairsOn(lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
-  for (const S of stairsOn(lv === 'U' ? 'M' : lv === 'M' ? 'B' : 'X')) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
+  for (const S of (BM.stairs || []).filter(t => stairUp(t) === lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
   return Z;
 }
 // Guard rail round a floor opening, only along the stretches where you could actually walk up to the edge:
@@ -2947,30 +3036,32 @@ function buildHouse3() {
   for (const m of H3_WALK) { const i = walkables.indexOf(m); if (i >= 0) walkables.splice(i, 1); }
   const before = walkables.length;
   const rooms = BM.rooms, has = lv => rooms.some(r => r.level === lv);
-  const parent = { B: G3.basement, M: G3.main, U: G3.upper }, furn = { B: G3.furnB, M: G3.furnM, U: G3.furnU };
-  const stairs = lv => rooms.filter(r => r.level === lv && r.type === 'stairs');
+  const parent = new Proxy({}, { get: (_, k) => LG(k).g }), furn = new Proxy({}, { get: (_, k) => LG(k).furn });
   let carDone = false;
-  for (const lv of ['B', 'M', 'U']) {
+  for (const lv of levelIds()) {
     const rs = rooms.filter(r => r.level === lv); if (!rs.length) continue;
-    const P = parent[lv], y = LV_Y[lv], yc = LV_C[lv];
+    const P = parent[lv], CEIL = LG(lv).ceil, y = LV_Y[lv], yc = LV_C[lv], below = levelBelow(lv);
     const lanes = flightLanes(lv), zones = clearZones(lv);
+    // flights leaving this floor: its ceilings open over them, so you don't climb into a white ceiling
+    const upLanes = (BM.stairs || []).filter(s => s.level === lv && stairUp(s) && has(stairUp(s))).map(s => turns(s) ? stairRect(s, stairDirOf(s)) : laneOf(s, 0));
+    const holed = (rc, z) => { let ps = [rc]; for (const L of upLanes) ps = ps.flatMap(p => cutRect(p, L)); for (const [a0, a1, b0, b1] of ps) flat(CEIL, rect(a0, a1, b0, b1), [], z, M.ceil); };
     for (const r of rs) {
       const rr = rect(r.x, r.x + r.w, r.z, r.z + r.d), g = r.type === 'garage' && lv === 'M', T = RT[r.type] || {};
       if (T.outdoor) { // decks, porches, balconies
-        const fy = lv === 'U' ? UF : MF - .35, mat = floorFor(r);
-        if (lv === 'U') box(P, r.x, r.x + r.w, fy - 1.04, fy, r.z, r.z + r.d, M.stucco, { walk: true });
+        const up = lv !== 'M', fy = up ? y : y - .35, mat = floorFor(r);
+        if (up) box(P, r.x, r.x + r.w, fy - 1.04, fy, r.z, r.z + r.d, M.stucco, { walk: true });
         else box(P, r.x, r.x + r.w, 0, fy, r.z, r.z + r.d, T.covered ? M.concrete : M.deck, { walk: true });
         flat(P, rr, [], fy + .01, mat, { walk: true });
         const corners = [[r.x, r.z], [r.x + r.w, r.z], [r.x, r.z + r.d], [r.x + r.w, r.z + r.d]];
         const indoorAt = (x, z) => BM.rooms.some(o => o.level === lv && !isOut(o) && x > o.x - .2 && x < o.x + o.w + .2 && z > o.z - .2 && z < o.z + o.d + .2);
-        if (lv === 'U') for (const [cx, cz] of corners) if (!BM.rooms.some(o => o.level === 'M' && cx >= o.x - .1 && cx <= o.x + o.w + .1 && cz >= o.z - .1 && cz <= o.z + o.d + .1)) { const sx = cx === r.x ? .3 : -.3, sz = cz === r.z ? .3 : -.3; box(P, cx + Math.min(0, sx * 2), cx + Math.max(0, sx * 2), 0, fy - 1.04, cz + Math.min(0, sz * 2), cz + Math.max(0, sz * 2), M.white, { solid: true }); }
+        if (up && !belowGrade(lv)) for (const [cx, cz] of corners) if (!BM.rooms.some(o => LV_Y[o.level] < y - .1 && !belowGrade(o.level) && cx >= o.x - .1 && cx <= o.x + o.w + .1 && cz >= o.z - .1 && cz <= o.z + o.d + .1)) { const sx = cx === r.x ? .3 : -.3, sz = cz === r.z ? .3 : -.3; box(P, cx + Math.min(0, sx * 2), cx + Math.max(0, sx * 2), 0, fy - 1.04, cz + Math.min(0, sz * 2), cz + Math.max(0, sz * 2), M.white, { solid: true }); }
         const STY = BM.style === 'batten' || BM.style === 'stone', PIER = BM.style === 'stone' ? M.fstone : M.brick, SIDE = BM.style === 'stone' ? M.dsiding : M.batten, frontSide = r.z < Math.min(...BM.rooms.filter(o => o.level === 'M' && !isOut(o)).map(o => o.z + o.d / 2));
         if (T.covered) { for (const [cx, cz] of corners) if (!indoorAt(cx, cz) && BM.style !== 'modern') { const sx = cx === r.x ? 1 : -1, sz = cz === r.z ? 1 : -1, A = (k, wd) => [k + Math.min(0, (k === cx ? sx : sz) * wd), k + Math.max(0, (k === cx ? sx : sz) * wd)];
             if (STY) { const ins = (k, s2, wd) => [k + s2 * .15, k + s2 * (.15 + wd)].sort((p, q) => p - q);
               if (frontSide) { const [a0, a1] = ins(cx, sx, 1.5), [b0, b1] = ins(cz, sz, 1.5); box(P, a0, a1, fy, fy + 2.8, b0, b1, PIER, { solid: true }); box(P, a0 - .08, a1 + .08, fy + 2.8, fy + 2.95, b0 - .08, b1 + .08, M.concrete); }
-              const d = frontSide ? .42 : 0, [a0, a1] = ins(cx + sx * d, sx, .65), [b0, b1] = ins(cz + sz * d, sz, .65); box(P, a0, a1, fy, MC - .6, b0, b1, M.trim, { solid: true }); }
-            else box(P, ...A(cx, 1.1), fy, MC - .6, ...A(cz, 1.1), M.stone, { solid: true }); }
-          box(P, r.x, r.x + r.w, MC - .6, MC, r.z, r.z + r.d, BM.style === 'modern' ? M.trim2 : STY ? SIDE : M.stucco); flat(G3.mainCeil, rr, [], MC - .62, BM.style === 'modern' ? M.soffitM : M.soffit); }
+              const d = frontSide ? .42 : 0, [a0, a1] = ins(cx + sx * d, sx, .65), [b0, b1] = ins(cz + sz * d, sz, .65); box(P, a0, a1, fy, yc - .6, b0, b1, M.trim, { solid: true }); }
+            else box(P, ...A(cx, 1.1), fy, yc - .6, ...A(cz, 1.1), M.stone, { solid: true }); }
+          box(P, r.x, r.x + r.w, yc - .6, yc, r.z, r.z + r.d, BM.style === 'modern' ? M.trim2 : STY ? SIDE : M.stucco); flat(CEIL, rr, [], yc - .62, BM.style === 'modern' ? M.soffitM : M.soffit); }
         if (T.rail) for (const e of edgesOf(r)) { // railings on the open edges
           const segs = sub1d([e.a, e.b], BM.rooms.filter(o => o.level === lv && !isOut(o) && o !== r).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; }));
           for (const [a, b] of segs) railing(P, e.axis, e.c, a, b, fy, railFor(r, e.out, a));
@@ -2984,15 +3075,15 @@ function buildHouse3() {
         if (g) box(P, a0, a1, 0, GF, b0, b1, M.concrete, { walk: true });
         else { box(P, a0, a1, y - 1.04, y, b0, b1, M.ceil, { cast: false }); flat(P, rect(a0, a1, b0, b1), [], y + .01, floorFor(r), { walk: true }); }
       }
-      if (lv === 'M' && isTall(r)) { const open = tallParts(r).map(([a0, a1, b0, b1]) => rect(a0, a1, b0, b1));
-        for (const q of open) flat(G3.mainCeil, q, [], UC - .02, M.ceil);
-        if (!fullyTall(r)) flat(G3.mainCeil, rr, open, yc - .02, M.ceil); }
-      else flat(lv === 'U' ? G3.upperCeil : G3.mainCeil, rr, [], (lv === 'U' ? UC : yc) - .02, M.ceil);
+      if (isTall(r)) { const open = tallParts(r);
+        for (const [a0, a1, b0, b1] of open) flat(CEIL, rect(a0, a1, b0, b1), [], LV_C[tallInto(lv)] - .02, M.ceil);
+        if (!fullyTall(r)) for (const q of rectCells([r], .5, open.map(([a0, a1, b0, b1]) => ({ x: a0, z: b0, w: a1 - a0, d: b1 - b0 })))) holed(q, yc - .02); }
+      else holed([r.x, r.x + r.w, r.z, r.z + r.d], yc - .02);
       if (showFurnBuild && !r.nofurn) { if (r.type === 'garage') { if (carDone) r._car = true; carDone = true; } furnish(furn[lv], r, g ? GF : y, zones); delete r._car; }
     }
     // staircases starting on this level
     for (const S of stairsOn(lv)) {
-      const upLv = stairUp(S), upY = LV_Y[upLv]; if (upLv === 'U' && !has('U')) continue;
+      const upLv = stairUp(S); if (!upLv || !has(upLv)) continue; const upY = LV_Y[upLv];
       const dir = stairDirOf(S), pair = stairPair(S), UP = parent[upLv];
       if (turns(S)) { // turning stairs: rail round the whole opening except the half you arrive on
         const g = turnRun(P, S, dir, y, upY), r = stairRect(S, dir), startSide = { '+x': 'w', '-x': 'e', '+z': 'n', '-z': 's' }[dir];
@@ -3004,8 +3095,8 @@ function buildHouse3() {
       { const ax = dir[1] === 'x', sg = dir[0] === '+' ? 1 : -1, L = ax ? lane.w : lane.d, run = Math.min(L, 15 * .9) / 15, st0 = (ax ? lane.x : lane.z) + (L - run * 15) / 2,
           b0 = sg > 0 ? st0 : st0 + run * 15, b1 = sg > 0 ? st0 + run * 15 : st0, sides = flightSides(S, lane, dir, lv); // railings up the open sides of the flight
         for (const c of [sides.left, sides.right]) if (c != null) slopedRail(P, ax, c + (c === (ax ? lane.z : lane.x) ? .12 : -.12), b0, b1, y + (upY - y) / 16, upY, RK); }
-      const topSide = { '+x': 'e', '-x': 'w', '+z': 's', '-z': 'n' }[dir]; // guard rail round the opening, open at the arrival end
-      if (S.guard !== false) for (const e of edgesOf(lane)) if (e.side !== topSide) guardRail(UP, upLv, lane, e, e.a, e.b, upY, RK);
+      const topSide = { '+x': 'e', '-x': 'w', '+z': 's', '-z': 'n' }[dir], over = (BM.stairs || []).find(o => o.level === upLv && Math.hypot(o.cx - S.cx, o.cz - S.cz) < 3), overStart = over && !turns(over) && stairDirOf(over) === dir ? { '+x': 'w', '-x': 'e', '+z': 'n', '-z': 's' }[dir] : null; // guard rail round the opening, open at the arrival end
+      if (S.guard !== false) for (const e of edgesOf(lane)) if (e.side !== topSide && e.side !== overStart) guardRail(UP, upLv, lane, e, e.a, e.b, upY, RK);
     }
     // walls
     for (const w of planLevel(lv)) {
@@ -3013,29 +3104,29 @@ function buildHouse3() {
       if (w.open) continue; // Open: nothing at all on this edge, upstairs too
       const horiz = w.axis === 'x', ext = w.ext, garageRoom = (ext ? w.room.type : w.rooms.some(q => q.type === 'garage')) === 'garage' || (!ext && w.rooms.some(q => q.type === 'garage'));
       const t = ext ? EXT : INT, ex = ext ? t / 2 : 0;
-      const y0 = lv === 'B' ? BF : lv === 'M' ? (garageRoom ? 0 : ext ? TF : MF) : ext ? MC : UF;
+      const y0 = belowGrade(lv) ? y : lv === 'M' ? (garageRoom ? 0 : ext ? TF : y) : ext ? y - JOIST : y, aboveC = canTall(lv) ? LV_C[tallInto(lv)] : yc;
       const nrm = { '-z': [0, -1], '+z': [0, 1], '-x': [-1, 0], '+x': [1, 0] };
-      const tallSide = lv === 'M' && (ext ? w.room.tall : w.rooms.some(q => q.tall));
+      const tallSide = canTall(lv) && (ext ? w.room.tall : w.rooms.some(q => q.tall));
       // split where a 2nd-floor room's edge crosses above, so each stretch gets its own height
-      const cuts = tallSide ? [...new Set(upSolid().flatMap(u => horiz ? [u.x, u.x + u.w] : [u.z, u.z + u.d]))].filter(c => c > w.a + .3 && c < w.b - .3).sort((p, q) => p - q) : [];
+      const cuts = tallSide ? [...new Set(upSolid(lv).flatMap(u => horiz ? [u.x, u.x + u.w] : [u.z, u.z + u.d]))].filter(c => c > w.a + .3 && c < w.b - .3).sort((p, q) => p - q) : [];
       const bounds = [w.a, ...cuts, w.b];
       for (let si = 0; si < bounds.length - 1; si++) {
         const sa = bounds[si], sb = bounds[si + 1], mid = (sa + sb) / 2;
         const probe = (dx, dz) => horiz ? [mid, w.c + dz] : [w.c + dx, mid];
-        let y1 = lv === 'B' ? (ext ? TF : BC) : lv === 'M' ? MC : UC;
-        if (tallSide && ext) { const [ox, oz] = nrm[w.out], [ix, iz] = probe(-ox * .6, -oz * .6); if (inTall(ix, iz)) y1 = UC; }
+        let y1 = belowGrade(lv) ? (ext ? Math.min(TF, yc + JOIST) : yc) : yc;
+        if (tallSide && ext) { const [ox, oz] = nrm[w.out], [ix, iz] = probe(-ox * .6, -oz * .6); if (inTall(lv, ix, iz)) y1 = aboveC; }
         if (tallSide && !ext) { // rise to full height unless a 2nd-floor room's wall already covers the upper part
-          const [px1, pz1] = probe(-.6, -.6), [px2, pz2] = probe(.6, .6), t1 = inTall(px1, pz1), t2 = inTall(px2, pz2), u1 = coveredAt(px1, pz1), u2 = coveredAt(px2, pz2);
-          if ((t1 || t2) && !(u1 || u2)) y1 = UC;          // both sides open above (or one open, one normal room): wall the whole height
-          if ((t1 && u2) || (t2 && u1)) y1 = MC;           // the 2nd-floor box's own wall closes the upper part
+          const [px1, pz1] = probe(-.6, -.6), [px2, pz2] = probe(.6, .6), t1 = inTall(lv, px1, pz1), t2 = inTall(lv, px2, pz2), u1 = coveredAt(lv, px1, pz1), u2 = coveredAt(lv, px2, pz2);
+          if ((t1 || t2) && !(u1 || u2)) y1 = aboveC;          // both sides open above (or one open, one normal room): wall the whole height
+          if ((t1 && u2) || (t2 && u1)) y1 = yc;           // the 2nd-floor box's own wall closes the upper part
         }
         const ops = w.ops.filter(op => op.c >= sa - .01 && op.c < sb + .01 || (si === 0 && op.c < sa) || (si === bounds.length - 2 && op.c >= sb));
         const o = { t, y0, y1, ops }, faceOf = q => horiz ? (q.z + q.d / 2 > w.c ? '+z' : '-z') : (q.x + q.w / 2 > w.c ? '+x' : '-x');
         o.faceMat = {}; for (const q of ext ? [w.room] : w.rooms) if (q.finish) o.faceMat[faceOf(q)] = paintFor(q, sideOfRoom(q, w.axis, w.c));
         if (ext) {
-          const [ox, oz] = nrm[w.out], [qx, qz] = probe(ox * .6, oz * .6), overVoid = lv === 'U' && inTall(qx, qz);
+          const [ox, oz] = nrm[w.out], [qx, qz] = probe(ox * .6, oz * .6), overVoid = lv === 'U' && inTall('M', qx, qz);
           const STY = BM.style === 'batten', STN = BM.style === 'stone', MOD = BM.style === 'modern';
-          Object.assign(o, { out: w.out, outer: overVoid ? M.paint : lv === 'B' ? M.found : CLAD()[w.room.clad] || (STY ? M.batten : STN ? M.fstone : MOD ? M.render : M.stucco), skirt: lv === 'M' && !STN && !MOD });
+          Object.assign(o, { out: w.out, outer: overVoid ? M.paint : belowGrade(lv) ? M.found : CLAD()[w.room.clad] || (STY ? M.batten : STN ? M.fstone : MOD ? M.render : M.stucco), skirt: lv === 'M' && !STN && !MOD });
           if (STY && lv === 'M') Object.assign(o, w.out === '-z' ? { skirtMat: M.brick, skirtTop: MF + 1.5 } : { skirtMat: M.found, skirtTop: TF + .2 });
           if (overVoid) { o.y0 = MC; o.ops = []; } // the box's face drops to the main ceiling line, so the floor edge is covered
         }
@@ -3059,7 +3150,10 @@ function buildHouse3() {
   const pitch = (BM.pitch || (BM.style === 'batten' ? 7 : 5)) / 12, gw = BM.style === 'batten' ? M.batten : BM.style === 'stone' ? M.fstone : BM.style === 'modern' ? M.render : M.stucco, rmo = BM.style === 'modern' ? { roofMat: M.seamRoof, soffitMat: M.soffitM } : {}, e = EXT / 2;
   const outer = rs => rs.map(([x0, x1, z0, z1]) => [x0 - e, x1 + e, z0 - e, z1 + e]), ov = BM.ov ?? 1.5;
   const ownRoof = main.filter(r => r.roof === 'gable'); // single-storey rooms with a gable roof of their own (a garage, say)
-  const upR = outer(rectCells(upLike)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc, ownRoof))), balcR = outer(rectCells(balc)), ownR = outer(rectCells(ownRoof));
+  // extra floors (see levelList): the 2nd-floor and main roofs stop where one sits on top of them, and each gets its own roof below
+  const xtra = levelList().filter(l => l.extra && !belowGrade(l.id)), xRooms = l => rooms.filter(r => r.level === l.id && !isOut(r));
+  const overU = xtra.filter(l => l.y > LV_Y.U).flatMap(xRooms), overM = xtra.flatMap(xRooms);
+  const upR = outer(rectCells(upLike, .5, overU)), mainR = outer(rectCells(main)), mainOnly = outer(rectCells(main, .5, upLike.concat(balc, ownRoof, overM))), balcR = outer(rectCells(balc)), ownR = outer(rectCells(ownRoof));
   const flatSlabs = list => { for (const [[x0, x1, z0, z1], plate] of list) {
       const MO = BM.style === 'modern', o2 = MO ? (BM.ovFlat ?? BM.ov ?? 2) : .8;
       // a lower roof stops at the wall of a taller volume next to it, instead of running into that room (or its overhang showing inside)
@@ -3079,6 +3173,16 @@ function buildHouse3() {
     // a lower roof that meets the storey above slopes away from it, and is kept below the 2nd-floor windows
     else if (mainOnly.length) roofLevel(G3.roof, { ...rmo, name: 'Main floor roof', eaves: mainOnly, inner: mainR, solid: upR.concat(balcR), plate: MC + .03, pitch: P, ov, style, wallMat: gw, cap: upR.length ? UC - .5 : null, windows: upR.length ? planLevel('U').filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
   }
+  { const all = levelList().filter(l => !belowGrade(l.id)), style = BM.roof === 'gable' || BM.roof === 'shed' ? BM.roof : 'hip', P = style === 'shed' ? Math.min(pitch, 4 / 12) : pitch;
+    for (const l of [...xtra].reverse()) { // top extra floor first
+      const own = xRooms(l), higher = all.filter(k => k.y > l.y + .01).flatMap(k => rooms.filter(r => r.level === k.id && (!isOut(r) || r.type === 'balcony')));
+      const eaves = outer(rectCells(own, .5, higher)), plate = LV_C[l.id], name = `${l.name} roof`; if (!eaves.length) continue;
+      if (BM.roof === 'flat') { flatSlabs(eaves.map(q => [q, plate])); ROOF3.push(flatInfo(plate, name)); continue; }
+      const cover = outer(rectCells(higher.filter(r => !isOut(r)))), nextUp = all.find(k => k.y > l.y + .01 && rooms.some(r => r.level === k.id && !isOut(r)));
+      if (!higher.length) roofLevel(G3.roof, { name, eaves, plate, pitch: P, ov, style, wallMat: gw, ...rmo });
+      else roofLevel(G3.roof, { ...rmo, name, eaves, inner: outer(rectCells(own)), solid: cover, plate: plate + .03, pitch: P, ov, style, wallMat: gw, cap: nextUp ? LV_C[nextUp.id] - .5 : null,
+        windows: nextUp ? planLevel(nextUp.id).filter(w => w.ext).flatMap(w => w.ops.map(op => ({ axis: w.axis, c: w.c, a0: op.c - op.w / 2, a1: op.c + op.w / 2, sill: op.b }))) : [] });
+    } }
   for (const r of ownRoof) { const x0 = r.x - e, x1 = r.x + r.w + e, z0 = r.z - e, z1 = r.z + r.d + e; // ridge runs front to back: a gable end faces the street
     hipRoof(G3.roof, { x0, x1, z0: z0 - 1.4, z1, plate: MC + .03, pitch, ov: 1.4, slopes: { e: true, w: true }, mat: rmo.roofMat, soffit: rmo.soffitMat, wall: CLAD()[r.clad] || gw, gables: [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] }); }
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
@@ -3103,8 +3207,8 @@ function buildHouse3() {
   for (const sl of BM.extras?.slabs || []) box(G3.site, sl[0], sl[1], sl[2], sl[3], sl[4], sl[5], M.concrete, { walk: true });
   for (const gv of BM.extras?.beds || []) { flat(G3.site, gv.pts, [], .06, M.gravel); }
   // site: ground, street, driveway to the garage door, walk to the front door
-  const all = rooms.filter(r => r.level !== 'B'); const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
-  const bsm = rooms.filter(r => r.level === 'B');
+  const all = rooms.filter(r => !belowGrade(r.level)); const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
+  const bsm = rooms.filter(r => belowGrade(r.level));
   if (!bsm.length) flat(G3.site, rect(-420, 420, -420, 420), [], 0, M.grass, { walk: true });
   else { // open the ground over the basement so stairs and cutaway views work
     const bb = { x: Math.min(minX, ...bsm.map(r => r.x)) - 1, z: Math.min(minZ, ...bsm.map(r => r.z)) - 1 }; bb.w = Math.max(maxX, ...bsm.map(r => r.x + r.w)) + 1 - bb.x; bb.d = Math.max(maxZ, ...bsm.map(r => r.z + r.d)) + 1 - bb.z;
@@ -3141,7 +3245,7 @@ function buildHouse3() {
   placeItems();
   // HUD data
   ROOMS3 = rooms.map(r => [rname(r), r.level, [[r.x, r.x + r.w, r.z, r.z + r.d]], [r.x + r.w / 2, r.z + r.d / 2, Math.PI]]);
-  OUTLINE3 = { B: rooms.filter(r => r.level === 'B').map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)), M: main.map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)), U: up.map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d)) };
+  OUTLINE3 = {}; for (const l of levelIds()) OUTLINE3[l] = (l === 'M' ? main : l === 'U' ? up : rooms.filter(r => r.level === l && !isOut(r))).map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d));
   H3_WALK = walkables.slice(before);
 }
 let showFurnBuild = true;
@@ -3357,14 +3461,14 @@ function peDraw() {
     for (let x = Math.floor(gx0 / step) * step; x <= gx1; x += step) { const X = Math.round(x * s + PE.ox) + .5; px.moveTo(X, 0); px.lineTo(X, H); }
     for (let z = Math.floor(gz0 / step) * step; z <= gz1; z += step) { const Y = Math.round(z * s + PE.oy) + .5; px.moveTo(0, Y); px.lineTo(W, Y); } px.stroke(); }
   // the floor below, dashed, to line things up
-  const gm = guideMode(), guideLv = gm === 'none' ? null : ({ B: { above: 'M' }, M: { below: 'B', above: 'U' }, U: { below: 'M' } })[PE.lv][gm];
+  const gm = guideMode(), guideLv = gm === 'none' ? null : gm === 'above' ? levelAbove(PE.lv) : levelBelow(PE.lv);
   const guide = guideLv ? BM.rooms.filter(q => q.level === guideLv) : [];
   if (guide.length) { px.setLineDash([5, 4]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1; px.textAlign = 'center'; px.textBaseline = 'middle';
     for (const q of guide) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a, b, q.w * s, q.d * s);
       if (q.w * s > 50 && q.d * s > 22 && !lvRooms().some(o => ovl(o, q))) { px.fillStyle = css('--ink-2'); px.globalAlpha = .55; px.font = '11px Inter, system-ui, sans-serif'; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2); px.globalAlpha = 1; } }
     px.setLineDash([]); }
   // double-height rooms show as open to below on the 2nd floor
-  if (PE.lv === 'U') for (const q of BM.rooms.filter(isTall)) { const [a, b] = W2S(q.x, q.z); px.save(); px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } px.clip();
+  if (PE.lv === 'U') for (const q of BM.rooms.filter(r => r.level === 'M' && isTall(r))) { const [a, b] = W2S(q.x, q.z); px.save(); px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } px.clip();
     px.strokeStyle = 'rgba(31,63,209,.35)'; px.lineWidth = 1; px.beginPath(); for (let k = -q.d * s; k < q.w * s; k += 10) { px.moveTo(a + k, b + q.d * s); px.lineTo(a + k + q.d * s, b); } px.stroke(); px.restore();
     px.fillStyle = css('--ink-2'); px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText(`Open to below · ${rname(q)}`, a + q.w * s / 2, b + q.d * s / 2); }
   // rooms
@@ -3372,7 +3476,7 @@ function peDraw() {
   for (const q of lvRooms()) {
     const [a, b] = W2S(q.x, q.z); px.fillStyle = (RT[q.type]?.color || '#ddd') + 'd9'; px.fillRect(a, b, q.w * s, q.d * s);
     if (RT[q.type]?.outdoor) { px.setLineDash([3, 3]); px.strokeStyle = '#4c7fd6'; px.lineWidth = 1.5; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); px.setLineDash([]);
-      const lv = RT[q.type].levels; if (lv && lv !== q.level) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(lv === 'U' ? 'Balconies go on the 2nd floor' : 'Put this on the main floor', a + q.w * s / 2, b + q.d * s + 13); } }
+      const lv = RT[q.type].levels; if (!lvOK(q.type, q.level)) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(lv === 'U' ? 'Balconies go on the 2nd floor' : 'Put this on the main floor', a + q.w * s / 2, b + q.d * s + 13); } }
     if (q.type === 'stairs') { // draw the treads and which way they go
       const st = stairStatus(q), sd = stairDir(q), alongX = sd[1] === 'x', n = 12;
       px.strokeStyle = 'rgba(24,32,43,.35)'; px.lineWidth = 1; px.beginPath();
@@ -3442,7 +3546,8 @@ function peDraw() {
   for (const q of lvRooms()) for (const o of lvRooms()) { if (q.id >= o.id) continue; // open connections, dashed so they can be clicked
     for (const e of edgesOf(q)) { const f = edgesOf(o).find(x => x.side === OPP[e.side]); if (Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a < .3 || wallMode(q, o) !== 'open') continue;
       px.setLineDash([6, 5]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1.2; px.beginPath(); if (e.axis === 'x') { px.moveTo(...W2S(a, e.c)); px.lineTo(...W2S(b, e.c)); } else { px.moveTo(...W2S(e.c, a)); px.lineTo(...W2S(e.c, b)); } px.stroke(); px.setLineDash([]); } }
-  if (PE.selWall) { const w = PE.selWall; px.strokeStyle = css('--accent'); px.lineWidth = 6; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); }
+  if (PE.selWall && !(PE.drag?.kind === 'wall')) { const w = PE.selWall, line = w.scope === 'line', a0 = line ? w.la : w.a, b0 = line ? w.lb : w.b; px.strokeStyle = css('--accent'); px.lineWidth = 6; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(a0, w.c)); px.lineTo(...W2S(b0, w.c)); } else { px.moveTo(...W2S(w.c, a0)); px.lineTo(...W2S(w.c, b0)); } px.stroke();
+    if (w.scope === 'seg') { px.fillStyle = css('--accent'); for (const t of [a0, b0]) { const [X, Y] = w.axis === 'x' ? W2S(t, w.c) : W2S(w.c, t); px.beginPath(); px.arc(X, Y, 4.5, 0, 7); px.fill(); } } }
   const hv = PE.drag?.kind === 'wall' ? PE.drag : PE.hover;
   if (hv?.kind === 'wall') { px.strokeStyle = css('--accent'); px.lineWidth = 4; px.beginPath();
     if (hv.axis === 'x') { px.moveTo(...W2S(hv.a, hv.c + (hv.delta || 0))); px.lineTo(...W2S(hv.b, hv.c + (hv.delta || 0))); } else { px.moveTo(...W2S(hv.c + (hv.delta || 0), hv.a)); px.lineTo(...W2S(hv.c + (hv.delta || 0), hv.b)); } px.stroke(); }
@@ -3466,10 +3571,11 @@ function labelSpot(q, w, h, s) {
   let best = null, bd = Infinity; for (let gy = b + h / 2 + 2; gy <= b + B - h / 2 - 2; gy += 6) for (let gx = a + w / 2 + 2; gx <= a + A - w / 2 - 2; gx += 6) { const d = Math.hypot(gx - cx0, gy - cy0); if (d < bd && free(gx, gy)) { bd = d; best = [gx, gy]; } }
   return best || [null, null];
 }
-const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+// can this room type go on this floor? Decks and porches sit on the main floor, balconies and catwalks on any floor above it
+const lvOK = (type, lv) => { const want = RT[type]?.levels; return !want || (want === 'M' ? lv === 'M' : upperLevel(lv)); };
 function peStatus() {
   const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + q.w * q.d, 0));
-  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
+  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_NAME[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
   const z = document.getElementById('peZoomV'); if (z) z.textContent = Math.round(PE.s / 10 * 100) + '%';
 }
 function peZoom(k) { const r = pc.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2, [wx, wz] = S2W(cx, cy); PE.s = Math.max(3, Math.min(40, PE.s * k)); PE.ox = cx - wx * PE.s; PE.oy = cy - wz * PE.s; peDraw(); }
@@ -3515,13 +3621,18 @@ pc.addEventListener('pointerdown', e => {
   PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
   if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
+  const prevSel = w && onSelWall(w, w.axis === 'x' ? wx : wz) ? PE.selWall : null;
   PE.selWall = null;
   const se = e.button === 0 ? stairEdgeAt(wx, wz, 6 / PE.s) : null;
   if (se) { const dir = stairDirOf(se.S); PE.selStair = se.S.id; PE.sel = null; PE.drag = { kind: 'stairEdge', S: se.S, side: se.side, r0: { ...se.r }, dir, before: snapshot() }; peInspector(); peDraw(); return; }
   const S = e.button === 0 ? stairHit(wx, wz) : null;
   if (S) { PE.selStair = S.id; PE.sel = null; PE.drag = { kind: 'stair', S, dx: wx - S.cx, dz: wz - S.cz, before: snapshot() }; peInspector(); peDraw(); return; }
   PE.selStair = null;
-  if (w) { PE.drag = { ...w, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: w.members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
+  if (w) { // a whole wall line drags every room along it; once you've clicked into one room's part of it, only that part moves
+    const seg = prevSel?.scope === 'seg', ids = seg ? (prevSel.ext ? [prevSel.R.id] : [prevSel.A.id, prevSel.B.id]) : null;
+    const members = seg ? w.members.filter(m => ids.includes(m.q.id) && (!prevSel.ext || m.e.out === prevSel.out)) : w.members;
+    const ext = seg ? { a: Math.min(...members.map(m => m.e.a)), b: Math.max(...members.map(m => m.e.b)) } : {};
+    PE.drag = { ...w, ...ext, members, prevSel, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
   const q = e.button === 0 ? roomAt(wx, wz) : null;
   if (q && e.shiftKey) { // shift-click builds a multi-selection
     if (!PE.multi.size && PE.sel) PE.multi.add(PE.sel); if (PE.multi.has(q.id)) PE.multi.delete(q.id); else PE.multi.add(q.id);
@@ -3535,7 +3646,8 @@ pc.addEventListener('pointermove', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
   if (peToolMove(e, wx, wz)) return;
   if (!D) { const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
-    PE.hover = wallAt(wx, wz, 7 / PE.s); pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
+    PE.hover = wallAt(wx, wz, 7 / PE.s); if (PE.hover && PE.selWall?.scope === 'seg' && onSelWall(PE.hover, PE.hover.axis === 'x' ? wx : wz)) Object.assign(PE.hover, { a: PE.selWall.a, b: PE.selWall.b });
+    pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
   if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
   if (D.kind === 'wall') {
     let delta = snapH((D.axis === 'x' ? wz : wx) - D.start);
@@ -3578,9 +3690,11 @@ pc.addEventListener('pointerup', () => {
   if (D && D.before && D.before !== snapshot()) {
     const moved = D.kind === 'move' ? (D.group?.length ? null : [D.q.id]) : D.kind === 'wall' ? D.base.map(b => b.q.id) : null;
     if (moved) closeGaps(moved);
+    if (D.kind === 'wall' && D.prevSel?.scope === 'seg') PE.selWall = { ...D.prevSel, c: +(D.prevSel.c + D.delta).toFixed(2) }; // keep the part you moved selected
     PE.hist.push(D.before); PE.redo = []; planChanged(); return;
   }
-  if (D?.kind === 'wall') { pickWall(D); PE.sel = null; peInspector(); }
+  if (D?.kind === 'wall') { // first click: the whole wall line; click it again: just the part between the rooms you clicked
+    const prev = D.prevSel; pickWall(D); PE.selWall.scope = prev ? 'seg' : 'line'; PE.selWall.la = D.a; PE.selWall.lb = D.b; PE.sel = null; peInspector(); }
   peDraw();
 });
 // Right-click: select whatever is under the pointer (keeping a multi-selection it's part of) and open its menu there.
@@ -3598,6 +3712,9 @@ function peMenuAt(sx, sy, wx, wz) {
   PE.menu = !!(PE.sel || PE.selStair || PE.selWall || PE.selX || PE.multi.size); PE.drag = null;
   peInspector(); peDraw(); requestAnimationFrame(pePlaceSide);
 }
+// is this spot on the wall line (or the part of it) that's selected?
+function onSelWall(w, along) { const sw = PE.selWall; if (!sw || sw.axis !== w.axis || Math.abs(sw.c - w.c) > EPS) return false;
+  const [a, b] = sw.scope === 'line' ? [sw.la ?? sw.a, sw.lb ?? sw.b] : [sw.a, sw.b]; return along >= a - .05 && along <= b + .05; }
 // Find the two rooms either side of the clicked spot on a wall line.
 function pickWall(D) {
   const at = D.pickAlong, side = (m, s) => m.e.side === s && at >= m.e.a - .05 && at <= m.e.b + .05;
@@ -3631,7 +3748,7 @@ document.querySelectorAll('[data-add]').forEach(b => {
 function peAdd(type, at) {
   if (type === 'stairs') return peAddStair(at);
   pushHist();
-  const want = RT[type].levels; if (want && want !== PE.lv && PE.lv !== 'B') { PE.lv = want; PE.sel = null; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
+  const want = RT[type].levels; if (!lvOK(type, PE.lv) && !belowGrade(PE.lv)) { PE.lv = want === 'M' ? 'M' : levelAbove('M') || 'M'; PE.sel = null; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
   const [w, d] = RT[type].size, rs = lvRooms(), sel = rs.find(q => q.id === PE.sel);
   const cand = [];
   const anchor = sel || rs[rs.length - 1];
@@ -3651,6 +3768,7 @@ function peWallPanel() {
     document.querySelector('#peWall h3').textContent = 'Railing'; info.textContent = `${rname(w.R)} · ${ftin(w.b - w.a)} stretch`; btns.hidden = true; xb.hidden = true; rb.hidden = false;
     const k = railFor(w.R, w.out, w.a); rb.querySelectorAll('[data-rk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rk === k))); return; }
   document.querySelector('#peWall h3').textContent = 'Wall';
+  const hint = document.getElementById('peWallHint'); if (hint) hint.textContent = w.scope === 'line' ? 'Whole wall selected: dragging moves every room along it. Click it again to pick just this room\'s part.' : w.scope === 'seg' ? 'Just this room\'s part: dragging moves only these rooms.' : '';
   if (w.ext) { info.textContent = `${rname(w.R)} · outside wall`; btns.hidden = true; xb.hidden = false;
     const m = extMode(w.R, w.out); xb.querySelectorAll('[data-xm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.xm === m))); return; }
   btns.hidden = false; xb.hidden = true; info.textContent = `Between ${rname(w.A)} and ${rname(w.B)}`;
@@ -3666,11 +3784,14 @@ function peStairPanel() {
   const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
   document.getElementById('peSShape').hidden = false; // every flight can be straight, U-turn or curved, basement ones too
+  const inL = document.getElementById('peSL'); if (document.activeElement !== inL) inL.value = toDisp(S.L);
+  const to = document.getElementById('peSTo'), ups = levelsAbove(S.level); to.parentElement.hidden = ups.length < 2;
+  to.innerHTML = `<option value="">Automatic (${escH(LV_NAME[stairUp({ ...S, to: null })] || '—')})</option>` + ups.map(l => `<option value="${escH(l)}">${escH(LV_NAME[l])}</option>`).join(''); to.value = S.to && ups.includes(S.to) ? S.to : '';
   document.querySelectorAll('[data-srail]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.srail === stairRail(S))));
   document.querySelectorAll('[data-ssides]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ssides === (S.railSides || 'auto'))));
   document.getElementById('peSSides').hidden = turns(S) || stairRail(S) === 'none'; // turning stairs have their centre wall; the sides only matter with a railing
   const gd = document.getElementById('peSGuard'); gd.checked = S.guard !== false; gd.disabled = stairRail(S) === 'none';
-  const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
+  const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${LV_NAME[st.up].toLowerCase()} (${ftin(LV_Y[st.up] - LV_Y[S.level])} rise)${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
 }
 const curStair = () => (BM.stairs || []).find(o => o.id === PE.selStair);
 document.getElementById('peSRot').onclick = () => { const S = curStair(); if (!S) return; pushHist(); S.dir = STAIR_DIRS[(STAIR_DIRS.indexOf(stairDirOf(S)) + 1) % 4]; planChanged(); };
@@ -3689,10 +3810,12 @@ function peDupStair() {
   BM.stairs.push(c); PE.selStair = c.id; PE.sel = null; planChanged(); toast('Stairs duplicated');
 }
 document.querySelectorAll('[data-sshape]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.sshape === 'auto') delete S.shape; else S.shape = b.dataset.sshape; if (S.shape && S.shape !== 'straight' && S.W < 5.5) S.W = 6; planChanged(); });
-document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 12)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSL').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 4 && v <= 30)) return; pushHist(); S.L = snapH(v); planChanged(); };
+document.getElementById('peSTo').onchange = e => { const S = curStair(); if (!S) return; pushHist(); if (e.target.value) S.to = e.target.value; else delete S.to; planChanged(); };
 function peDeleteStair() { const i = (BM.stairs || []).findIndex(o => o.id === PE.selStair); if (i < 0) return; pushHist(); BM.stairs.splice(i, 1); PE.selStair = null; planChanged(); }
 function peAddStair(at) {
-  pushHist(); if (PE.lv === 'U') { PE.lv = 'M'; peLvlButtons(); if (curHouse === 3) goView('M'); }
+  pushHist(); if (!levelAbove(PE.lv)) { PE.lv = levelBelow(PE.lv) || PE.lv; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
   const host = BM.rooms.find(r => r.id === PE.sel && r.level === PE.lv) || lvRooms()[0];
   const c = at || (host ? [host.x + host.w / 2, host.z + host.d / 2] : [0, 0]);
   const S = { id: BID++, level: PE.lv, cx: snapH(c[0]), cz: snapH(c[1]), W: 3.5, L: 12.5 };
@@ -3732,8 +3855,9 @@ function peRedo() { const s = PE.redo.pop(); if (!s) return; PE.hist.push(snapsh
 document.getElementById('peRedo').onclick = peRedo;
 document.getElementById('peUndo').onclick = peUndo;
 document.getElementById('peReset').onclick = () => { closePops(); pushHist(); BM = starterPlan(); PE.sel = null; peFit(); planChanged(); };
-document.getElementById('peClear').onclick = () => { closePops(); pushHist(); BM = { roof: BM.roof, rooms: [] }; PE.sel = null; planChanged(); };
-document.querySelectorAll('[data-pelv]').forEach(b => b.onclick = () => { PE.lv = b.dataset.pelv; PE.sel = null; peLvlButtons(); peInspector(); peDraw(); if (curHouse === 3) goView(PE.lv); });
+document.getElementById('peClear').onclick = () => { closePops(); pushHist(); BM = { roof: BM.roof, rooms: [], levels: BM.levels }; PE.sel = null; planChanged(); };
+document.getElementById('segPeLvl').addEventListener('click', e => { const b = e.target.closest('[data-pelv]'); if (b) peSetLevel(b.dataset.pelv); });
+function peSetLevel(lv) { PE.lv = lv; PE.sel = null; PE.selWall = null; peLvlButtons(); peInspector(); peDraw(); if (curHouse === 3) goView(PE.lv); }
 const TRACE = { living: 'rec', great: 'rec', kitchen: 'rec', dining: 'rec', foyer: 'rec', hall: 'rec', sunroom: 'rec', bonus: 'rec', rec: 'rec', playroom: 'rec',
   bedroom: 'bedroom', primary: 'bedroom', guest: 'bedroom', nursery: 'bedroom', bath: 'bath', ensuite: 'bath', powder: 'bath', office: 'office', library: 'office', theatre: 'theatre', gym: 'gym' };
 function peTrace() {
@@ -3750,10 +3874,11 @@ function peTrace() {
   toast(n ? `Added ${n} basement rooms` : 'The basement already covers the main floor');
 }
 document.getElementById('peTrace').onclick = peTrace;
-function guideMode() { return PE.guide[PE.lv] || (PE.lv === 'B' ? 'above' : 'below'); }
+function guideMode() { return PE.guide[PE.lv] || (levelBelow(PE.lv) ? 'below' : 'above'); }
 document.querySelectorAll('[data-guide]').forEach(b => b.onclick = () => { PE.guide[PE.lv] = b.dataset.guide; peLvlButtons(); peDraw(); });
 function peLvlButtons() {
-  const can = { below: PE.lv !== 'B', above: PE.lv !== 'U', none: true }, gm = guideMode();
+  if (!lvOf(PE.lv)) PE.lv = 'M'; renderLevelSegs();
+  const can = { below: !!levelBelow(PE.lv), above: !!levelAbove(PE.lv), none: true }, gm = guideMode();
   document.querySelectorAll('[data-guide]').forEach(b => { b.disabled = !can[b.dataset.guide]; b.setAttribute('aria-pressed', String(b.dataset.guide === gm)); });
   document.getElementById('peTrace').hidden = PE.lv !== 'B'; document.querySelectorAll('[data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv))); document.querySelectorAll('[data-roof]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.roof === (BM.roof || 'hip')))); }
 document.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); planChanged(); });
@@ -3847,6 +3972,56 @@ addEventListener('pointerup', () => { peDown = null; const b = pc.parentElement.
 pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click opens the selection menu (peMenuAt), not the browser's
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
+// ---------- Floors: level buttons and the Floors popover ----------
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+let lvSegKey = '';
+function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
+  const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));
+  if (key !== lvSegKey) {
+    lvSegKey = key;
+    const SH = { B: ['Basement', 'B'], M: ['Main', 'M'], U: ['Upper', 'U'] };
+    const lab = l => { if (SH[l.id] && l.name === LV_DEFNAME[l.id]) return SH[l.id];
+      const n = l.name.replace(/\s*\(.*\)$/, ''); return [n.length > 14 ? n.slice(0, 13) + '…' : n, n.match(/^\d+/)?.[0] || n.replace(/[^A-Za-z]/g, '').slice(0, 2) || l.id]; };
+    const html = attr => L.map(l => { const [lg, sh] = lab(l); return `<button type="button" ${attr}="${escH(l.id)}" data-tip="${attr === 'data-view' ? 'See' : 'Edit'} ${escH(l.name.toLowerCase())}"><span class="l">${escH(lg)}</span><span class="s">${escH(sh)}</span></button>`; }).join('');
+    document.getElementById('segLvl').innerHTML = html('data-view'); document.getElementById('segPeLvl').innerHTML = html('data-pelv');
+  }
+  if (typeof curHouse !== 'undefined') { const b = document.querySelector('#segLvl [data-view="B"]'); if (b) b.hidden = curHouse === 2;
+    document.querySelectorAll('#segLvl [data-view]').forEach(b => b.setAttribute('aria-pressed', String(mode === 'orbit' && b.dataset.view === curView))); }
+  document.querySelectorAll('#segPeLvl [data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv)));
+}
+document.getElementById('segLvl').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b && !b.onclick) goView(b.dataset.view); });
+function renderFloorsPop() {
+  const el = document.getElementById('peFloorList'); if (!el) return;
+  const L = [...levelList()].reverse(), my = LV_Y.M;
+  el.innerHTML = `<div class="fl-row fl-head"><span>Floor</span><span title="Floor to ceiling">Ceiling</span><span title="Floor level, measured from the main floor">Level</span><span></span></div>` + L.map(l => {
+    const n = BM.rooms.filter(r => r.level === l.id).length, fixed = !l.extra;
+    return `<div class="fl-row${l.id === PE.lv ? ' on' : ''}" data-flid="${escH(l.id)}"><input data-fl="name" value="${escH(l.name)}" aria-label="Floor name" title="${n} room${n === 1 ? '' : 's'} · click to edit this floor">` +
+      `<input data-fl="h" type="number" step="any" min="6" max="30" value="${toDisp(l.h)}" aria-label="Ceiling height">` +
+      `<input data-fl="y" type="number" step="any" value="${toDisp(l.y - my)}" aria-label="Floor level from the main floor"${fixed ? ' disabled title="Set by the floor heights (Plan settings → Levels)"' : ''}>` +
+      `<button type="button" data-fl="del" aria-label="Remove ${escH(l.name)}" title="${fixed ? 'Built-in floors stay (leave them empty to skip them)' : 'Remove this floor'}"${fixed ? ' disabled' : ''}><svg class="ic"><use href="#i-x"/></svg></button></div>`; }).join('');
+}
+function floorsChanged() { if (!lvOf(PE.lv)) PE.lv = 'M'; planChanged(); peLvlButtons(); renderFloorsPop(); updateViews3(); }
+const flList = document.getElementById('peFloorList');
+flList.addEventListener('focusin', e => { const row = e.target.closest('[data-flid]'); if (row && row.dataset.flid !== PE.lv) { peSetLevel(row.dataset.flid); flList.querySelectorAll('.fl-row').forEach(r => r.classList.toggle('on', r === row)); } });
+flList.addEventListener('change', e => {
+  const row = e.target.closest('[data-flid]'), id = row?.dataset.flid, k = e.target.dataset.fl; if (!id) return;
+  if (k === 'name') { const v = e.target.value.trim().slice(0, 40); if (!v) return renderFloorsPop(); pushHist();
+    editLevels(L => { const x = L.extra.find(q => q.id === id); if (x) x.name = v; else if (v === LV_DEFNAME[id]) delete L.names[id]; else L.names[id] = v; if (!Object.keys(L.names).length) delete L.names; }); return floorsChanged(); }
+  const v = fromDisp(parseFloat(e.target.value)); if (!isFinite(v)) return renderFloorsPop();
+  if (k === 'h') { if (v < 6 || v > 30) { toast('Ceiling heights go from 6 to 30 ft'); return renderFloorsPop(); } pushHist(); setLevelHeight(id, +v.toFixed(2)); return floorsChanged(); }
+  if (k === 'y') { if (Math.abs(v) > 120) return renderFloorsPop(); pushHist(); editLevels(L => { const x = L.extra.find(q => q.id === id); if (x) x.rel = +v.toFixed(2); }); return floorsChanged(); }
+});
+flList.addEventListener('click', e => {
+  const b = e.target.closest('[data-fl="del"]'), id = b?.closest('[data-flid]')?.dataset.flid; if (!id || !lvOf(id)?.extra) return;
+  const n = BM.rooms.filter(r => r.level === id).length + (BM.stairs || []).filter(s => s.level === id).length;
+  if (n && !confirm(`Remove ${LV_NAME[id]} and the ${n} room${n === 1 ? '' : 's'} and stairs on it?`)) return;
+  pushHist(); for (const k of ['rooms', 'stairs', 'items', 'notes', 'dims']) if (Array.isArray(BM[k])) BM[k] = BM[k].filter(o => o.level !== id);
+  for (const S of BM.stairs || []) if (S.to === id) delete S.to;
+  editLevels(L => { L.extra = L.extra.filter(q => q.id !== id); if (!L.extra.length) delete L.extra; }); if (PE.lv === id) PE.lv = 'M'; floorsChanged();
+});
+for (const [btn, where] of [['peFlTop', 'top'], ['peFlHalf', 'half'], ['peFlBot', 'bottom']]) document.getElementById(btn).onclick = () => {
+  pushHist(); const id = addLevel(where, PE.lv); PE.lv = id; PE.sel = null; floorsChanged(); if (curHouse === 3) goView(id); toast(`Added ${LV_NAME[id]}`); };
+
 
 // =====================================================================
 //  DESIGNER TOOLS — furniture you place by hand, notes, dimension lines, multi-select (align, copy, paste),
@@ -3913,7 +4088,7 @@ const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
-  const furn = { B: G3.furnB, M: G3.furnM, U: G3.furnU };
+  const furn = new Proxy({}, { get: (_, k) => lvOf(k) ? LG(k).furn : null });
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
@@ -3946,7 +4121,9 @@ document.querySelectorAll('[data-item]').forEach(b => {
 function selectX(x) { PE.selX = x; if (x) { PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear(); } peInspector(); peDraw(); }
 const curItem = () => PE.selX?.kind === 'item' && (BM.items || []).find(i => i.id === PE.selX.id);
 const curNote = () => PE.selX?.kind === 'note' && (BM.notes || []).find(i => i.id === PE.selX.id);
-function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
+// Furniture lives in the 3D view: the plan only shows it with Plan settings → Furniture on, or the piece you're placing right now.
+const itemOnPlan = it => PE.furn || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
+function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i)); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
 function noteAt(sx, sy) { return (BM.notes || []).find(n => { if (n.level !== PE.lv) return false; const [a, b] = W2S(n.x, n.z); return sx > a - 8 && sx < a + 8 + (n._w || 60) && sy > b - 22 && sy < b + 8; }); }
 function dimAt(sx, sy) {
   return (BM.dims || []).find(d => { if (d.level !== PE.lv) return false; const [a, b] = W2S(d.x1, d.z1), [c, e] = W2S(d.x2, d.z2), L2 = (c - a) ** 2 + (e - b) ** 2 || 1;
@@ -3981,7 +4158,7 @@ document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? 
 // ---------- drawing (called at the end of peDraw) ----------
 function peDrawExtras(s) {
   px.save(); px.textBaseline = 'middle';
-  for (const it of (BM.items || []).filter(i => i.level === PE.lv)) {
+  for (const it of (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i))) {
     const c = CATALOG[it.kind]; if (!c) continue; const [w, d] = itemDims(it), [a, b] = W2S(it.x - w / 2, it.z - d / 2), sel = PE.selX?.kind === 'item' && PE.selX.id === it.id;
     px.fillStyle = c[3] + 'cc'; px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.beginPath(); px.roundRect?.(a, b, w * s, d * s, Math.min(4, s * .3)) ?? px.rect(a, b, w * s, d * s); px.fill(); px.stroke();
     const fx = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] }[it.rot % 4]; // front edge marker
@@ -4051,7 +4228,7 @@ renderer.domElement.addEventListener('contextmenu', e => {
   if (!PE.open) return; e.preventDefault();
   const R = renderer.domElement.getBoundingClientRect(); v2f.set((e.clientX - R.left) / R.width * 2 - 1, -(e.clientY - R.top) / R.height * 2 + 1); rc3f.setFromCamera(v2f, camera);
   const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
-  for (const h of rc3f.intersectObjects([G3.furnB, G3.furnM, G3.furnU], true)) { if (!vis(h.object)) continue;
+  for (const h of rc3f.intersectObjects(levelIds().map(l => LG(l).furn), true)) { if (!vis(h.object)) continue;
     let o = h.object; while (o && o.userData.item == null && o.userData.room == null) o = o.parent; if (!o) continue;
     const it = o.userData.item != null && (BM.items || []).find(i => i.id === o.userData.item), rm = !it && BM.rooms.find(q => q.id === o.userData.room); if (!it && !rm) continue;
     PE.lv = (it || rm).level; peLvlButtons(); PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear();
@@ -4152,7 +4329,7 @@ function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
   const isFront = w.ext && planLevel(w.R.level).some(x => x.front && x.room === w.R && x.out === w.out);
   const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' || isFront ? 'door' : null;
-  if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
+  if (!kind || (w.ext && belowGrade(w.R.level) && kind === 'window')) { el.hidden = true; return; }
   const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
@@ -4419,7 +4596,7 @@ const HOUSES = {
        note: `Lakeshore, ON · 2-storey + basement<br>Main 1,525 sf · 2nd 1,675 sf · 53'-3½" × 44'-0"<br>Built from permit set A-1.01 – A-3.02, rev. 04/06/2022` },
   2: { root: HOUSE2, G: G2, trees: TREES_H2, views: VIEWS_H2, levelY: LEVEL_Y2, front: [25, -44, Math.PI, 1], yard: [16, 47, Math.PI, 3], drive: [46, -52, Math.PI, 1],
        note: `Concept · French-modern, from your photo<br>Main ≈1,700 sf · 2nd ≈1,560 sf · 58' × 50'<br>Garage and entry face Old Tecumseh Rd` },
-  3: { root: HOUSE3, G: G3, trees: G3.trees, views: {}, levelY: LEVEL_Y, get front() { return H3_FRONT; }, get yard() { return [H3_FRONT[0], H3_FRONT[1] + 90, 0, 3]; }, get drive() { return H3_DRIVE; },
+  3: { root: HOUSE3, G: G3, trees: G3.trees, views: {}, levelY: LV_Y, get front() { return H3_FRONT; }, get yard() { return [H3_FRONT[0], H3_FRONT[1] + 90, 0, 3]; }, get drive() { return H3_DRIVE; },
        note: `Your editable design<br>Drag walls and rooms in the floor plan editor<br>Walls, doors, windows and roof are built for you` },
 };
 const roomsOf = n => n === 1 ? ROOMS : n === 2 ? ROOMS2 : ROOMS3;
@@ -4433,10 +4610,19 @@ const H3_NOTE = `1196 Campana Cres, Belle River · 2-storey + basement<br>Main 1
 let mode = 'orbit', curView = 'front', anim = null, showLabels = true, showFurn = true, showTrees = true, showRoof = true, orbitFov = 50;
 function applyVisibility() {
   const v = mode === 'walk' ? 'full' : curView;
-  const lvl = { B: 0, M: 1, U: 2 }[v];
-  const cut = lvl !== undefined;
   const H = HOUSES[curHouse], g = H.G;
   HOUSE1.visible = curHouse === 1; HOUSE2.visible = curHouse === 2; HOUSE3.visible = curHouse === 3;
+  if (curHouse === 3) { // My Design: any number of floors. A floor view cuts away everything above that floor.
+    const cutY = lvOf(v)?.y, cut = cutY !== undefined;
+    for (const l of levelList()) { const q = LG(l.id), on = !cut || l.y <= cutY + .01; q.g.visible = on; q.ceil.visible = !cut && (showRoof || l.id === 'M' || l.y < 0); q.furn.visible = showFurn && on; }
+    g.roof.visible = !cut && showRoof; H.trees.visible = !cut && showTrees; g.site.visible = showTrees || cut;
+    for (const o of labelObjs) o.visible = showLabels && cut && o.userData.lv === v && o.userData.house === 3;
+    renderer.shadowMap.needsUpdate = true;
+    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(mode === 'orbit' && b.dataset.view === curView)));
+    uiSync(); return;
+  }
+  const lvl = { B: 0, M: 1, U: 2 }[v];
+  const cut = lvl !== undefined;
   if (g.basement) g.basement.visible = true;
   g.main.visible = !cut || lvl >= 1; g.mainCeil.visible = !cut;
   g.upper.visible = !cut || lvl >= 2; g.upperCeil.visible = !cut && showRoof; g.roof.visible = !cut && showRoof;
@@ -4556,7 +4742,7 @@ function stepWalk(dt) {
     if (g !== null && player.feet <= g) { player.feet = g; player.vy = 0; }
   } else if (g !== null) player.feet += (g - player.feet) * Math.min(1, dt * (g > player.feet ? 14 : 9));
   // HUD room lookup (also tells the camera whether there is a ceiling overhead)
-  const lv = player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
+  const lv = curHouse === 3 ? levelAtY(player.feet) : player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
   const RM = roomsOf(curHouse);
   let hit = null; for (const rm of RM) if (rm[1] === lv && rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3])) { hit = rm; break; }
   if (AV.third) {
@@ -4592,7 +4778,7 @@ function stepWalk(dt) {
     camera.position.set(player.x, player.feet + eyeH(), player.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
-  const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
+  const lvName = curHouse === 3 ? LV_NAME[lv] : { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
   document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
   stepDoors(dt); updateDoorHint(); drawMini(lv);
@@ -4854,7 +5040,7 @@ function setHouse(n, fromHash) {
   document.getElementById('houseNote').innerHTML = tab === 4 ? H3_NOTE : HOUSES[n].note;
   document.querySelector('[data-view="B"]').hidden = n === 2;
   document.querySelectorAll('[data-sec="Exterior"]').forEach(el => el.hidden = n === 2);
-  fillGoto();
+  fillGoto(); renderLevelSegs();
   if (!fromHash) try { history.replaceState(null, '', HASHES[tab] || location.pathname + location.search); } catch (e) { }
   goView(curView === 'B' && n === 2 ? 'M' : curView, true);
 }
@@ -4878,7 +5064,7 @@ addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabH
     if (!h) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
     const yaw = Math.atan2(-(h.point.x - camera.position.x), -(h.point.z - camera.position.z));
     // From outside the drop usually hits a roof or wall: stand on the main floor (or the ground) under that spot instead.
-    const outside = !['B', 'M', 'U'].includes(curView), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
+    const outside = !(curHouse === 3 ? lvOf(curView) : ['B', 'M', 'U'].includes(curView)), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
     curView = 'front'; fadeCut(() => enterWalk([h.point.x, h.point.z, yaw, feet], false));
   });
 }
@@ -4932,9 +5118,9 @@ function rebuildHouse3() {
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
-  updateViews3();
-  if (curHouse === 3) { applyVisibility(); fillGoto(); }
+    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, (LV_Y[lv] ?? 0) + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
+  updateViews3(); renderLevelSegs();
+  if (curHouse === 3) { if (!lvOf(curView) && !HOUSES[3].views[curView] && /^[A-Z]/.test(curView)) curView = 'M'; applyVisibility(); fillGoto(); }
   renderer.shadowMap.needsUpdate = true;
 }
 // Camera views for My Design, framed on the design (pulled back a little while the editor narrows the screen).
@@ -4944,7 +5130,8 @@ function updateViews3() {
   const sz = Math.max(x1 - x0, z1 - z0, 30) * (editorWidth() ? Math.min(1.7, .55 + .45 * innerWidth / Math.max(260, innerWidth - editorWidth())) : 1), V = HOUSES[3].views;
   V.front = { pos: [cx - sz * .9, sz * .55, z0 - sz * 1.3], tgt: [cx, 8, cz] }; V.rear = { pos: [cx + sz * .9, sz * .6, z1 + sz * 1.3], tgt: [cx, 8, cz] };
   V.aerial = { pos: [cx + sz * 1.6, sz * 2.2, z0 - sz * 1.4], tgt: [cx, 0, cz] };
-  for (const [k, y] of [['B', BF], ['M', MF], ['U', UF]]) V[k] = { pos: [cx, sz * 1.7, cz + sz * .85], tgt: [cx, y, cz] };
+  for (const k of Object.keys(V)) if (!['front', 'rear', 'aerial'].includes(k)) delete V[k];
+  for (const { id: k, y } of levelList()) V[k] = { pos: [cx, sz * 1.7, cz + sz * .85], tgt: [cx, y, cz] };
 }
 // While the floor plan editor covers the left side, shift the 3D picture so its centre sits in the visible right panel.
 function editorWidth() { return PE.open && innerWidth > 760 ? document.getElementById('planEd').getBoundingClientRect().width : 0; }
@@ -5138,7 +5325,7 @@ function summarize(bm) {
     const T = RT[r.type] || {}; if (!T.outdoor && !T.garage && r.level !== 'B') sf += r.w * r.d; if (T.garage) garage += r.w * r.d;
     if (BEDS.has(r.type) && one(r)) beds++; else if ((r.type === 'bath' || r.type === 'ensuite') && one(r)) baths += 1; else if (r.type === 'powder' && one(r)) baths += .5;
   }
-  return { beds, baths, sf: Math.round(sf), storeys: rs.some(r => r.level === 'U') ? 2 : 1, basement: rs.some(r => r.level === 'B'), garage: Math.round(garage / 250) };
+  return { beds, baths, sf: Math.round(sf), storeys: Math.max(1, new Set(rs.filter(r => r.level !== 'B' && !levelList(bm).some(l => l.id === r.level && l.y < 0)).map(r => r.level)).size), basement: rs.some(r => levelList(bm).some(l => l.id === r.level && l.y < 0)), garage: Math.round(garage / 250) };
 }
 const specLine = s => s ? [`${s.beds} bed`, `${s.baths} bath`, fmtArea(s.sf), s.garage ? `${s.garage}-car` : null].filter(Boolean).join(' · ') : '';
 const previewOf = bm => (bm.rooms || []).filter(r => r.level === 'M').map(r => [r.x, r.z, r.w, r.d, (RT[r.type] || {}).color || '#ddd']);
@@ -5426,7 +5613,8 @@ let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => { renderNav(); renderSaved(); }, mePop: () => syncMe(),
   dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
-  pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
+  peFloorsPop: () => renderFloorsPop(),
+  pePlanPop: () => { $u('peFurnT').checked = !!PE.furn; $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
 function openPop(id, btn) {
   if (popOpen === id) return closePops();
@@ -5500,20 +5688,21 @@ function renderNav() {
 // ---------- areas, estimate, schedule ----------
 const NOT_LIVING = /porch|patio|balcony|deck|bridge|garage|open space/i;
 function areaData() {
-  const lv = { B: [], M: [], U: [] };
+  const lv = Object.fromEntries((curHouse === 3 ? levelIds() : ['B', 'M', 'U']).map(l => [l, []]));
   for (const [name, l, rs] of roomsOf(curHouse)) lv[l]?.push([name, rs.reduce((a, r) => a + (r[1] - r[0]) * (r[3] - r[2]), 0)]);
   const living = l => lv[l].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0);
   const names = Object.values(lv).flat().map(([n]) => n);
   const beds = names.filter(n => /bed|nursery|guest/i.test(n) && !/bath/i.test(n)).length;
   const baths = names.filter(n => /bath|ensuite/i.test(n)).length + names.filter(n => /powder/i.test(n)).length * .5;
-  return { lv, above: living('M') + living('U'), base: living('B'), beds, baths };
+  const ids = Object.keys(lv), under = l => curHouse === 3 ? belowGrade(l) : l === 'B';
+  return { lv, above: ids.filter(l => !under(l)).reduce((a, l) => a + living(l), 0), base: ids.filter(under).reduce((a, l) => a + living(l), 0), beds, baths };
 }
 const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
+  const LN = curHouse === 3 ? LV_NAME : { M: 'Main floor', U: '2nd floor', B: 'Basement' };
+  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
 
 // ---------- display: render style, layers, sun, camera ----------
@@ -5671,6 +5860,7 @@ $u('peFind').oninput = e => {
 $u('peGridT').onchange = e => { PE.grid = e.target.checked; peDraw(); };
 $u('peDimsT').onchange = e => { PE.dims = e.target.checked; peDraw(); };
 $u('peAreaT').onchange = e => { PE.areas = e.target.checked; peDraw(); };
+$u('peFurnT').onchange = e => { PE.furn = e.target.checked; if (!PE.furn && PE.selX?.kind === 'item') selectX(null); peDraw(); };
 $u('peChainT').onchange = e => { PE.autoDims = e.target.checked; peDraw(); };
 $u('peZoomIn').onclick = () => peZoom(1.2); $u('peZoomOut').onclick = () => peZoom(1 / 1.2); $u('peZoomFit').onclick = () => { peFit(); peDraw(); };
 
@@ -5688,7 +5878,7 @@ addEventListener('keydown', e => {
   if (mode === 'walk') return;
   if (k === '\\') return setUIHidden(!document.body.classList.contains('ui-hidden'));
   if (k === '?') return openPanel('help');
-  if ('123'.includes(k) && k.length === 1) { const lv = 'BMU'[+k - 1]; if (PE.open) document.querySelector(`[data-pelv="${lv}"]`)?.click(); else if (!document.querySelector(`[data-view="${lv}"]`).hidden) goView(lv); return; }
+  if (/^[1-9]$/.test(k)) { const L = curHouse === 3 ? levelList() : DEFAULT_LEVELS, lv = L[+k - 1]?.id; if (!lv) return; if (PE.open) peSetLevel(lv); else if (!document.querySelector(`[data-view="${lv}"]`)?.hidden) goView(lv); return; }
   if (k === 'e') { if (PE.open) $u('peDone').click(); else if (!$u('editBtn').hidden) $u('editBtn').click(); return; }
   if (k === 'm') return setMeasure(!MEAS.on);
   if (k === 'h') return setRoof(!showRoof);
@@ -5703,7 +5893,7 @@ addEventListener('keydown', e => {
 function uiSync() {
   if (!uiReady) return;
   const t = tabHouse(); $u('designNow').textContent = t === 3 ? (curDesign()?.name || 'My design') : `Sample ${t === 4 ? 3 : t}`;
-  $u('viewNow').textContent = mode === 'walk' ? 'Walking' : VIEW_NAME[curView] || 'Custom';
+  $u('viewNow').textContent = mode === 'walk' ? 'Walking' : (curHouse === 3 && lvOf(curView)?.name) || VIEW_NAME[curView] || 'Custom';
   $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
   $u('doorsLbl').textContent = allDoorsClosed() ? 'Open all doors' : 'Close all doors';
   if (RS !== 'real') applyRS();
@@ -5774,7 +5964,7 @@ function drawSheetPlan(lv, W, H) {
   const s = Math.min(W / (x1 - x0), H / (z1 - z0)), ox = (W - (x1 - x0) * s) / 2 - x0 * s, oy = (H - (z1 - z0) * s) / 2 - z0 * s, P = (x, z) => [x * s + ox, z * s + oy];
   g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const q of rs) { const [a, b] = P(q.x, q.z); g.fillStyle = (RT[q.type]?.color || '#eee') + '66'; g.fillRect(a, b, q.w * s, q.d * s); }
-  for (const it of (BM.items || []).filter(i => i.level === lv)) { const c2 = CATALOG[it.kind]; if (!c2) continue; const [w, d] = itemDims(it), [a, b] = P(it.x - w / 2, it.z - d / 2); g.strokeStyle = '#999'; g.lineWidth = .8; g.strokeRect(a, b, w * s, d * s); }
+  for (const it of (BM.items || []).filter(i => i.level === lv && PE.furn)) { const c2 = CATALOG[it.kind]; if (!c2) continue; const [w, d] = itemDims(it), [a, b] = P(it.x - w / 2, it.z - d / 2); g.strokeStyle = '#999'; g.lineWidth = .8; g.strokeRect(a, b, w * s, d * s); }
   for (const w of planLevel(lv)) { // walls with gaps where doors and windows are
     const th = w.ext ? 3.2 : 1.8, cuts = (w.ops || []).map(o => [o.c - o.w / 2, o.c + o.w / 2]).sort((p, q) => p[0] - q[0]);
     let a = w.a; const segs = []; for (const [c0, c1] of cuts) { if (c0 > a) segs.push([a, c0]); a = Math.max(a, c1); } if (a < w.b) segs.push([a, w.b]);
@@ -5801,7 +5991,7 @@ function captureElevations(W = 1400, H = 560) {
   if (mode === 'walk') goView(curView, true);
   showRoof = true; showLabels = false; curView = 'front'; applyVisibility(); setRender('clay');
   scene.background = new THREE.Color('#ffffff'); G3.site.visible = G3.trees.visible = G3.basement.visible = G3.furnB.visible = false;
-  const box = new THREE.Box3(); for (const g of [G3.main, G3.upper, G3.roof]) box.expandByObject(g);
+  const box = new THREE.Box3(); for (const g of [...levelIds().filter(l => !belowGrade(l)).map(l => LG(l).g), G3.roof]) box.expandByObject(g);
   const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), top = box.max.y, out = [];
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
   for (const [name, dx, dz] of [['Front', 0, -1], ['Rear', 0, 1], ['Left', -1, 0], ['Right', 1, 0]]) {
@@ -5816,7 +6006,7 @@ function captureElevations(W = 1400, H = 560) {
     g.fillStyle = '#fff'; g.fillRect(0, gy + 1.5, W, H - gy);
     g.fillStyle = '#111'; g.font = '600 13px Inter, sans-serif'; g.fillText(`${name} elevation`, 14, H - 14);
     g.font = '11px "JetBrains Mono", monospace'; g.fillStyle = '#555';
-    const pxPerFt = H / (2 * hh); for (const [lbl, y] of [['Main floor', MF], ['2nd floor', UF], ['Top of roof', top]]) { if (lbl === '2nd floor' && !BM.rooms.some(r => r.level === 'U')) continue; const py = gy - y * pxPerFt; g.setLineDash([6, 4]); g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(W - 210, py); g.lineTo(W - 10, py); g.stroke(); g.setLineDash([]); g.fillText(`${lbl} ${ftin(y)}`, W - 205, py - 4); }
+    const pxPerFt = H / (2 * hh); for (const [lbl, y] of [...levelList().filter(l => !belowGrade(l.id) && (l.id === 'M' || BM.rooms.some(r => r.level === l.id))).map(l => [l.name, l.y]), ['Top of roof', top]]) { const py = gy - y * pxPerFt; g.setLineDash([6, 4]); g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(W - 210, py); g.lineTo(W - 10, py); g.stroke(); g.setLineDash([]); g.fillText(`${lbl} ${ftin(y)}`, W - 205, py - 4); }
     out.push({ name, url: cv.toDataURL('image/png'), scale: pxPerFt });
   }
   renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false);
@@ -5828,7 +6018,7 @@ function captureElevations(W = 1400, H = 560) {
 function planSheet() {
   if (curHouse !== 3) return toast('Open a design (or Sample 3) to print its plan');
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
+  const A = areaData(), LN = LV_NAME, levels = levelIds().filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>

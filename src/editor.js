@@ -42,14 +42,14 @@ function peDraw() {
     for (let x = Math.floor(gx0 / step) * step; x <= gx1; x += step) { const X = Math.round(x * s + PE.ox) + .5; px.moveTo(X, 0); px.lineTo(X, H); }
     for (let z = Math.floor(gz0 / step) * step; z <= gz1; z += step) { const Y = Math.round(z * s + PE.oy) + .5; px.moveTo(0, Y); px.lineTo(W, Y); } px.stroke(); }
   // the floor below, dashed, to line things up
-  const gm = guideMode(), guideLv = gm === 'none' ? null : ({ B: { above: 'M' }, M: { below: 'B', above: 'U' }, U: { below: 'M' } })[PE.lv][gm];
+  const gm = guideMode(), guideLv = gm === 'none' ? null : gm === 'above' ? levelAbove(PE.lv) : levelBelow(PE.lv);
   const guide = guideLv ? BM.rooms.filter(q => q.level === guideLv) : [];
   if (guide.length) { px.setLineDash([5, 4]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1; px.textAlign = 'center'; px.textBaseline = 'middle';
     for (const q of guide) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a, b, q.w * s, q.d * s);
       if (q.w * s > 50 && q.d * s > 22 && !lvRooms().some(o => ovl(o, q))) { px.fillStyle = css('--ink-2'); px.globalAlpha = .55; px.font = '11px Inter, system-ui, sans-serif'; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2); px.globalAlpha = 1; } }
     px.setLineDash([]); }
   // double-height rooms show as open to below on the 2nd floor
-  if (PE.lv === 'U') for (const q of BM.rooms.filter(isTall)) { const [a, b] = W2S(q.x, q.z); px.save(); px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } px.clip();
+  if (PE.lv === 'U') for (const q of BM.rooms.filter(r => r.level === 'M' && isTall(r))) { const [a, b] = W2S(q.x, q.z); px.save(); px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } px.clip();
     px.strokeStyle = 'rgba(31,63,209,.35)'; px.lineWidth = 1; px.beginPath(); for (let k = -q.d * s; k < q.w * s; k += 10) { px.moveTo(a + k, b + q.d * s); px.lineTo(a + k + q.d * s, b); } px.stroke(); px.restore();
     px.fillStyle = css('--ink-2'); px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText(`Open to below · ${rname(q)}`, a + q.w * s / 2, b + q.d * s / 2); }
   // rooms
@@ -57,7 +57,7 @@ function peDraw() {
   for (const q of lvRooms()) {
     const [a, b] = W2S(q.x, q.z); px.fillStyle = (RT[q.type]?.color || '#ddd') + 'd9'; px.fillRect(a, b, q.w * s, q.d * s);
     if (RT[q.type]?.outdoor) { px.setLineDash([3, 3]); px.strokeStyle = '#4c7fd6'; px.lineWidth = 1.5; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); px.setLineDash([]);
-      const lv = RT[q.type].levels; if (lv && lv !== q.level) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(lv === 'U' ? 'Balconies go on the 2nd floor' : 'Put this on the main floor', a + q.w * s / 2, b + q.d * s + 13); } }
+      const lv = RT[q.type].levels; if (!lvOK(q.type, q.level)) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(lv === 'U' ? 'Balconies go on the 2nd floor' : 'Put this on the main floor', a + q.w * s / 2, b + q.d * s + 13); } }
     if (q.type === 'stairs') { // draw the treads and which way they go
       const st = stairStatus(q), sd = stairDir(q), alongX = sd[1] === 'x', n = 12;
       px.strokeStyle = 'rgba(24,32,43,.35)'; px.lineWidth = 1; px.beginPath();
@@ -127,7 +127,8 @@ function peDraw() {
   for (const q of lvRooms()) for (const o of lvRooms()) { if (q.id >= o.id) continue; // open connections, dashed so they can be clicked
     for (const e of edgesOf(q)) { const f = edgesOf(o).find(x => x.side === OPP[e.side]); if (Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a < .3 || wallMode(q, o) !== 'open') continue;
       px.setLineDash([6, 5]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1.2; px.beginPath(); if (e.axis === 'x') { px.moveTo(...W2S(a, e.c)); px.lineTo(...W2S(b, e.c)); } else { px.moveTo(...W2S(e.c, a)); px.lineTo(...W2S(e.c, b)); } px.stroke(); px.setLineDash([]); } }
-  if (PE.selWall) { const w = PE.selWall; px.strokeStyle = css('--accent'); px.lineWidth = 6; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); }
+  if (PE.selWall && !(PE.drag?.kind === 'wall')) { const w = PE.selWall, line = w.scope === 'line', a0 = line ? w.la : w.a, b0 = line ? w.lb : w.b; px.strokeStyle = css('--accent'); px.lineWidth = 6; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(a0, w.c)); px.lineTo(...W2S(b0, w.c)); } else { px.moveTo(...W2S(w.c, a0)); px.lineTo(...W2S(w.c, b0)); } px.stroke();
+    if (w.scope === 'seg') { px.fillStyle = css('--accent'); for (const t of [a0, b0]) { const [X, Y] = w.axis === 'x' ? W2S(t, w.c) : W2S(w.c, t); px.beginPath(); px.arc(X, Y, 4.5, 0, 7); px.fill(); } } }
   const hv = PE.drag?.kind === 'wall' ? PE.drag : PE.hover;
   if (hv?.kind === 'wall') { px.strokeStyle = css('--accent'); px.lineWidth = 4; px.beginPath();
     if (hv.axis === 'x') { px.moveTo(...W2S(hv.a, hv.c + (hv.delta || 0))); px.lineTo(...W2S(hv.b, hv.c + (hv.delta || 0))); } else { px.moveTo(...W2S(hv.c + (hv.delta || 0), hv.a)); px.lineTo(...W2S(hv.c + (hv.delta || 0), hv.b)); } px.stroke(); }
@@ -151,10 +152,11 @@ function labelSpot(q, w, h, s) {
   let best = null, bd = Infinity; for (let gy = b + h / 2 + 2; gy <= b + B - h / 2 - 2; gy += 6) for (let gx = a + w / 2 + 2; gx <= a + A - w / 2 - 2; gx += 6) { const d = Math.hypot(gx - cx0, gy - cy0); if (d < bd && free(gx, gy)) { bd = d; best = [gx, gy]; } }
   return best || [null, null];
 }
-const LV_LONG = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+// can this room type go on this floor? Decks and porches sit on the main floor, balconies and catwalks on any floor above it
+const lvOK = (type, lv) => { const want = RT[type]?.levels; return !want || (want === 'M' ? lv === 'M' : upperLevel(lv)); };
 function peStatus() {
   const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + q.w * q.d, 0));
-  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_LONG[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
+  const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_NAME[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
   const z = document.getElementById('peZoomV'); if (z) z.textContent = Math.round(PE.s / 10 * 100) + '%';
 }
 function peZoom(k) { const r = pc.getBoundingClientRect(), cx = r.width / 2, cy = r.height / 2, [wx, wz] = S2W(cx, cy); PE.s = Math.max(3, Math.min(40, PE.s * k)); PE.ox = cx - wx * PE.s; PE.oy = cy - wz * PE.s; peDraw(); }
@@ -200,13 +202,18 @@ pc.addEventListener('pointerdown', e => {
   PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
   if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
+  const prevSel = w && onSelWall(w, w.axis === 'x' ? wx : wz) ? PE.selWall : null;
   PE.selWall = null;
   const se = e.button === 0 ? stairEdgeAt(wx, wz, 6 / PE.s) : null;
   if (se) { const dir = stairDirOf(se.S); PE.selStair = se.S.id; PE.sel = null; PE.drag = { kind: 'stairEdge', S: se.S, side: se.side, r0: { ...se.r }, dir, before: snapshot() }; peInspector(); peDraw(); return; }
   const S = e.button === 0 ? stairHit(wx, wz) : null;
   if (S) { PE.selStair = S.id; PE.sel = null; PE.drag = { kind: 'stair', S, dx: wx - S.cx, dz: wz - S.cz, before: snapshot() }; peInspector(); peDraw(); return; }
   PE.selStair = null;
-  if (w) { PE.drag = { ...w, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: w.members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
+  if (w) { // a whole wall line drags every room along it; once you've clicked into one room's part of it, only that part moves
+    const seg = prevSel?.scope === 'seg', ids = seg ? (prevSel.ext ? [prevSel.R.id] : [prevSel.A.id, prevSel.B.id]) : null;
+    const members = seg ? w.members.filter(m => ids.includes(m.q.id) && (!prevSel.ext || m.e.out === prevSel.out)) : w.members;
+    const ext = seg ? { a: Math.min(...members.map(m => m.e.a)), b: Math.max(...members.map(m => m.e.b)) } : {};
+    PE.drag = { ...w, ...ext, members, prevSel, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
   const q = e.button === 0 ? roomAt(wx, wz) : null;
   if (q && e.shiftKey) { // shift-click builds a multi-selection
     if (!PE.multi.size && PE.sel) PE.multi.add(PE.sel); if (PE.multi.has(q.id)) PE.multi.delete(q.id); else PE.multi.add(q.id);
@@ -220,7 +227,8 @@ pc.addEventListener('pointermove', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
   if (peToolMove(e, wx, wz)) return;
   if (!D) { const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
-    PE.hover = wallAt(wx, wz, 7 / PE.s); pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
+    PE.hover = wallAt(wx, wz, 7 / PE.s); if (PE.hover && PE.selWall?.scope === 'seg' && onSelWall(PE.hover, PE.hover.axis === 'x' ? wx : wz)) Object.assign(PE.hover, { a: PE.selWall.a, b: PE.selWall.b });
+    pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
   if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
   if (D.kind === 'wall') {
     let delta = snapH((D.axis === 'x' ? wz : wx) - D.start);
@@ -263,9 +271,11 @@ pc.addEventListener('pointerup', () => {
   if (D && D.before && D.before !== snapshot()) {
     const moved = D.kind === 'move' ? (D.group?.length ? null : [D.q.id]) : D.kind === 'wall' ? D.base.map(b => b.q.id) : null;
     if (moved) closeGaps(moved);
+    if (D.kind === 'wall' && D.prevSel?.scope === 'seg') PE.selWall = { ...D.prevSel, c: +(D.prevSel.c + D.delta).toFixed(2) }; // keep the part you moved selected
     PE.hist.push(D.before); PE.redo = []; planChanged(); return;
   }
-  if (D?.kind === 'wall') { pickWall(D); PE.sel = null; peInspector(); }
+  if (D?.kind === 'wall') { // first click: the whole wall line; click it again: just the part between the rooms you clicked
+    const prev = D.prevSel; pickWall(D); PE.selWall.scope = prev ? 'seg' : 'line'; PE.selWall.la = D.a; PE.selWall.lb = D.b; PE.sel = null; peInspector(); }
   peDraw();
 });
 // Right-click: select whatever is under the pointer (keeping a multi-selection it's part of) and open its menu there.
@@ -283,6 +293,9 @@ function peMenuAt(sx, sy, wx, wz) {
   PE.menu = !!(PE.sel || PE.selStair || PE.selWall || PE.selX || PE.multi.size); PE.drag = null;
   peInspector(); peDraw(); requestAnimationFrame(pePlaceSide);
 }
+// is this spot on the wall line (or the part of it) that's selected?
+function onSelWall(w, along) { const sw = PE.selWall; if (!sw || sw.axis !== w.axis || Math.abs(sw.c - w.c) > EPS) return false;
+  const [a, b] = sw.scope === 'line' ? [sw.la ?? sw.a, sw.lb ?? sw.b] : [sw.a, sw.b]; return along >= a - .05 && along <= b + .05; }
 // Find the two rooms either side of the clicked spot on a wall line.
 function pickWall(D) {
   const at = D.pickAlong, side = (m, s) => m.e.side === s && at >= m.e.a - .05 && at <= m.e.b + .05;
@@ -316,7 +329,7 @@ document.querySelectorAll('[data-add]').forEach(b => {
 function peAdd(type, at) {
   if (type === 'stairs') return peAddStair(at);
   pushHist();
-  const want = RT[type].levels; if (want && want !== PE.lv && PE.lv !== 'B') { PE.lv = want; PE.sel = null; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
+  const want = RT[type].levels; if (!lvOK(type, PE.lv) && !belowGrade(PE.lv)) { PE.lv = want === 'M' ? 'M' : levelAbove('M') || 'M'; PE.sel = null; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
   const [w, d] = RT[type].size, rs = lvRooms(), sel = rs.find(q => q.id === PE.sel);
   const cand = [];
   const anchor = sel || rs[rs.length - 1];
@@ -336,6 +349,7 @@ function peWallPanel() {
     document.querySelector('#peWall h3').textContent = 'Railing'; info.textContent = `${rname(w.R)} · ${ftin(w.b - w.a)} stretch`; btns.hidden = true; xb.hidden = true; rb.hidden = false;
     const k = railFor(w.R, w.out, w.a); rb.querySelectorAll('[data-rk]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rk === k))); return; }
   document.querySelector('#peWall h3').textContent = 'Wall';
+  const hint = document.getElementById('peWallHint'); if (hint) hint.textContent = w.scope === 'line' ? 'Whole wall selected: dragging moves every room along it. Click it again to pick just this room\'s part.' : w.scope === 'seg' ? 'Just this room\'s part: dragging moves only these rooms.' : '';
   if (w.ext) { info.textContent = `${rname(w.R)} · outside wall`; btns.hidden = true; xb.hidden = false;
     const m = extMode(w.R, w.out); xb.querySelectorAll('[data-xm]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.xm === m))); return; }
   btns.hidden = false; xb.hidden = true; info.textContent = `Between ${rname(w.A)} and ${rname(w.B)}`;
@@ -351,11 +365,14 @@ function peStairPanel() {
   const inp = document.getElementById('peSW'); if (document.activeElement !== inp) inp.value = toDisp(S.W);
   document.querySelectorAll('[data-sshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sshape === (S.shape || 'auto'))));
   document.getElementById('peSShape').hidden = false; // every flight can be straight, U-turn or curved, basement ones too
+  const inL = document.getElementById('peSL'); if (document.activeElement !== inL) inL.value = toDisp(S.L);
+  const to = document.getElementById('peSTo'), ups = levelsAbove(S.level); to.parentElement.hidden = ups.length < 2;
+  to.innerHTML = `<option value="">Automatic (${escH(LV_NAME[stairUp({ ...S, to: null })] || '—')})</option>` + ups.map(l => `<option value="${escH(l)}">${escH(LV_NAME[l])}</option>`).join(''); to.value = S.to && ups.includes(S.to) ? S.to : '';
   document.querySelectorAll('[data-srail]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.srail === stairRail(S))));
   document.querySelectorAll('[data-ssides]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ssides === (S.railSides || 'auto'))));
   document.getElementById('peSSides').hidden = turns(S) || stairRail(S) === 'none'; // turning stairs have their centre wall; the sides only matter with a railing
   const gd = document.getElementById('peSGuard'); gd.checked = S.guard !== false; gd.disabled = stairRail(S) === 'none';
-  const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${st.up === 'U' ? '2nd floor' : 'main floor'}${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
+  const st = stairStatus(S); document.getElementById('peSNote').textContent = st.ok ? `Climbs ${({ '+x': 'east', '-x': 'west', '+z': 'toward the back', '-z': 'toward the front' })[st.dir]} to the ${LV_NAME[st.up].toLowerCase()} (${ftin(LV_Y[st.up] - LV_Y[S.level])} rise)${S.dir ? '' : ' · direction picked automatically'}.` : st.msg;
 }
 const curStair = () => (BM.stairs || []).find(o => o.id === PE.selStair);
 document.getElementById('peSRot').onclick = () => { const S = curStair(); if (!S) return; pushHist(); S.dir = STAIR_DIRS[(STAIR_DIRS.indexOf(stairDirOf(S)) + 1) % 4]; planChanged(); };
@@ -374,10 +391,12 @@ function peDupStair() {
   BM.stairs.push(c); PE.selStair = c.id; PE.sel = null; planChanged(); toast('Stairs duplicated');
 }
 document.querySelectorAll('[data-sshape]').forEach(b => b.onclick = () => { const S = curStair(); if (!S) return; pushHist(); if (b.dataset.sshape === 'auto') delete S.shape; else S.shape = b.dataset.sshape; if (S.shape && S.shape !== 'straight' && S.W < 5.5) S.W = 6; planChanged(); });
-document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 10)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSW').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 3 && v <= 12)) return; pushHist(); S.W = snapH(v); planChanged(); };
+document.getElementById('peSL').onchange = e => { const S = curStair(), v = fromDisp(parseFloat(e.target.value)); if (!S || !(v >= 4 && v <= 30)) return; pushHist(); S.L = snapH(v); planChanged(); };
+document.getElementById('peSTo').onchange = e => { const S = curStair(); if (!S) return; pushHist(); if (e.target.value) S.to = e.target.value; else delete S.to; planChanged(); };
 function peDeleteStair() { const i = (BM.stairs || []).findIndex(o => o.id === PE.selStair); if (i < 0) return; pushHist(); BM.stairs.splice(i, 1); PE.selStair = null; planChanged(); }
 function peAddStair(at) {
-  pushHist(); if (PE.lv === 'U') { PE.lv = 'M'; peLvlButtons(); if (curHouse === 3) goView('M'); }
+  pushHist(); if (!levelAbove(PE.lv)) { PE.lv = levelBelow(PE.lv) || PE.lv; peLvlButtons(); if (curHouse === 3) goView(PE.lv); }
   const host = BM.rooms.find(r => r.id === PE.sel && r.level === PE.lv) || lvRooms()[0];
   const c = at || (host ? [host.x + host.w / 2, host.z + host.d / 2] : [0, 0]);
   const S = { id: BID++, level: PE.lv, cx: snapH(c[0]), cz: snapH(c[1]), W: 3.5, L: 12.5 };
@@ -417,8 +436,9 @@ function peRedo() { const s = PE.redo.pop(); if (!s) return; PE.hist.push(snapsh
 document.getElementById('peRedo').onclick = peRedo;
 document.getElementById('peUndo').onclick = peUndo;
 document.getElementById('peReset').onclick = () => { closePops(); pushHist(); BM = starterPlan(); PE.sel = null; peFit(); planChanged(); };
-document.getElementById('peClear').onclick = () => { closePops(); pushHist(); BM = { roof: BM.roof, rooms: [] }; PE.sel = null; planChanged(); };
-document.querySelectorAll('[data-pelv]').forEach(b => b.onclick = () => { PE.lv = b.dataset.pelv; PE.sel = null; peLvlButtons(); peInspector(); peDraw(); if (curHouse === 3) goView(PE.lv); });
+document.getElementById('peClear').onclick = () => { closePops(); pushHist(); BM = { roof: BM.roof, rooms: [], levels: BM.levels }; PE.sel = null; planChanged(); };
+document.getElementById('segPeLvl').addEventListener('click', e => { const b = e.target.closest('[data-pelv]'); if (b) peSetLevel(b.dataset.pelv); });
+function peSetLevel(lv) { PE.lv = lv; PE.sel = null; PE.selWall = null; peLvlButtons(); peInspector(); peDraw(); if (curHouse === 3) goView(PE.lv); }
 const TRACE = { living: 'rec', great: 'rec', kitchen: 'rec', dining: 'rec', foyer: 'rec', hall: 'rec', sunroom: 'rec', bonus: 'rec', rec: 'rec', playroom: 'rec',
   bedroom: 'bedroom', primary: 'bedroom', guest: 'bedroom', nursery: 'bedroom', bath: 'bath', ensuite: 'bath', powder: 'bath', office: 'office', library: 'office', theatre: 'theatre', gym: 'gym' };
 function peTrace() {
@@ -435,10 +455,11 @@ function peTrace() {
   toast(n ? `Added ${n} basement rooms` : 'The basement already covers the main floor');
 }
 document.getElementById('peTrace').onclick = peTrace;
-function guideMode() { return PE.guide[PE.lv] || (PE.lv === 'B' ? 'above' : 'below'); }
+function guideMode() { return PE.guide[PE.lv] || (levelBelow(PE.lv) ? 'below' : 'above'); }
 document.querySelectorAll('[data-guide]').forEach(b => b.onclick = () => { PE.guide[PE.lv] = b.dataset.guide; peLvlButtons(); peDraw(); });
 function peLvlButtons() {
-  const can = { below: PE.lv !== 'B', above: PE.lv !== 'U', none: true }, gm = guideMode();
+  if (!lvOf(PE.lv)) PE.lv = 'M'; renderLevelSegs();
+  const can = { below: !!levelBelow(PE.lv), above: !!levelAbove(PE.lv), none: true }, gm = guideMode();
   document.querySelectorAll('[data-guide]').forEach(b => { b.disabled = !can[b.dataset.guide]; b.setAttribute('aria-pressed', String(b.dataset.guide === gm)); });
   document.getElementById('peTrace').hidden = PE.lv !== 'B'; document.querySelectorAll('[data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv))); document.querySelectorAll('[data-roof]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.roof === (BM.roof || 'hip')))); }
 document.querySelectorAll('[data-roof]').forEach(b => b.onclick = () => { pushHist(); BM.roof = b.dataset.roof; peLvlButtons(); planChanged(); });
@@ -531,3 +552,53 @@ addEventListener('pointermove', e => { if (peDown && Math.hypot(e.clientX - peDo
 addEventListener('pointerup', () => { peDown = null; const b = pc.parentElement.parentElement; if (!b.classList.contains('pe-busy')) return; b.classList.remove('pe-busy'); requestAnimationFrame(pePlaceSide); });
 pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click opens the selection menu (peMenuAt), not the browser's
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
+
+// ---------- Floors: level buttons and the Floors popover ----------
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+let lvSegKey = '';
+function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
+  const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));
+  if (key !== lvSegKey) {
+    lvSegKey = key;
+    const SH = { B: ['Basement', 'B'], M: ['Main', 'M'], U: ['Upper', 'U'] };
+    const lab = l => { if (SH[l.id] && l.name === LV_DEFNAME[l.id]) return SH[l.id];
+      const n = l.name.replace(/\s*\(.*\)$/, ''); return [n.length > 14 ? n.slice(0, 13) + '…' : n, n.match(/^\d+/)?.[0] || n.replace(/[^A-Za-z]/g, '').slice(0, 2) || l.id]; };
+    const html = attr => L.map(l => { const [lg, sh] = lab(l); return `<button type="button" ${attr}="${escH(l.id)}" data-tip="${attr === 'data-view' ? 'See' : 'Edit'} ${escH(l.name.toLowerCase())}"><span class="l">${escH(lg)}</span><span class="s">${escH(sh)}</span></button>`; }).join('');
+    document.getElementById('segLvl').innerHTML = html('data-view'); document.getElementById('segPeLvl').innerHTML = html('data-pelv');
+  }
+  if (typeof curHouse !== 'undefined') { const b = document.querySelector('#segLvl [data-view="B"]'); if (b) b.hidden = curHouse === 2;
+    document.querySelectorAll('#segLvl [data-view]').forEach(b => b.setAttribute('aria-pressed', String(mode === 'orbit' && b.dataset.view === curView))); }
+  document.querySelectorAll('#segPeLvl [data-pelv]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pelv === PE.lv)));
+}
+document.getElementById('segLvl').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b && !b.onclick) goView(b.dataset.view); });
+function renderFloorsPop() {
+  const el = document.getElementById('peFloorList'); if (!el) return;
+  const L = [...levelList()].reverse(), my = LV_Y.M;
+  el.innerHTML = `<div class="fl-row fl-head"><span>Floor</span><span title="Floor to ceiling">Ceiling</span><span title="Floor level, measured from the main floor">Level</span><span></span></div>` + L.map(l => {
+    const n = BM.rooms.filter(r => r.level === l.id).length, fixed = !l.extra;
+    return `<div class="fl-row${l.id === PE.lv ? ' on' : ''}" data-flid="${escH(l.id)}"><input data-fl="name" value="${escH(l.name)}" aria-label="Floor name" title="${n} room${n === 1 ? '' : 's'} · click to edit this floor">` +
+      `<input data-fl="h" type="number" step="any" min="6" max="30" value="${toDisp(l.h)}" aria-label="Ceiling height">` +
+      `<input data-fl="y" type="number" step="any" value="${toDisp(l.y - my)}" aria-label="Floor level from the main floor"${fixed ? ' disabled title="Set by the floor heights (Plan settings → Levels)"' : ''}>` +
+      `<button type="button" data-fl="del" aria-label="Remove ${escH(l.name)}" title="${fixed ? 'Built-in floors stay (leave them empty to skip them)' : 'Remove this floor'}"${fixed ? ' disabled' : ''}><svg class="ic"><use href="#i-x"/></svg></button></div>`; }).join('');
+}
+function floorsChanged() { if (!lvOf(PE.lv)) PE.lv = 'M'; planChanged(); peLvlButtons(); renderFloorsPop(); updateViews3(); }
+const flList = document.getElementById('peFloorList');
+flList.addEventListener('focusin', e => { const row = e.target.closest('[data-flid]'); if (row && row.dataset.flid !== PE.lv) { peSetLevel(row.dataset.flid); flList.querySelectorAll('.fl-row').forEach(r => r.classList.toggle('on', r === row)); } });
+flList.addEventListener('change', e => {
+  const row = e.target.closest('[data-flid]'), id = row?.dataset.flid, k = e.target.dataset.fl; if (!id) return;
+  if (k === 'name') { const v = e.target.value.trim().slice(0, 40); if (!v) return renderFloorsPop(); pushHist();
+    editLevels(L => { const x = L.extra.find(q => q.id === id); if (x) x.name = v; else if (v === LV_DEFNAME[id]) delete L.names[id]; else L.names[id] = v; if (!Object.keys(L.names).length) delete L.names; }); return floorsChanged(); }
+  const v = fromDisp(parseFloat(e.target.value)); if (!isFinite(v)) return renderFloorsPop();
+  if (k === 'h') { if (v < 6 || v > 30) { toast('Ceiling heights go from 6 to 30 ft'); return renderFloorsPop(); } pushHist(); setLevelHeight(id, +v.toFixed(2)); return floorsChanged(); }
+  if (k === 'y') { if (Math.abs(v) > 120) return renderFloorsPop(); pushHist(); editLevels(L => { const x = L.extra.find(q => q.id === id); if (x) x.rel = +v.toFixed(2); }); return floorsChanged(); }
+});
+flList.addEventListener('click', e => {
+  const b = e.target.closest('[data-fl="del"]'), id = b?.closest('[data-flid]')?.dataset.flid; if (!id || !lvOf(id)?.extra) return;
+  const n = BM.rooms.filter(r => r.level === id).length + (BM.stairs || []).filter(s => s.level === id).length;
+  if (n && !confirm(`Remove ${LV_NAME[id]} and the ${n} room${n === 1 ? '' : 's'} and stairs on it?`)) return;
+  pushHist(); for (const k of ['rooms', 'stairs', 'items', 'notes', 'dims']) if (Array.isArray(BM[k])) BM[k] = BM[k].filter(o => o.level !== id);
+  for (const S of BM.stairs || []) if (S.to === id) delete S.to;
+  editLevels(L => { L.extra = L.extra.filter(q => q.id !== id); if (!L.extra.length) delete L.extra; }); if (PE.lv === id) PE.lv = 'M'; floorsChanged();
+});
+for (const [btn, where] of [['peFlTop', 'top'], ['peFlHalf', 'half'], ['peFlBot', 'bottom']]) document.getElementById(btn).onclick = () => {
+  pushHist(); const id = addLevel(where, PE.lv); PE.lv = id; PE.sel = null; floorsChanged(); if (curHouse === 3) goView(id); toast(`Added ${LV_NAME[id]}`); };

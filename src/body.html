@@ -93,7 +93,8 @@
   <!-- floor plan editor controls (only while editing) -->
   <span class="tb-sep ed-only"></span>
   <div class="tb-g ed-only" id="tbEdit">
-    <div class="seg tb-seg" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
+    <div class="seg tb-seg" id="segPeLvl" aria-label="Floor to edit"><button type="button" data-pelv="B" data-tip="Edit basement"><span class="l">Basement</span><span class="s">B</span></button><button type="button" data-pelv="M" data-tip="Edit main floor"><span class="l">Main</span><span class="s">M</span></button><button type="button" data-pelv="U" data-tip="Edit upper floor"><span class="l">Upper</span><span class="s">U</span></button></div>
+    <button class="tb-b" id="peFloorsBtn" type="button" data-pop="peFloorsPop" data-tip="Floors: add, remove, set heights"><svg class="ic"><use href="#i-sliders"/></svg><span class="tb-t">Floors</span></button>
     <button class="tb-b" id="peUndo" type="button" data-tip="Undo (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
     <button class="tb-b" id="peRedo" type="button" data-tip="Redo (⇧⌘Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
     <button class="tb-b" id="peLibBtn" type="button" data-tip="Show or hide the room and furniture list" aria-pressed="true"><svg class="ic"><use href="#i-lib"/></svg><span class="tb-t">Add</span></button>
@@ -185,6 +186,16 @@
   <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   <div class="menu" style="margin-top:8px"><button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface <kbd>\</kbd></button><button type="button" id="helpBtn"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts <kbd>?</kbd></button></div>
 </div>
+<div class="pop" id="peFloorsPop" hidden role="dialog" aria-label="Floors">
+  <h6>Floors <span class="pop-out">heights in <span class="u-len">ft</span></span></h6>
+  <div id="peFloorList"></div>
+  <div class="menu sepd">
+    <button type="button" id="peFlTop"><svg class="ic"><use href="#i-up"/></svg>Add a floor on top</button>
+    <button type="button" id="peFlHalf"><svg class="ic"><use href="#i-plus"/></svg>Add a half level above this floor</button>
+    <button type="button" id="peFlBot"><svg class="ic"><use href="#i-down"/></svg>Add a level below</button>
+  </div>
+  <p class="pop-note">Ceiling is floor to ceiling; Level is measured from the main floor (set how high the main floor sits under Plan settings → Levels). A half level sits between two floors, like a split entry or a foyer you go up or down from. Stairs climb to the next floor with rooms where they arrive; pick another under “Goes up to”.</p>
+</div>
 <div class="pop" id="pePlanPop" hidden role="dialog" aria-label="Plan settings">
   <h6>Guide floor</h6>
   <div class="seg full" id="peGuide"><button type="button" data-guide="below">Below</button><button type="button" data-guide="above">Above</button><button type="button" data-guide="none">Off</button></div>
@@ -195,6 +206,7 @@
   <label class="sw-row">Room dimensions <input type="checkbox" id="peDimsT" checked><span class="tg"></span></label>
   <label class="sw-row">Dimension strings <input type="checkbox" id="peChainT" checked><span class="tg"></span></label>
   <label class="sw-row">Room areas <input type="checkbox" id="peAreaT"><span class="tg"></span></label>
+  <label class="sw-row">Furniture <input type="checkbox" id="peFurnT"><span class="tg"></span></label>
 </div>
 <div class="pop" id="peResetPop" hidden role="dialog" aria-label="Start over">
   <h6>Start this design over</h6>
@@ -220,6 +232,7 @@
       <div id="peWall" class="pe-card" hidden>
         <h3>Wall</h3>
         <p id="peWallInfo" class="pe-note"></p>
+        <p id="peWallHint" class="pe-note"></p>
         <div id="peWallBtns" class="seg full pe-wm"><button type="button" data-wm="open" title="No wall: the rooms flow together">Open</button><button type="button" data-wm="door" title="Wall with a door">Door</button><button type="button" data-wm="wall" title="Solid wall, no door">Solid</button></div>
         <div id="peRailBtns" hidden><div class="seg full pe-wm" role="group" aria-label="Railing on this stretch"><button type="button" data-rk="none">None</button><button type="button" data-rk="glass">Glass</button><button type="button" data-rk="wood">Wood</button><button type="button" data-rk="metal">Metal</button></div>
           <div class="pe-row"><button class="btn" id="peRailAll" type="button" title="Use this railing on every open edge of this room">Same on every side</button></div></div>
@@ -227,8 +240,9 @@
       </div>
       <div id="peStair" class="pe-card" hidden>
         <h3>Stairs</h3>
-        <label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="10" step="any"></label>
-        <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
+        <div class="form2"><label class="fld" for="peSW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peSW" type="number" min="3" max="12" step="any"></label><label class="fld" for="peSL"><span>Length (<span class="u-len">ft</span>)</span> <input id="peSL" type="number" min="4" max="30" step="any"></label></div>
+        <label class="fld" for="peSTo"><span>Goes up to</span> <select id="peSTo"></select></label>
+        <div id="peSShape" class="seg full pe-wm" role="group" aria-label="Stair shape"><button type="button" data-sshape="auto" title="Curved when wide enough, otherwise straight">Auto</button><button type="button" data-sshape="straight">Straight</button><button type="button" data-sshape="u" title="Two flights with a rectangular landing">U-turn</button><button type="button" data-sshape="curved" title="Two flights joined by winders">Curved</button></div>
         <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:10px">Railings</h3>
         <div id="peSRail" class="seg full pe-wm" role="group" aria-label="Railing"><button type="button" data-srail="none">None</button><button type="button" data-srail="glass">Glass</button><button type="button" data-srail="wood">Wood</button><button type="button" data-srail="metal">Metal</button></div>
         <div id="peSSides" class="seg full pe-wm" role="group" aria-label="Railing sides"><button type="button" data-ssides="auto" title="Only the sides open to the room">Auto</button><button type="button" data-ssides="left" title="Left as you walk up">Left</button><button type="button" data-ssides="right" title="Right as you walk up">Right</button><button type="button" data-ssides="both">Both</button></div>

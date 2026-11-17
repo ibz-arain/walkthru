@@ -97,7 +97,7 @@ const HOUSES = {
        note: `Lakeshore, ON · 2-storey + basement<br>Main 1,525 sf · 2nd 1,675 sf · 53'-3½" × 44'-0"<br>Built from permit set A-1.01 – A-3.02, rev. 04/06/2022` },
   2: { root: HOUSE2, G: G2, trees: TREES_H2, views: VIEWS_H2, levelY: LEVEL_Y2, front: [25, -44, Math.PI, 1], yard: [16, 47, Math.PI, 3], drive: [46, -52, Math.PI, 1],
        note: `Concept · French-modern, from your photo<br>Main ≈1,700 sf · 2nd ≈1,560 sf · 58' × 50'<br>Garage and entry face Old Tecumseh Rd` },
-  3: { root: HOUSE3, G: G3, trees: G3.trees, views: {}, levelY: LEVEL_Y, get front() { return H3_FRONT; }, get yard() { return [H3_FRONT[0], H3_FRONT[1] + 90, 0, 3]; }, get drive() { return H3_DRIVE; },
+  3: { root: HOUSE3, G: G3, trees: G3.trees, views: {}, levelY: LV_Y, get front() { return H3_FRONT; }, get yard() { return [H3_FRONT[0], H3_FRONT[1] + 90, 0, 3]; }, get drive() { return H3_DRIVE; },
        note: `Your editable design<br>Drag walls and rooms in the floor plan editor<br>Walls, doors, windows and roof are built for you` },
 };
 const roomsOf = n => n === 1 ? ROOMS : n === 2 ? ROOMS2 : ROOMS3;
@@ -111,10 +111,19 @@ const H3_NOTE = `1196 Campana Cres, Belle River · 2-storey + basement<br>Main 1
 let mode = 'orbit', curView = 'front', anim = null, showLabels = true, showFurn = true, showTrees = true, showRoof = true, orbitFov = 50;
 function applyVisibility() {
   const v = mode === 'walk' ? 'full' : curView;
-  const lvl = { B: 0, M: 1, U: 2 }[v];
-  const cut = lvl !== undefined;
   const H = HOUSES[curHouse], g = H.G;
   HOUSE1.visible = curHouse === 1; HOUSE2.visible = curHouse === 2; HOUSE3.visible = curHouse === 3;
+  if (curHouse === 3) { // My Design: any number of floors. A floor view cuts away everything above that floor.
+    const cutY = lvOf(v)?.y, cut = cutY !== undefined;
+    for (const l of levelList()) { const q = LG(l.id), on = !cut || l.y <= cutY + .01; q.g.visible = on; q.ceil.visible = !cut && (showRoof || l.id === 'M' || l.y < 0); q.furn.visible = showFurn && on; }
+    g.roof.visible = !cut && showRoof; H.trees.visible = !cut && showTrees; g.site.visible = showTrees || cut;
+    for (const o of labelObjs) o.visible = showLabels && cut && o.userData.lv === v && o.userData.house === 3;
+    renderer.shadowMap.needsUpdate = true;
+    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(mode === 'orbit' && b.dataset.view === curView)));
+    uiSync(); return;
+  }
+  const lvl = { B: 0, M: 1, U: 2 }[v];
+  const cut = lvl !== undefined;
   if (g.basement) g.basement.visible = true;
   g.main.visible = !cut || lvl >= 1; g.mainCeil.visible = !cut;
   g.upper.visible = !cut || lvl >= 2; g.upperCeil.visible = !cut && showRoof; g.roof.visible = !cut && showRoof;
@@ -234,7 +243,7 @@ function stepWalk(dt) {
     if (g !== null && player.feet <= g) { player.feet = g; player.vy = 0; }
   } else if (g !== null) player.feet += (g - player.feet) * Math.min(1, dt * (g > player.feet ? 14 : 9));
   // HUD room lookup (also tells the camera whether there is a ceiling overhead)
-  const lv = player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
+  const lv = curHouse === 3 ? levelAtY(player.feet) : player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
   const RM = roomsOf(curHouse);
   let hit = null; for (const rm of RM) if (rm[1] === lv && rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3])) { hit = rm; break; }
   if (AV.third) {
@@ -270,7 +279,7 @@ function stepWalk(dt) {
     camera.position.set(player.x, player.feet + eyeH(), player.z);
     camera.rotation.set(player.pitch, player.yaw, 0);
   }
-  const lvName = { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
+  const lvName = curHouse === 3 ? LV_NAME[lv] : { B: 'Basement', M: 'Main floor', U: '2nd floor' }[lv];
   document.getElementById('roomName').textContent = hit ? hit[0] : (lv === 'M' && player.feet < 1.5 ? 'Outside' : lvName);
   document.getElementById('roomDim').textContent = hit ? `${lvName} · ${ftin(hit[2][0][1] - hit[2][0][0])} × ${ftin(hit[2][0][3] - hit[2][0][2])}` : '';
   stepDoors(dt); updateDoorHint(); drawMini(lv);
@@ -532,7 +541,7 @@ function setHouse(n, fromHash) {
   document.getElementById('houseNote').innerHTML = tab === 4 ? H3_NOTE : HOUSES[n].note;
   document.querySelector('[data-view="B"]').hidden = n === 2;
   document.querySelectorAll('[data-sec="Exterior"]').forEach(el => el.hidden = n === 2);
-  fillGoto();
+  fillGoto(); renderLevelSegs();
   if (!fromHash) try { history.replaceState(null, '', HASHES[tab] || location.pathname + location.search); } catch (e) { }
   goView(curView === 'B' && n === 2 ? 'M' : curView, true);
 }
@@ -556,7 +565,7 @@ addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabH
     if (!h) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
     const yaw = Math.atan2(-(h.point.x - camera.position.x), -(h.point.z - camera.position.z));
     // From outside the drop usually hits a roof or wall: stand on the main floor (or the ground) under that spot instead.
-    const outside = !['B', 'M', 'U'].includes(curView), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
+    const outside = !(curHouse === 3 ? lvOf(curView) : ['B', 'M', 'U'].includes(curView)), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
     curView = 'front'; fadeCut(() => enterWalk([h.point.x, h.point.z, yaw, feet], false));
   });
 }
@@ -610,9 +619,9 @@ function rebuildHouse3() {
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
   for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
-    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, LEVEL_Y[lv] + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
-  updateViews3();
-  if (curHouse === 3) { applyVisibility(); fillGoto(); }
+    const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, (LV_Y[lv] ?? 0) + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
+  updateViews3(); renderLevelSegs();
+  if (curHouse === 3) { if (!lvOf(curView) && !HOUSES[3].views[curView] && /^[A-Z]/.test(curView)) curView = 'M'; applyVisibility(); fillGoto(); }
   renderer.shadowMap.needsUpdate = true;
 }
 // Camera views for My Design, framed on the design (pulled back a little while the editor narrows the screen).
@@ -622,7 +631,8 @@ function updateViews3() {
   const sz = Math.max(x1 - x0, z1 - z0, 30) * (editorWidth() ? Math.min(1.7, .55 + .45 * innerWidth / Math.max(260, innerWidth - editorWidth())) : 1), V = HOUSES[3].views;
   V.front = { pos: [cx - sz * .9, sz * .55, z0 - sz * 1.3], tgt: [cx, 8, cz] }; V.rear = { pos: [cx + sz * .9, sz * .6, z1 + sz * 1.3], tgt: [cx, 8, cz] };
   V.aerial = { pos: [cx + sz * 1.6, sz * 2.2, z0 - sz * 1.4], tgt: [cx, 0, cz] };
-  for (const [k, y] of [['B', BF], ['M', MF], ['U', UF]]) V[k] = { pos: [cx, sz * 1.7, cz + sz * .85], tgt: [cx, y, cz] };
+  for (const k of Object.keys(V)) if (!['front', 'rear', 'aerial'].includes(k)) delete V[k];
+  for (const { id: k, y } of levelList()) V[k] = { pos: [cx, sz * 1.7, cz + sz * .85], tgt: [cx, y, cz] };
 }
 // While the floor plan editor covers the left side, shift the 3D picture so its centre sits in the visible right panel.
 function editorWidth() { return PE.open && innerWidth > 760 ? document.getElementById('planEd').getBoundingClientRect().width : 0; }

@@ -39,7 +39,7 @@ function drawSheetPlan(lv, W, H) {
   const s = Math.min(W / (x1 - x0), H / (z1 - z0)), ox = (W - (x1 - x0) * s) / 2 - x0 * s, oy = (H - (z1 - z0) * s) / 2 - z0 * s, P = (x, z) => [x * s + ox, z * s + oy];
   g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const q of rs) { const [a, b] = P(q.x, q.z); g.fillStyle = (RT[q.type]?.color || '#eee') + '66'; g.fillRect(a, b, q.w * s, q.d * s); }
-  for (const it of (BM.items || []).filter(i => i.level === lv)) { const c2 = CATALOG[it.kind]; if (!c2) continue; const [w, d] = itemDims(it), [a, b] = P(it.x - w / 2, it.z - d / 2); g.strokeStyle = '#999'; g.lineWidth = .8; g.strokeRect(a, b, w * s, d * s); }
+  for (const it of (BM.items || []).filter(i => i.level === lv && PE.furn)) { const c2 = CATALOG[it.kind]; if (!c2) continue; const [w, d] = itemDims(it), [a, b] = P(it.x - w / 2, it.z - d / 2); g.strokeStyle = '#999'; g.lineWidth = .8; g.strokeRect(a, b, w * s, d * s); }
   for (const w of planLevel(lv)) { // walls with gaps where doors and windows are
     const th = w.ext ? 3.2 : 1.8, cuts = (w.ops || []).map(o => [o.c - o.w / 2, o.c + o.w / 2]).sort((p, q) => p[0] - q[0]);
     let a = w.a; const segs = []; for (const [c0, c1] of cuts) { if (c0 > a) segs.push([a, c0]); a = Math.max(a, c1); } if (a < w.b) segs.push([a, w.b]);
@@ -66,7 +66,7 @@ function captureElevations(W = 1400, H = 560) {
   if (mode === 'walk') goView(curView, true);
   showRoof = true; showLabels = false; curView = 'front'; applyVisibility(); setRender('clay');
   scene.background = new THREE.Color('#ffffff'); G3.site.visible = G3.trees.visible = G3.basement.visible = G3.furnB.visible = false;
-  const box = new THREE.Box3(); for (const g of [G3.main, G3.upper, G3.roof]) box.expandByObject(g);
+  const box = new THREE.Box3(); for (const g of [...levelIds().filter(l => !belowGrade(l)).map(l => LG(l).g), G3.roof]) box.expandByObject(g);
   const c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3()), top = box.max.y, out = [];
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
   for (const [name, dx, dz] of [['Front', 0, -1], ['Rear', 0, 1], ['Left', -1, 0], ['Right', 1, 0]]) {
@@ -81,7 +81,7 @@ function captureElevations(W = 1400, H = 560) {
     g.fillStyle = '#fff'; g.fillRect(0, gy + 1.5, W, H - gy);
     g.fillStyle = '#111'; g.font = '600 13px Inter, sans-serif'; g.fillText(`${name} elevation`, 14, H - 14);
     g.font = '11px "JetBrains Mono", monospace'; g.fillStyle = '#555';
-    const pxPerFt = H / (2 * hh); for (const [lbl, y] of [['Main floor', MF], ['2nd floor', UF], ['Top of roof', top]]) { if (lbl === '2nd floor' && !BM.rooms.some(r => r.level === 'U')) continue; const py = gy - y * pxPerFt; g.setLineDash([6, 4]); g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(W - 210, py); g.lineTo(W - 10, py); g.stroke(); g.setLineDash([]); g.fillText(`${lbl} ${ftin(y)}`, W - 205, py - 4); }
+    const pxPerFt = H / (2 * hh); for (const [lbl, y] of [...levelList().filter(l => !belowGrade(l.id) && (l.id === 'M' || BM.rooms.some(r => r.level === l.id))).map(l => [l.name, l.y]), ['Top of roof', top]]) { const py = gy - y * pxPerFt; g.setLineDash([6, 4]); g.strokeStyle = '#999'; g.lineWidth = 1; g.beginPath(); g.moveTo(W - 210, py); g.lineTo(W - 10, py); g.stroke(); g.setLineDash([]); g.fillText(`${lbl} ${ftin(y)}`, W - 205, py - 4); }
     out.push({ name, url: cv.toDataURL('image/png'), scale: pxPerFt });
   }
   renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false);
@@ -93,7 +93,7 @@ function captureElevations(W = 1400, H = 560) {
 function planSheet() {
   if (curHouse !== 3) return toast('Open a design (or Sample 3) to print its plan');
   const name = (H3P ? '1196 Campana Cres' : curDesign()?.name) || 'Design', date = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-  const A = areaData(), LN = { B: 'Basement', M: 'Main floor', U: 'Second floor' }, levels = ['B', 'M', 'U'].filter(l => BM.rooms.some(r => r.level === l));
+  const A = areaData(), LN = LV_NAME, levels = levelIds().filter(l => BM.rooms.some(r => r.level === l));
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>

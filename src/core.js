@@ -20,7 +20,12 @@ let BF = -6.75, BC = 1.25, TF = 1.17, MF = 2.33, MC = 11.43, UF = 12.47, UC = 20
 // The defaults give exactly the numbers above. Floor build-ups stay fixed: 1'-1" under the main floor, 1'-½" under the 2nd.
 const LEVELS_DEF = { main: 2.33, mainH: 9.1, upH: 8.09, baseH: 8 };
 const LEVEL_PRESETS = { standard: ['Standard', { main: 2.33 }, 'Basement below ground, main floor a few steps up'], raised: ['Raised', { main: 4.75 }, 'Raised bungalow / bi-level: the basement sits half out of the ground'], slab: ['Slab', { main: .5 }, 'Slab on grade: main floor one step above the ground'] };
-const levelsOf = m => ({ ...LEVELS_DEF, ...(m?.levels || {}) });
+// An early build stored floors as a list [{ id, name, y, h }]: turn that into the object form (extra floors in .extra, see builder.js).
+function fixLevels(m) { if (!Array.isArray(m?.levels)) return; const A = m.levels, g = id => A.find(l => l.id === id), Mf = g('M'), o = {}, DN = { B: 'Basement', M: 'Main floor', U: '2nd floor' };
+  if (Mf) { o.main = Mf.y; o.mainH = Mf.h; } if (g('U')) o.upH = g('U').h; if (g('B')) o.baseH = g('B').h;
+  const ex = A.filter(l => !DN[l.id]).map(l => ({ id: l.id, name: l.name, rel: +(l.y - (Mf?.y ?? 2.33)).toFixed(2), h: l.h })); if (ex.length) o.extra = ex;
+  const nm = {}; for (const id in DN) if (g(id) && g(id).name !== DN[id]) nm[id] = g(id).name; if (Object.keys(nm).length) o.names = nm; m.levels = o; }
+const levelsOf = m => { fixLevels(m); return { ...LEVELS_DEF, ...(m?.levels || {}) }; };
 function applyLevels(m) {
   const L = levelsOf(m); MF = L.main; MC = MF + L.mainH; UF = MC + 1.04; UC = UF + L.upH; BC = MF - 1.08; BF = BC - L.baseH; TF = MF - 1.16;
   for (const o of [typeof LV_Y !== 'undefined' && LV_Y, typeof LEVEL_Y !== 'undefined' && LEVEL_Y]) if (o) Object.assign(o, { B: BF, M: MF, U: UF });

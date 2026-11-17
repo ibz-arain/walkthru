@@ -64,7 +64,7 @@ const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
-  const furn = { B: G3.furnB, M: G3.furnM, U: G3.furnU };
+  const furn = new Proxy({}, { get: (_, k) => lvOf(k) ? LG(k).furn : null });
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
@@ -97,7 +97,9 @@ document.querySelectorAll('[data-item]').forEach(b => {
 function selectX(x) { PE.selX = x; if (x) { PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear(); } peInspector(); peDraw(); }
 const curItem = () => PE.selX?.kind === 'item' && (BM.items || []).find(i => i.id === PE.selX.id);
 const curNote = () => PE.selX?.kind === 'note' && (BM.notes || []).find(i => i.id === PE.selX.id);
-function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
+// Furniture lives in the 3D view: the plan only shows it with Plan settings → Furniture on, or the piece you're placing right now.
+const itemOnPlan = it => PE.furn || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
+function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i)); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
 function noteAt(sx, sy) { return (BM.notes || []).find(n => { if (n.level !== PE.lv) return false; const [a, b] = W2S(n.x, n.z); return sx > a - 8 && sx < a + 8 + (n._w || 60) && sy > b - 22 && sy < b + 8; }); }
 function dimAt(sx, sy) {
   return (BM.dims || []).find(d => { if (d.level !== PE.lv) return false; const [a, b] = W2S(d.x1, d.z1), [c, e] = W2S(d.x2, d.z2), L2 = (c - a) ** 2 + (e - b) ** 2 || 1;
@@ -132,7 +134,7 @@ document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? 
 // ---------- drawing (called at the end of peDraw) ----------
 function peDrawExtras(s) {
   px.save(); px.textBaseline = 'middle';
-  for (const it of (BM.items || []).filter(i => i.level === PE.lv)) {
+  for (const it of (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i))) {
     const c = CATALOG[it.kind]; if (!c) continue; const [w, d] = itemDims(it), [a, b] = W2S(it.x - w / 2, it.z - d / 2), sel = PE.selX?.kind === 'item' && PE.selX.id === it.id;
     px.fillStyle = c[3] + 'cc'; px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.beginPath(); px.roundRect?.(a, b, w * s, d * s, Math.min(4, s * .3)) ?? px.rect(a, b, w * s, d * s); px.fill(); px.stroke();
     const fx = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] }[it.rot % 4]; // front edge marker
@@ -202,7 +204,7 @@ renderer.domElement.addEventListener('contextmenu', e => {
   if (!PE.open) return; e.preventDefault();
   const R = renderer.domElement.getBoundingClientRect(); v2f.set((e.clientX - R.left) / R.width * 2 - 1, -(e.clientY - R.top) / R.height * 2 + 1); rc3f.setFromCamera(v2f, camera);
   const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
-  for (const h of rc3f.intersectObjects([G3.furnB, G3.furnM, G3.furnU], true)) { if (!vis(h.object)) continue;
+  for (const h of rc3f.intersectObjects(levelIds().map(l => LG(l).furn), true)) { if (!vis(h.object)) continue;
     let o = h.object; while (o && o.userData.item == null && o.userData.room == null) o = o.parent; if (!o) continue;
     const it = o.userData.item != null && (BM.items || []).find(i => i.id === o.userData.item), rm = !it && BM.rooms.find(q => q.id === o.userData.room); if (!it && !rm) continue;
     PE.lv = (it || rm).level; peLvlButtons(); PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear();
@@ -303,7 +305,7 @@ function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
   const isFront = w.ext && planLevel(w.R.level).some(x => x.front && x.room === w.R && x.out === w.out);
   const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' || isFront ? 'door' : null;
-  if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
+  if (!kind || (w.ext && belowGrade(w.R.level) && kind === 'window')) { el.hidden = true; return; }
   const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>
