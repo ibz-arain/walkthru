@@ -31,7 +31,7 @@ Old links on the root URL (`/#admin`, `/#c/<token>`) redirect to the playground.
 - The old shared `ADMIN_KEY` still works as a studio key (it sees every project), so existing setups keep running.
 - **Sign-in required**: the playground and Studio only open for signed-in people; signed-out visits go to `/account#login`. Customer links (`/playground#c/<token>`) stay open for buyers.
 - **`ALLOW_SIGNUPS`** (default `true`): set to `false` to close public sign-up. Invited people can still join, and the very first account on a fresh install can always be created.
-- Visible branding is "Demo" (`BRAND_NAME`, default `Demo`).
+- Visible branding is "Walkthru" by Arain Inc. (`BRAND_NAME`, default `Walkthru`); terms and privacy link to arain.org.
 
 ## Run locally
 
@@ -58,7 +58,6 @@ npm test           # API tests against a throwaway database
 ## Not built yet
 
 - Angled or curved walls: rooms are rectangles (join several for L-shapes).
-- Changing storey and ceiling heights: they are fixed for every design.
 - Editing Sample 2: it is a hand-built model, not a floor plan.
 - Billing, and a builder product catalogue shared across a workspace (photo textures are per browser).
 

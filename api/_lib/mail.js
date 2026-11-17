@@ -7,7 +7,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 
 // A plain, readable layout: heading, a few lines, one button.
 export function layout({ heading, lines = [], cta, url, foot }) {
-  const brand = esc(process.env.BRAND_NAME || 'Demo');
+  const brand = esc(process.env.BRAND_NAME || 'Walkthru');
   const html = `<div style="font:15px/1.6 -apple-system,Segoe UI,Inter,sans-serif;color:#111114;max-width:520px;margin:0 auto;padding:32px 24px">
   <p style="font-weight:600;margin:0 0 24px">${brand}</p><h1 style="font-size:20px;letter-spacing:-.01em;margin:0 0 12px">${esc(heading)}</h1>
   ${lines.map(l => `<p style="margin:0 0 12px;color:#3f3f46">${esc(l)}</p>`).join('')}
@@ -22,7 +22,7 @@ export async function sendMail(to, subject, msg) {
   if (process.env.RESEND_API_KEY) {
     try {
       const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
-        body: JSON.stringify({ from: process.env.MAIL_FROM || 'Demo <onboarding@resend.dev>', to: [to], subject, html: msg.html, text: msg.text }) });
+        body: JSON.stringify({ from: process.env.MAIL_FROM || 'Walkthru <onboarding@resend.dev>', to: [to], subject, html: msg.html, text: msg.text }) });
       status = r.ok ? 'sent' : 'failed'; if (!r.ok) error = (await r.text()).slice(0, 500);
     } catch (e) { status = 'failed'; error = String(e.message).slice(0, 500); }
   } else if (!process.env.VERCEL) console.log(`\n[mail → ${to}] ${subject}\n${msg.text}\n`);

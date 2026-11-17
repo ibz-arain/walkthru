@@ -215,7 +215,8 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .tex-row select{font:13px var(--f-ui);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper);color:var(--ink)}
 /* info */
 #brand{padding:12px 6px 4px}
-#brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em}
+#brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em;display:flex;align-items:center;gap:8px}
+.wt-mark{display:inline-block;flex:none;width:1.3em;height:1.3em;background:currentColor;-webkit-mask:url(/walkthru-mark.png) center/contain no-repeat;mask:url(/walkthru-mark.png) center/contain no-repeat}
 #brand p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px;line-height:1.55}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 6px 0}
 .stat{background:var(--paper-2);border-radius:8px;padding:9px 10px}

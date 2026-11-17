@@ -265,7 +265,7 @@ $u('importFile').onchange = async e => {
   try {
     const j = JSON.parse(await f.text()), bm = j.bm || j; if (!Array.isArray(bm.rooms)) throw new Error();
     const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
-  } catch (err) { toast('That file is not a Demo design'); }
+  } catch (err) { toast('That file is not a Walkthru design'); }
 };
 // Share link: a public, view-only link to the project. Anyone with it can look around, walk through and try finishes; nothing they do is saved.
 $u('exLink').onclick = async () => {

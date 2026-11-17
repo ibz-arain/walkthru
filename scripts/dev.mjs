@@ -39,4 +39,4 @@ http.createServer(async (req, res) => {
   if (!path.extname(file) && existsSync(file + '.html')) file += '.html'; // clean URLs, like Vercel: /playground → playground.html
   try { const data = await readFile(file); res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' }); res.end(data); }
   catch { res.writeHead(404); res.end('Not found'); }
-}).listen(PORT, () => console.log(`Demo dev server → http://localhost:${PORT}  (playground: /playground · studio: /playground#admin)  db: ${process.env.TURSO_DATABASE_URL || 'file:.data/local.db'}`));
+}).listen(PORT, () => console.log(`Walkthru dev server → http://localhost:${PORT}  (playground: /playground · studio: /playground#admin)  db: ${process.env.TURSO_DATABASE_URL || 'file:.data/local.db'}`));

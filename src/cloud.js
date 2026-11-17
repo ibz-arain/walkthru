@@ -4,7 +4,7 @@
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Walkthru' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -93,7 +93,7 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 // ---------- Studio dashboard ----------
 let stProjects = [];
 async function studioHome() {
-  document.title = 'Projects · Demo';
+  document.title = 'Projects · Walkthru';
   $c('stNew').hidden = ACC.role === 'viewer'; $c('stAvatar').hidden = !ACC.user;
   if (ACC.user) { const u = ACC.user; $c('stInit').textContent = (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
     $c('stName').textContent = u.name || u.email; $c('stMail').textContent = u.email; $c('stOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }

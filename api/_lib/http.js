@@ -9,7 +9,7 @@ export const isAdmin = req => !adminLocked() || req.headers['x-admin-key'] === p
 
 export const newId = (n = 9) => randomBytes(n).toString('base64url');
 export const body = req => (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) || {};
-export const brand = () => ({ name: process.env.BRAND_NAME || 'Demo', tagline: process.env.BRAND_TAGLINE || 'Design review' });
+export const brand = () => ({ name: process.env.BRAND_NAME || 'Walkthru', tagline: process.env.BRAND_TAGLINE || 'Design review' });
 
 export function route(handlers) {
   return async (req, res) => {

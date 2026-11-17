@@ -94,7 +94,7 @@ function planSheet() {
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length + 2}</b></div></footer>
-      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
+      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Walkthru.</p></section>`; }).join('');
   const elev = captureElevations(), total = levels.length + 2;
   const elevPages = [elev.slice(0, 2), elev.slice(2)].map((pair, i) => `<section class="sheet">${pair.map(e => `<img src="${e.url}" alt="${e.name} elevation" style="margin-bottom:6px">`).join('')}<footer><div><b>${esc(name)}</b><span>Elevations</span></div><div><span>Views</span><b>${pair.map(e => e.name).join(' / ')}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${SCALE_BAR()[0] * pair[0].scale}px"></i>${SCALE_BAR()[1]}</b></div><div><span>Height</span><b>${ftin(MF)} main floor</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${levels.length + i + 1} of ${total}</b></div></footer></section>`).join('');

@@ -22,7 +22,7 @@ writeFileSync('walkthru.html', `${head}<style>\n${css}</style>\n${body}<script t
 // 2. site
 mkdirSync('site/assets', { recursive: true });
 for (const f of readdirSync('site/assets')) rmSync(`site/assets/${f}`);
-for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/assets/og.png', 'og.png'], ['src/assets/home-render.jpg', 'home-render.jpg'], ['src/assets/home-plan.jpg', 'home-plan.jpg'], ['src/assets/home-walk.jpg', 'home-walk.jpg']]) copyFileSync(from, `site/${to}`);
+for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/assets/og.png', 'og.png'], ['src/assets/walkthru-mark.png', 'walkthru-mark.png'], ['src/assets/favicon.svg', 'favicon.svg'], ['src/assets/icon-96.png', 'icon-96.png'], ['src/assets/icon-32.png', 'icon-32.png'], ['src/assets/apple-icon.png', 'apple-icon.png'], ['src/assets/home-render.jpg', 'home-render.jpg'], ['src/assets/home-plan.jpg', 'home-plan.jpg'], ['src/assets/home-walk.jpg', 'home-walk.jpg']]) copyFileSync(from, `site/${to}`);
 
 mkdirSync('.build', { recursive: true });
 writeFileSync('.build/playground.js', code.replaceAll("'three/addons/", "'three/examples/jsm/"));
@@ -35,7 +35,7 @@ const shellBody = body.replace(/<script type="importmap">[\s\S]*?<\/script>/, ''
 writeFileSync('site/playground.html', `<!doctype html>
 <html lang="en">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Demo playground: design a floor plan and explore it in 3D.">
+<meta name="description" content="Walkthru playground: design a floor plan and explore it in 3D.">
 ${head}<link rel="modulepreload" href="/assets/${jsName}">
 <link rel="stylesheet" href="/assets/${cssName}">
 ${shellBody}<script type="module" src="/assets/${jsName}"></script>

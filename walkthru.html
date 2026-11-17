@@ -1,6 +1,6 @@
 <meta charset="utf-8">
-<title>Playground · Demo</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23111114'/%3E%3Ctext x='16' y='22.5' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='18' fill='%23fff'%3ED%3C/text%3E%3C/svg%3E">
+<title>Playground · Walkthru</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/icon-96.png" type="image/png" sizes="96x96"><link rel="icon" href="/icon-32.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-icon.png" sizes="180x180">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
@@ -225,7 +225,8 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .tex-row select{font:13px var(--f-ui);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper);color:var(--ink)}
 /* info */
 #brand{padding:12px 6px 4px}
-#brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em}
+#brand h1{margin:0;font-size:16px;font-weight:600;letter-spacing:-.015em;display:flex;align-items:center;gap:8px}
+.wt-mark{display:inline-block;flex:none;width:1.3em;height:1.3em;background:currentColor;-webkit-mask:url(/walkthru-mark.png) center/contain no-repeat;mask:url(/walkthru-mark.png) center/contain no-repeat}
 #brand p{margin:4px 0 0;color:var(--ink-2);font-size:12.5px;line-height:1.55}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 6px 0}
 .stat{background:var(--paper-2);border-radius:8px;padding:9px 10px}
@@ -824,7 +825,7 @@ body.editing .cl-save{display:none}
   <section class="sp" data-panel="info" hidden>
     <header class="sp-h"><h2>Areas</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b">
-      <div id="brand"><h1>Demo</h1><p id="houseNote"></p></div>
+      <div id="brand"><h1><span class="wt-mark" aria-hidden="true"></span>Walkthru</h1><p id="houseNote"></p></div>
       <div class="stats" id="infoStats"></div>
       <h3>Room schedule</h3>
       <div id="schedule"></div>
@@ -871,7 +872,7 @@ body.editing .cl-save{display:none}
 <!-- ===== Studio (admin) dashboard ===== -->
 <section id="studio" hidden aria-label="Studio">
   <header class="st-top">
-    <a class="st-brand" href="/"><b>Demo</b></a>
+    <a class="st-brand" href="/"><span class="wt-mark" aria-hidden="true"></span><b>Walkthru</b></a>
     <div class="st-actions"><button class="btn st-primary" id="stNew" type="button">New project</button>
       <div class="st-acct"><button class="st-av" id="stAvatar" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Account"><span class="avatar" id="stInit"></span></button>
         <div class="st-menu" id="stMenu" hidden role="menu"><div class="st-who"><b id="stName"></b><span id="stMail"></span><span id="stOrg" class="st-org"></span></div>
@@ -4944,7 +4945,7 @@ accEl('homeLink').onclick = () => { location.hash = '#admin'; };
 //  Routes:  #admin → project dashboard · #admin/p/<id> → project workspace · #c/<token> → customer view.
 //  Without the API (e.g. the Claude artifact) none of this shows and the app runs on this browser alone.
 // =====================================================================
-const CL = { on: false, brand: { name: 'Demo' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
+const CL = { on: false, brand: { name: 'Walkthru' }, locked: false, route: null, project: null, share: null, view: null, poll: 0, saveT: 0, dirty: false };
 const $c = id => document.getElementById(id);
 const clEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const clAgo = t => { if (!t) return ''; const s = (Date.now() - t) / 1000; if (s < 60) return 'just now'; if (s < 3600) return `${Math.floor(s / 60)} min ago`; if (s < 86400) return `${Math.floor(s / 3600)} h ago`; if (s < 86400 * 7) return `${Math.floor(s / 86400)} d ago`; return new Date(t).toLocaleDateString(); };
@@ -5033,7 +5034,7 @@ const goRoute = h => { if (location.hash !== h) location.hash = h; else cloudRou
 // ---------- Studio dashboard ----------
 let stProjects = [];
 async function studioHome() {
-  document.title = 'Projects · Demo';
+  document.title = 'Projects · Walkthru';
   $c('stNew').hidden = ACC.role === 'viewer'; $c('stAvatar').hidden = !ACC.user;
   if (ACC.user) { const u = ACC.user; $c('stInit').textContent = (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
     $c('stName').textContent = u.name || u.email; $c('stMail').textContent = u.email; $c('stOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }
@@ -5479,7 +5480,7 @@ $u('importFile').onchange = async e => {
   try {
     const j = JSON.parse(await f.text()), bm = j.bm || j; if (!Array.isArray(bm.rooms)) throw new Error();
     const id = Math.max(0, ...DS.list.map(x => x.id)) + 1; DS.list.push({ id, name: (j.name || f.name.replace(/\.json$/i, '')).slice(0, 40), bm }); openDesign(id); toast('Design imported'); window.wtTrack?.('design_imported');
-  } catch (err) { toast('That file is not a Demo design'); }
+  } catch (err) { toast('That file is not a Walkthru design'); }
 };
 // Share link: a public, view-only link to the project. Anyone with it can look around, walk through and try finishes; nothing they do is saved.
 $u('exLink').onclick = async () => {
@@ -5664,7 +5665,7 @@ function planSheet() {
   const pages = levels.map((lv, i) => { const p = drawSheetPlan(lv, 980, 560), [bft, blab] = SCALE_BAR(), bar = bft * p.scale, sf = Math.round(A.lv[lv].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0));
     return `<section class="sheet"><img src="${p.url}" alt="${LN[lv]} plan"><footer><div><b>${esc(name)}</b><span>${LN[lv]} plan</span></div><div><span>Finished area</span><b>${fmtArea(sf)}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${bar}px"></i>${blab}</b></div><div><span>North</span><b>↑</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${i + 1} of ${levels.length + 2}</b></div></footer>
-      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Demo.</p></section>`; }).join('');
+      <p class="fine">For review only, not for construction. Check all dimensions on site. Prepared with Walkthru.</p></section>`; }).join('');
   const elev = captureElevations(), total = levels.length + 2;
   const elevPages = [elev.slice(0, 2), elev.slice(2)].map((pair, i) => `<section class="sheet">${pair.map(e => `<img src="${e.url}" alt="${e.name} elevation" style="margin-bottom:6px">`).join('')}<footer><div><b>${esc(name)}</b><span>Elevations</span></div><div><span>Views</span><b>${pair.map(e => e.name).join(' / ')}</b></div>
       <div><span>Scale</span><b class="bar"><i style="width:${SCALE_BAR()[0] * pair[0].scale}px"></i>${SCALE_BAR()[1]}</b></div><div><span>Height</span><b>${ftin(MF)} main floor</b></div><div><span>Date</span><b>${date}</b></div><div><span>Sheet</span><b>A-${levels.length + i + 1} of ${total}</b></div></footer></section>`).join('');

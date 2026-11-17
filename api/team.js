@@ -38,7 +38,7 @@ export default route({
     const t = token(18);
     await c.execute({ sql: 'DELETE FROM invites WHERE org_id = ? AND email = ? AND accepted_at IS NULL', args: [w.org.id, email] }); // a new invite replaces an old one
     await c.execute({ sql: 'INSERT INTO invites (token, org_id, email, role, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)', args: [t, w.org.id, email, role, w.user.id, now()] });
-    await sendMail(email, `${w.user.name || w.user.email} invited you to ${w.org.name}`, layout({ heading: `Join ${w.org.name} on Demo`, lines: [`${w.user.name || w.user.email} invited you as ${role === 'viewer' ? 'a viewer' : `an ${role}`}. Demo is where the team designs homes and shares them with buyers in 3D.`], cta: 'Accept invite', url: `${appUrl(req)}/account#invite/${t}` }));
+    await sendMail(email, `${w.user.name || w.user.email} invited you to ${w.org.name}`, layout({ heading: `Join ${w.org.name} on Walkthru`, lines: [`${w.user.name || w.user.email} invited you as ${role === 'viewer' ? 'a viewer' : `an ${role}`}. Walkthru is where the team designs homes and shares them with buyers in 3D.`], cta: 'Accept invite', url: `${appUrl(req)}/account#invite/${t}` }));
     send(res, 201, { token: t });
   },
   async PATCH(req, res) {
