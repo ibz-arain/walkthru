@@ -167,12 +167,13 @@ export function agentBrief(plan) {
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Resizing a room shifts the rooms and furniture on that side. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Resizing a room shifts the rooms and furniture on that side. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
+  const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
   for (const r of rooms) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
-      .map(t => `${t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
+      .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
     const pieces = (Array.isArray(plan?.items) ? plan.items : []).filter(it => agentInside(r, it)).slice(0, 6).map(it => it.name || it.kind);
     lines.push(`${r.id} ${r.type} ${r.level} "${agentName(r.name)}" ${r.x},${r.z} ${r.w}x${r.d}${neighbours ? ` | ${neighbours}` : ''}${pieces.length ? ` | furn: ${pieces.join(', ')}` : ''}`);
   }

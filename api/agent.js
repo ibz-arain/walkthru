@@ -2,6 +2,7 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
+import { agentBrief } from '../src/agentplan.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const SYSTEM = `You are the design agent inside Walkthru. You answer questions, and you change the house the person is looking at.
@@ -35,7 +36,7 @@ When a file is attached, look at it. If it is not a floor plan, elevation, or se
 
 Work in passes, the way an engineer checks a drawing. When the job changes the house, do one floor or one small change, then @@more, so you can read the updated design and its issues before you continue. No more than 12 commands in a reply. When the request is finished, @@done. When the user only asked a question, answer in a sentence or two and @@done, with no @@add.
 
-When you are not sure which room, which direction to grow, or what the user wants, stop and @@ask. Give 2 to 4 options taken from the design list. Do not guess, and do not emit any command after @@ask.
+The back of the house is the rooms with the larger z. The front is the smaller z. An open space is every touching living, great, kitchen, dining, foyer, hall, or rec room in that part of the house. When the user says to remove or resize something, and the design block shows which rooms those are, change them in this reply: one @@del per room you remove, or @@set for a new size. Do that even when several rooms make up one open space. @@ask only when two listed rooms have the same name and the request does not say which. Give 2 to 4 options from the design list, and do not emit any command after @@ask. Never answer a remove or resize with only a question.
 
 A failed command is handed back to you, not shown to the user. Read it against the design, then fix it or @@ask. Do not repeat the failure in your reply.
 
@@ -77,13 +78,7 @@ export default route({
     const plan = body(req).plan;
     let brief = '';
     if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
-      try {
-        if (JSON.stringify(plan).length <= 40000) {
-          // Loaded on demand so a missing traced file cannot crash the function before it answers.
-          const { agentBrief } = await import('../src/agentplan.js');
-          brief = agentBrief(plan);
-        }
-      } catch (e) { console.error('agent brief', e.name || e.message); }
+      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan); } catch { /* a bad plan is ignored */ }
     }
     let lastUser = -1;
     for (let i = picked.length - 1; i >= 0; i--) if (picked[i].role === 'user') { lastUser = i; break; }

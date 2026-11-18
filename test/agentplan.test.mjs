@@ -62,7 +62,7 @@ test('widening a room shifts the neighbours and their furniture', () => {
   assert.match(res.text, /Kitchen/);
   assert.equal(agentIssues(plan).some(i => /overlaps/.test(i)), false);
   const brief = agentBrief(plan);
-  assert.match(brief, /east: Dining #2/);
+  assert.match(brief, /right: Dining #2/);
   assert.match(brief, /Dining table/);
 });
 
