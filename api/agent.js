@@ -2,9 +2,9 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
-import { agentBrief } from '../src/agentplan.js';
+import { agentBrief } from './_lib/agentplan.js';
 
-const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
+const MODEL = 'nvidia/nemotron-3.5-super-vl';
 const SYSTEM = `You are the design agent inside Walkthru. You answer questions, and you change the house the person is looking at.
 
 The house is rooms: axis-aligned rectangles in feet. x grows to the right, z grows from the front yard toward the back. Rooms on one floor must share edges exactly. They must not overlap and must not leave a gap. The design block lists every room, the neighbour on each side, and the furniture inside it. Read that before you change a size.
@@ -110,7 +110,7 @@ export default route({
       console.error('agent', upstream.status, String(detail).slice(0, 200));
       const why = upstream.status === 429 ? 'The model is busy. Try again in a moment.'
         : upstream.status === 401 || upstream.status === 403 ? 'OpenRouter rejected the API key.'
-        : 'The agent could not reply';
+        : (String(detail || '').trim().slice(0, 180) || 'The agent could not reply');
       return fail(res, 502, why);
     }
 
