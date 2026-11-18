@@ -36,6 +36,40 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
     for (const [a, b] of spans) if (b - a > .05) boxAN(parent, horiz, a, b, -0.4, top, n0, n1, o.skirtMat ?? M.stone);
   }
 }
+// A wall along any line, including a diagonal or a side of a round room. Short pieces keep walk-mode collision close to the wall.
+function segWall(parent, x0, z0, x1, z1, o = {}) {
+  const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz);
+  if (len < .15) return;
+  if (Math.abs(dz) < .04 || Math.abs(dx) < .04) return wall(parent, x0, z0, x1, z1, o);
+  const t = o.t ?? INT, y0 = o.y0 ?? MF, y1 = o.y1 ?? MC, mat = o.mat ?? M.paint, inner = o.inner || mat;
+  const yaw = Math.atan2(-dz, dx), plusZ = Math.sin(yaw) * (o.nx || 0) + Math.cos(yaw) * (o.nz || 0);
+  const face = [mat, mat, inner, inner, plusZ >= 0 ? mat : inner, plusZ >= 0 ? inner : mat];
+  const piece = (a, b, ya, yb, m, solid) => {
+    if (b - a < .02 || yb - ya < .02) return;
+    const g = new THREE.BoxGeometry(b - a, yb - ya, t), mesh = new THREE.Mesh(g, m === mat && inner !== mat ? face : m);
+    const u = (a + b) / 2;
+    mesh.position.set(x0 + dx * u / len, (ya + yb) / 2, z0 + dz * u / len); mesh.rotation.y = yaw;
+    mesh.castShadow = m !== M.glass; mesh.receiveShadow = true;
+    if (solid !== false) mesh.userData.solid = true;
+    parent.add(mesh);
+  };
+  const step = 1.15, spans = [];
+  if (o.win && len > 2) {
+    const ww = Math.min(4.2, Math.max(1.4, len * .62)), a0 = (len - ww) / 2, b0 = a0 + ww, sill = y0 + 2.4, head = Math.min(y1 - .35, sill + (y1 - y0 > 12 ? 8 : 5));
+    spans.push([0, a0, y0, y1, mat, true], [b0, len, y0, y1, mat, true], [a0, b0, y0, sill, mat, true], [a0, b0, head, y1, mat, true], [a0 + .05, b0 - .05, sill + .05, head - .05, M.glass, false]);
+  } else spans.push([0, len, y0, y1, mat, true]);
+  for (const [a, b, ya, yb, m, solid] of spans) {
+    if (!solid || b - a <= step + .08) piece(a, b, ya, yb, m, solid);
+    else for (let s = a; s < b - .02; s += step) piece(s, Math.min(b, s + step), ya, yb, m, true);
+  }
+}
+function segRail(parent, x0, z0, x1, z1, y, kind = 'glass') {
+  if (kind === 'none') return;
+  const horiz = Math.abs(z1 - z0) < .05, vert = Math.abs(x1 - x0) < .05;
+  if (horiz || vert) return railing(parent, horiz ? 'x' : 'z', horiz ? (z0 + z1) / 2 : (x0 + x1) / 2, horiz ? Math.min(x0, x1) : Math.min(z0, z1), horiz ? Math.max(x0, x1) : Math.max(z0, z1), y, kind);
+  const mat = kind === 'glass' ? M.glass : kind === 'wood' ? M.walnut : M.trim2;
+  segWall(parent, x0, z0, x1, z1, { t: kind === 'glass' ? .08 : .14, y0: y, y1: y + 3.4, mat });
+}
 // ---------- Doors you can open and close (E in walk mode) ----------
 // Each door leaf / garage panel is built into its own group whose origin is the hinge, so it can turn.
 // DOORS: { parts: [{ g, axis, ang }], cur 0..1 (0 = as drawn, 1 = turned by ang), target, at: [x, y, z], kind }
@@ -75,7 +109,8 @@ function fillOpening(p, horiz, c, t, os, op) {
         if (glass) boxAN(g, horiz, h0 - .01, h0 + .15, yb + .6, yt - .5, n0 + sw * .25, n0 + sw * (len - .25), M.glass); };
       if (!swing) return mk(p);
       const dA = h0 < (a + b) / 2 ? 1 : -1, A = horiz ? [dA, 0] : [0, dA]; // closed, it lies along the wall toward the other jamb
-      parts.push({ g: hingeGroup(p, horiz, h0 + .07, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
+      // hinged on the leaf's jamb-side edge: shut, it fills the opening from the jamb to its stop with no slit of light
+      parts.push({ g: hingeGroup(p, horiz, dA > 0 ? h0 : h0 + .14, 0, n0, mk), axis: 'y', ang: yawBetween(N, A) });
     };
     const at = horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2];
     if (st === 'double' || st === 'french') { leaf(a + .05, op.w / 2 - .08, st === 'french'); leaf(b - .19, op.w / 2 - .08, st === 'french'); addDoor(parts, at, 'door', false); return; }
@@ -148,10 +183,10 @@ function fillOpening(p, horiz, c, t, os, op) {
     const dir = op.outSwing ? -nIn : nIn, glassy = op.style === 'french';
     const parts = [], N = horiz ? [0, dir] : [dir, 0];
     for (const [la, lb, right] of leaves) {
-      const lw = lb - la, hx = right ? lb - .2 : la + .02, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1;
+      const lw = lb - la, hx = right ? lb - .18 : la, n0 = c + dir * t / 2, n1 = n0 + dir * lw, dA = right ? -1 : 1; // leaf edge on the jamb (or the meeting line)
       const mk = g => { boxAN(g, horiz, hx, hx + .18, yb, yt - fw, n0, n1, doorMat(op.color, FM));
         boxAN(g, horiz, hx - .01, hx + .19, glassy ? yb + .35 : yb + .5, yt - fw - (glassy ? .35 : .5), n0 + dir * (glassy ? .2 : .3), n1 - dir * (glassy ? .2 : .3), k === 'front' && !glassy ? M.frost : M.glass); };
-      parts.push({ g: hingeGroup(p, horiz, hx + .09, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) });
+      parts.push({ g: hingeGroup(p, horiz, right ? lb : la, 0, n0, mk), axis: 'y', ang: yawBetween(N, horiz ? [dA, 0] : [0, dA]) }); // pivot on the jamb: shut, the leaves meet the frame and each other
     }
     addDoor(parts, horiz ? [(a + b) / 2, yb + 3, c] : [c, yb + 3, (a + b) / 2], 'door', true); // outside doors start shut
     boxAN(p, horiz, a, b, yb - .02, yb + .03, c - t / 2, c + t / 2, M.walnut, { walk: true });

@@ -147,7 +147,7 @@ body.cl-pinning #stage{cursor:crosshair}
 body.dock-left .tb-proj,body.dock-right .tb-proj{flex-direction:column}
 body.dock-left .cl-title,body.dock-right .cl-title,body.dock-left .cl-save,body.dock-right .cl-save,body.dock-left .tb-proj .cl-brand,body.dock-right .tb-proj .cl-brand{display:none}
 body.editing .cl-save{display:none}
-@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]) .tb-t{display:none}}
+@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]):not([data-panel-btn="agent"]) .tb-t{display:none}}
 @media (max-width:1180px){#segMode .tb-t,#viewNow{display:none} .cl-title{max-width:150px}}
 @media (max-width:900px){#tbView .tb-t,#designNow{display:none} #segLvl .l{display:none} #segLvl .s{display:inline}}
 
@@ -190,6 +190,10 @@ body.editing .cl-save{display:none}
 #peSide .pe-row kbd{font-size:10.5px;color:var(--ink-3);background:none;border:0;padding:0}
 #peSide .pe-row + .pe-row{border-top:0;margin-top:0;padding-top:0}
 #peSide .fld.fld-stack{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+#peSide #peShape{flex-wrap:wrap}
+#peSide #peShape button{flex:1 1 42%;font-size:11.5px;padding:6px 2px}
+#peSide #pePoly{width:100%;min-height:108px;resize:vertical;font:12px/1.45 var(--f-mono);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper-2);color:var(--ink);box-sizing:border-box}
+#peSide #pePoly:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
 #peSide .chips{gap:6px}
 
 /* project card: ⋯ appears on hover, opens Rename / Delete */
@@ -217,3 +221,14 @@ body.editing .cl-save{display:none}
 .st-modal .st-msg{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.5}.st-modal .st-msg b{color:var(--ink);font-weight:600;word-break:break-word}
 #stDelForm .btn.st-danger{background:#e5484d;border-color:#e5484d;color:#fff!important}#stDelForm .btn.st-danger:hover{background:#d93d42}
 .sn-lot[data-loading] input{opacity:.5}
+/* Floors popover: one row per floor, top floor first */
+#peFloorsPop{width:340px}
+.fl-row{display:grid;grid-template-columns:1fr 62px 62px 26px;gap:4px;align-items:center;margin:3px 6px}
+.fl-row.fl-head{font:500 10.5px var(--f-ui);color:var(--ink-3);margin-bottom:0}
+.fl-row.on input[data-fl="name"]{border-color:var(--ink-3)}
+.fl-row input{font:12.5px var(--f-ui);padding:5px 7px;border:1px solid var(--rule-2);border-radius:var(--r-sm);background:var(--paper);color:var(--ink);box-sizing:border-box;width:100%;min-width:0}
+.fl-row input:focus{outline:none;border-color:var(--ink-3);box-shadow:0 0 0 3px var(--accent-soft)}
+.fl-row button{width:26px;height:26px;border:0;border-radius:var(--r-sm);background:none;color:var(--ink-3);cursor:pointer;display:grid;place-items:center}
+.fl-row button:hover:not(:disabled){background:var(--accent-soft);color:var(--ink)}
+.fl-row button:disabled{opacity:.3;cursor:default}
+.fl-row button .ic{width:14px;height:14px}

@@ -64,12 +64,12 @@ const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
-  const furn = { B: G3.furnB, M: G3.furnM, U: G3.furnU };
+  const furn = new Proxy({}, { get: (_, k) => lvOf(k) ? LG(k).furn : null });
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
     const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
-    furn[it.level].add(g);
+    g.userData.item = it.id; furn[it.level].add(g); // tagged so a right-click in 3D finds the piece
   }
 }
 
@@ -97,7 +97,9 @@ document.querySelectorAll('[data-item]').forEach(b => {
 function selectX(x) { PE.selX = x; if (x) { PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear(); } peInspector(); peDraw(); }
 const curItem = () => PE.selX?.kind === 'item' && (BM.items || []).find(i => i.id === PE.selX.id);
 const curNote = () => PE.selX?.kind === 'note' && (BM.notes || []).find(i => i.id === PE.selX.id);
-function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
+// Furniture lives in the 3D view: the plan only shows it with Plan settings → Furniture on, or the piece you're placing right now.
+const itemOnPlan = it => PE.furn || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
+function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i)); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
 function noteAt(sx, sy) { return (BM.notes || []).find(n => { if (n.level !== PE.lv) return false; const [a, b] = W2S(n.x, n.z); return sx > a - 8 && sx < a + 8 + (n._w || 60) && sy > b - 22 && sy < b + 8; }); }
 function dimAt(sx, sy) {
   return (BM.dims || []).find(d => { if (d.level !== PE.lv) return false; const [a, b] = W2S(d.x1, d.z1), [c, e] = W2S(d.x2, d.z2), L2 = (c - a) ** 2 + (e - b) ** 2 || 1;
@@ -132,7 +134,7 @@ document.getElementById('peDimBtn').onclick = () => setTool(PE.tool === 'dim' ? 
 // ---------- drawing (called at the end of peDraw) ----------
 function peDrawExtras(s) {
   px.save(); px.textBaseline = 'middle';
-  for (const it of (BM.items || []).filter(i => i.level === PE.lv)) {
+  for (const it of (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i))) {
     const c = CATALOG[it.kind]; if (!c) continue; const [w, d] = itemDims(it), [a, b] = W2S(it.x - w / 2, it.z - d / 2), sel = PE.selX?.kind === 'item' && PE.selX.id === it.id;
     px.fillStyle = c[3] + 'cc'; px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.beginPath(); px.roundRect?.(a, b, w * s, d * s, Math.min(4, s * .3)) ?? px.rect(a, b, w * s, d * s); px.fill(); px.stroke();
     const fx = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] }[it.rot % 4]; // front edge marker
@@ -150,7 +152,7 @@ function peDrawExtras(s) {
     px.fillStyle = '#111114'; px.textAlign = 'left'; px.fillText(n.text, a + 12, b - 12, 220);
   }
   // several rooms selected
-  if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); } px.setLineDash([]); }
+  if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { traceRoom(q); px.stroke(); } px.setLineDash([]); }
   px.restore();
   if (PE.autoDims !== false) dimChains(px, W2S, PE.lv, css('--ink-2'));
 }
@@ -163,10 +165,58 @@ function drawDim(d, sel) {
   px.fillStyle = 'rgba(255,255,255,.95)'; px.fillRect(mx - tw / 2, my - 8, tw, 16); px.fillStyle = col; px.fillText(t, mx, my + .5);
 }
 
+// ---------- a room's furniture: Auto (laid out for you), Editable (real pieces you move, swap and delete) or None ----------
+const itemsIn = r => (BM.items || []).filter(i => i.level === r.level && i.x > r.x && i.x < r.x + r.w && i.z > r.z && i.z < r.z + r.d);
+const furnMode = r => r.nofurn ? (itemsIn(r).length ? 'edit' : 'off') : 'auto';
+// A starter set of catalog pieces for the room (backs to the front wall unless noted; rot 0 faces the back of the plan).
+function starterPieces(r) {
+  const x0 = r.x, x1 = r.x + r.w, z0 = r.z, z1 = r.z + r.d, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, W = r.w, D = r.d, t = likeOf(r.type), out = [];
+  const P = (kind, x, z, rot = 0, o = {}) => { const c = CATALOG[kind], [w, d] = rot % 2 ? [c[2], o.w || c[1]] : [o.w || c[1], c[2]]; if (w > W - .4 || d > D - .4) return; out.push({ kind, level: r.level, x: snapH(x), z: snapH(z), rot, ...o }); };
+  if (t === 'bedroom' || t === 'primary') { const king = t === 'primary' || W >= 14, bw = king ? 6.6 : 5.2, bd = king ? 7.2 : 7;
+    P('rug', cx, z0 + bd * .7, 0, { w: Math.min(W - 2, bw + 4), d: Math.min(D - 2, 6) }); P(king ? 'king' : 'queen', cx, z0 + .3 + bd / 2);
+    if (W >= bw + 4.4) { P('sidetable', cx - bw / 2 - 1.1, z0 + 1.1); P('sidetable', cx + bw / 2 + 1.1, z0 + 1.1); }
+    if (D >= bd + 4) P('dresser', cx, z1 - 1.1, 2); P('plant', x1 - 1, z1 - 1); return out; }
+  if (['living', 'great', 'rec', 'sunroom', 'bonus', 'playroom'].includes(t)) { const sw = Math.min(9, W - 4);
+    P('rug', cx, cz, 0, { w: Math.min(W - 3, 11), d: Math.min(D - 4, 8) }); P('tvunit', cx, z0 + .9); P('sofa', cx, Math.min(z1 - 1.8, z0 + 10), 2, { w: Math.max(5, sw) }); P('coffee', cx, (z0 + Math.min(z1 - 1.8, z0 + 10)) / 2 + .6);
+    if (W >= 15) { P('armchair', x0 + 2, cz, 3); P('armchair', x1 - 2, cz, 1); } P('lamp', x1 - 1, z1 - 1); P('plant', x0 + 1, z1 - 1); return out; }
+  if (t === 'dining') { const along = W >= D; P('rug', cx, cz, 0, { w: Math.min(W - 2, along ? 10 : 7.5), d: Math.min(D - 2, along ? 7.5 : 10) }); P('dining6', cx, cz, along ? 0 : 1); P('pendant', cx, cz, along ? 0 : 1); P('plant', x1 - 1, z1 - 1); return out; }
+  if (t === 'kitchen') { P('fridge', x0 + 1.7, z0 + 1.3); P('range', x1 - 1.45, z0 + 1.1); const bw = (x1 - 2.8) - (x0 + 3.3); if (bw >= 2) P('base', (x0 + 3.3 + x1 - 2.8) / 2, z0 + 1, 0, { w: snapH(bw) });
+    if (W >= 11 && D >= 12) P('island', cx, cz + 1); return out; }
+  if (t === 'office') { P('rug', cx, cz + 1, 0, { w: Math.min(W - 2, 8), d: Math.min(D - 3, 6) }); P('desk', cx, z0 + 2.1); P('bookcase', x1 - .7, cz, 1); P('plant', x0 + 1, z1 - 1); return out; }
+  if (t === 'bath') { P('vanity', x0 + 2.3, z0 + 1); P('toilet', x1 - 1.1, z0 + 1.3); if (r.type !== 'powder' && W >= 7 && D >= 8) P('tub', x0 + 3, z1 - 1.4); return out; }
+  if (t === 'laundry') { P('washer', x0 + 3, z0 + 1.3); return out; }
+  if (t === 'foyer' || t === 'mud' || t === 'hall') { if (W >= 6 && D >= 5) { P('console', cx, z0 + .8); P('plant', x1 - 1, z0 + 1); } return out; }
+  return out;
+}
+function setFurnMode(r, mode) {
+  pushHist(); const inRoom = new Set(itemsIn(r).map(i => i.id));
+  if (mode !== 'edit' || !inRoom.size) BM.items = (BM.items || []).filter(i => !inRoom.has(i.id)); // switching modes clears the room's placed pieces
+  if (mode === 'auto') delete r.nofurn; else r.nofurn = true;
+  if (mode === 'edit' && !inRoom.size) { BM.items = BM.items || []; for (const p of starterPieces(r)) BM.items.push({ id: BID++, ...p }); }
+  planChanged(); if (mode === 'edit') toast('Click a piece in the plan to move it, or right-click it to swap or delete');
+}
+document.querySelectorAll('[data-rf]').forEach(b => b.onclick = () => { const r = BM.rooms.find(q => q.id === PE.sel); if (r) setFurnMode(r, b.dataset.rf); });
+
+// Right-click furniture in the 3D view beside the plan: a placed piece opens its own menu (swap, rotate, duplicate, delete);
+// furniture laid out for you opens its room's menu, where it can be made editable or cleared.
+const rc3f = new THREE.Raycaster(), v2f = new THREE.Vector2();
+renderer.domElement.addEventListener('contextmenu', e => {
+  if (!PE.open) return; e.preventDefault();
+  const R = renderer.domElement.getBoundingClientRect(); v2f.set((e.clientX - R.left) / R.width * 2 - 1, -(e.clientY - R.top) / R.height * 2 + 1); rc3f.setFromCamera(v2f, camera);
+  const vis = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  for (const h of rc3f.intersectObjects(levelIds().map(l => LG(l).furn), true)) { if (!vis(h.object)) continue;
+    let o = h.object; while (o && o.userData.item == null && o.userData.room == null) o = o.parent; if (!o) continue;
+    const it = o.userData.item != null && (BM.items || []).find(i => i.id === o.userData.item), rm = !it && BM.rooms.find(q => q.id === o.userData.room); if (!it && !rm) continue;
+    PE.lv = (it || rm).level; peLvlButtons(); PE.sel = null; PE.selStair = null; PE.selWall = null; PE.multi.clear();
+    if (it) selectX({ kind: 'item', id: it.id }); else { PE.selX = null; PE.sel = rm.id; }
+    PE.menu = true; pePt = [e.clientX, e.clientY]; peInspector(); peDraw(); requestAnimationFrame(pePlaceSide); return; }
+});
+
 // ---------- inspector for items, notes, dimensions and several rooms ----------
 document.getElementById('peSide').insertAdjacentHTML('beforeend', '<div id="peX" class="pe-card" hidden></div>');
 function peExtraInspector() {
   roomFinishPanel();
+  { const r = BM.rooms.find(q => q.id === PE.sel); if (r) { const m = furnMode(r); document.querySelectorAll('[data-rf]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rf === m))); document.getElementById('peAutoFurn').hidden = m !== 'auto'; } }
   const el = document.getElementById('peX'), it = curItem(), n = curNote(), multi = BM.rooms.filter(r => PE.multi.has(r.id));
   if (multi.length > 1) {
     el.hidden = false; const sf = Math.round(multi.reduce((a, q) => a + q.w * q.d, 0));
@@ -255,7 +305,7 @@ function peOpPanel() {
   const w = PE.selWall, el = document.getElementById('peOp'); if (!w) { el.hidden = true; return; }
   const isFront = w.ext && planLevel(w.R.level).some(x => x.front && x.room === w.R && x.out === w.out);
   const mode = w.ext ? extMode(w.R, w.out) : wallMode(w.A, w.B), kind = mode === 'window' ? 'window' : mode === 'door' || isFront ? 'door' : null;
-  if (!kind || (w.ext && w.R.level === 'B' && kind === 'window')) { el.hidden = true; return; }
+  if (!kind || (w.ext && belowGrade(w.R.level) && kind === 'window')) { el.hidden = true; return; }
   const o = BM.ops?.[opKey()] || {}, L = w.b - w.a, num = (id, label, v, min, max, step, ph, len = true) => `<label class="fld" for="${id}">${label}${len ? ` (${U_LEN()})` : ''} <input id="${id}" type="number" min="${len ? toDisp(min) : min}" max="${len ? toDisp(max) : max}" step="any" value="${v == null ? '' : len ? toDisp(v) : v}" placeholder="${len && ph !== 'Auto' ? toDisp(+ph) : ph}"></label>`;
   el.hidden = false;
   el.innerHTML = `<h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:12px">${kind === 'door' ? 'Door' : 'Windows'} on this wall <span class="pe-area">${ftin(L)} wall</span></h3>

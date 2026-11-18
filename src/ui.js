@@ -17,8 +17,9 @@ function setEditLabel(t) { const el = document.getElementById('editLabel'); if (
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
   const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
-  const side = !document.getElementById('side')?.hidden;
-  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 318 : 0 };
+  const side = document.getElementById('side');
+  const open = side && !side.hidden && innerWidth > 760 && !hidden;
+  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: open ? side.offsetWidth + 10 : 0 };
 }
 
 // ---------- dock + theme ----------
@@ -46,8 +47,9 @@ document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnit
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => { renderNav(); renderSaved(); }, mePop: () => syncMe(),
-  dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
-  pePlanPop: () => { $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
+  acctPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
+  peFloorsPop: () => renderFloorsPop(),
+  pePlanPop: () => { $u('peFurnT').checked = !!PE.furn; $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
 function openPop(id, btn) {
   if (popOpen === id) return closePops();
@@ -100,15 +102,16 @@ function openPanel(name) {
   if (panel === name) return closePanel();
   document.querySelectorAll('#side .sp').forEach(s => s.hidden = s.dataset.panel !== name);
   $u('side').hidden = false; panel = name; document.body.classList.add('panel-open');
+  document.body.classList.toggle('agent-open', name === 'agent');
   press('[data-panel-btn]', 'panelBtn', name); PANEL_OPEN[name]?.(); updateViewOffset();
 }
 function closePanel() {
   if (!uiReady || !panel) return;
-  $u('side').hidden = true; panel = null; document.body.classList.remove('panel-open'); press('[data-panel-btn]', 'panelBtn', ''); updateViewOffset();
+  $u('side').hidden = true; panel = null; document.body.classList.remove('panel-open', 'agent-open'); press('[data-panel-btn]', 'panelBtn', ''); updateViewOffset();
 }
 document.querySelectorAll('[data-panel-btn]').forEach(b => b.onclick = () => openPanel(b.dataset.panelBtn));
 document.querySelectorAll('#side [data-close]').forEach(b => b.onclick = closePanel);
-$u('helpBtn').onclick = $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
+$u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 
 // ---------- navigate ----------
 let navKey = '';
@@ -121,20 +124,21 @@ function renderNav() {
 // ---------- areas, estimate, schedule ----------
 const NOT_LIVING = /porch|patio|balcony|deck|bridge|garage|open space/i;
 function areaData() {
-  const lv = { B: [], M: [], U: [] };
-  for (const [name, l, rs] of roomsOf(curHouse)) lv[l]?.push([name, rs.reduce((a, r) => a + (r[1] - r[0]) * (r[3] - r[2]), 0)]);
+  const lv = Object.fromEntries((curHouse === 3 ? levelIds() : ['B', 'M', 'U']).map(l => [l, []]));
+  for (const rm of roomsOf(curHouse)) lv[rm[1]]?.push([rm[0], rm.area ?? rm[2].reduce((a, r) => a + (r[1] - r[0]) * (r[3] - r[2]), 0)]);
   const living = l => lv[l].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0);
   const names = Object.values(lv).flat().map(([n]) => n);
   const beds = names.filter(n => /bed|nursery|guest/i.test(n) && !/bath/i.test(n)).length;
   const baths = names.filter(n => /bath|ensuite/i.test(n)).length + names.filter(n => /powder/i.test(n)).length * .5;
-  return { lv, above: living('M') + living('U'), base: living('B'), beds, baths };
+  const ids = Object.keys(lv), under = l => curHouse === 3 ? belowGrade(l) : l === 'B';
+  return { lv, above: ids.filter(l => !under(l)).reduce((a, l) => a + living(l), 0), base: ids.filter(under).reduce((a, l) => a + living(l), 0), beds, baths };
 }
 const fmtSf = v => fmtArea(v);
 function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  const LN = { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  $u('schedule').innerHTML = '<table class="sched">' + ['M', 'U', 'B'].filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
+  const LN = curHouse === 3 ? LV_NAME : { M: 'Main floor', U: '2nd floor', B: 'Basement' };
+  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
 
 // ---------- display: render style, layers, sun, camera ----------
@@ -292,6 +296,7 @@ $u('peFind').oninput = e => {
 $u('peGridT').onchange = e => { PE.grid = e.target.checked; peDraw(); };
 $u('peDimsT').onchange = e => { PE.dims = e.target.checked; peDraw(); };
 $u('peAreaT').onchange = e => { PE.areas = e.target.checked; peDraw(); };
+$u('peFurnT').onchange = e => { PE.furn = e.target.checked; if (!PE.furn && PE.selX?.kind === 'item') selectX(null); peDraw(); };
 $u('peChainT').onchange = e => { PE.autoDims = e.target.checked; peDraw(); };
 $u('peZoomIn').onclick = () => peZoom(1.2); $u('peZoomOut').onclick = () => peZoom(1 / 1.2); $u('peZoomFit').onclick = () => { peFit(); peDraw(); };
 
@@ -309,7 +314,7 @@ addEventListener('keydown', e => {
   if (mode === 'walk') return;
   if (k === '\\') return setUIHidden(!document.body.classList.contains('ui-hidden'));
   if (k === '?') return openPanel('help');
-  if ('123'.includes(k) && k.length === 1) { const lv = 'BMU'[+k - 1]; if (PE.open) document.querySelector(`[data-pelv="${lv}"]`)?.click(); else if (!document.querySelector(`[data-view="${lv}"]`).hidden) goView(lv); return; }
+  if (/^[1-9]$/.test(k)) { const L = curHouse === 3 ? levelList() : DEFAULT_LEVELS, lv = L[+k - 1]?.id; if (!lv) return; if (PE.open) peSetLevel(lv); else if (!document.querySelector(`[data-view="${lv}"]`)?.hidden) goView(lv); return; }
   if (k === 'e') { if (PE.open) $u('peDone').click(); else if (!$u('editBtn').hidden) $u('editBtn').click(); return; }
   if (k === 'm') return setMeasure(!MEAS.on);
   if (k === 'h') return setRoof(!showRoof);
@@ -324,7 +329,7 @@ addEventListener('keydown', e => {
 function uiSync() {
   if (!uiReady) return;
   const t = tabHouse(); $u('designNow').textContent = t === 3 ? (curDesign()?.name || 'My design') : `Sample ${t === 4 ? 3 : t}`;
-  $u('viewNow').textContent = mode === 'walk' ? 'Walking' : VIEW_NAME[curView] || 'Custom';
+  $u('viewNow').textContent = mode === 'walk' ? 'Walking' : (curHouse === 3 && lvOf(curView)?.name) || VIEW_NAME[curView] || 'Custom';
   $u('roofBtn').setAttribute('aria-pressed', String(!showRoof)); $u('optRoof').checked = showRoof;
   $u('doorsLbl').textContent = allDoorsClosed() ? 'Open all doors' : 'Close all doors';
   if (RS !== 'real') applyRS();
