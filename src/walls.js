@@ -36,6 +36,40 @@ function wall(parent, x0, z0, x1, z1, o = {}) {
     for (const [a, b] of spans) if (b - a > .05) boxAN(parent, horiz, a, b, -0.4, top, n0, n1, o.skirtMat ?? M.stone);
   }
 }
+// A wall along any line, including a diagonal or a side of a round room. Short pieces keep walk-mode collision close to the wall.
+function segWall(parent, x0, z0, x1, z1, o = {}) {
+  const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz);
+  if (len < .15) return;
+  if (Math.abs(dz) < .04 || Math.abs(dx) < .04) return wall(parent, x0, z0, x1, z1, o);
+  const t = o.t ?? INT, y0 = o.y0 ?? MF, y1 = o.y1 ?? MC, mat = o.mat ?? M.paint, inner = o.inner || mat;
+  const yaw = Math.atan2(-dz, dx), plusZ = Math.sin(yaw) * (o.nx || 0) + Math.cos(yaw) * (o.nz || 0);
+  const face = [mat, mat, inner, inner, plusZ >= 0 ? mat : inner, plusZ >= 0 ? inner : mat];
+  const piece = (a, b, ya, yb, m, solid) => {
+    if (b - a < .02 || yb - ya < .02) return;
+    const g = new THREE.BoxGeometry(b - a, yb - ya, t), mesh = new THREE.Mesh(g, m === mat && inner !== mat ? face : m);
+    const u = (a + b) / 2;
+    mesh.position.set(x0 + dx * u / len, (ya + yb) / 2, z0 + dz * u / len); mesh.rotation.y = yaw;
+    mesh.castShadow = m !== M.glass; mesh.receiveShadow = true;
+    if (solid !== false) mesh.userData.solid = true;
+    parent.add(mesh);
+  };
+  const step = 1.15, spans = [];
+  if (o.win && len > 2) {
+    const ww = Math.min(4.2, Math.max(1.4, len * .62)), a0 = (len - ww) / 2, b0 = a0 + ww, sill = y0 + 2.4, head = Math.min(y1 - .35, sill + (y1 - y0 > 12 ? 8 : 5));
+    spans.push([0, a0, y0, y1, mat, true], [b0, len, y0, y1, mat, true], [a0, b0, y0, sill, mat, true], [a0, b0, head, y1, mat, true], [a0 + .05, b0 - .05, sill + .05, head - .05, M.glass, false]);
+  } else spans.push([0, len, y0, y1, mat, true]);
+  for (const [a, b, ya, yb, m, solid] of spans) {
+    if (!solid || b - a <= step + .08) piece(a, b, ya, yb, m, solid);
+    else for (let s = a; s < b - .02; s += step) piece(s, Math.min(b, s + step), ya, yb, m, true);
+  }
+}
+function segRail(parent, x0, z0, x1, z1, y, kind = 'glass') {
+  if (kind === 'none') return;
+  const horiz = Math.abs(z1 - z0) < .05, vert = Math.abs(x1 - x0) < .05;
+  if (horiz || vert) return railing(parent, horiz ? 'x' : 'z', horiz ? (z0 + z1) / 2 : (x0 + x1) / 2, horiz ? Math.min(x0, x1) : Math.min(z0, z1), horiz ? Math.max(x0, x1) : Math.max(z0, z1), y, kind);
+  const mat = kind === 'glass' ? M.glass : kind === 'wood' ? M.walnut : M.trim2;
+  segWall(parent, x0, z0, x1, z1, { t: kind === 'glass' ? .08 : .14, y0: y, y1: y + 3.4, mat });
+}
 // ---------- Doors you can open and close (E in walk mode) ----------
 // Each door leaf / garage panel is built into its own group whose origin is the hinge, so it can turn.
 // DOORS: { parts: [{ g, axis, ang }], cur 0..1 (0 = as drawn, 1 = turned by ang), target, at: [x, y, z], kind }

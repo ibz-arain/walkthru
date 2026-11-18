@@ -1,7 +1,8 @@
 
 // =====================================================================
 //  BUILDER — "My Design": an editable house made of rooms.
-//  A room is an axis-aligned rectangle on a level (B / M / U). Shared room edges are the walls,
+//  A room is a rectangle on a level (B / M / U), or a triangle, round room, or custom outline in that box.
+//  Shared room edges are the walls,
 //  so dragging a wall resizes the rooms on both sides. The 3D house (walls, doors, windows,
 //  front door, garage door, stairs, floors, ceilings, roof, furniture) is generated from the rooms.
 // =====================================================================
@@ -218,10 +219,74 @@ function sub1d(range, cuts) { // subtract intervals from [a,b]
   for (const [c0, c1] of cuts) { const nx = []; for (const [a, b] of out) { if (c1 <= a + EPS || c0 >= b - EPS) { nx.push([a, b]); continue; } if (c0 > a + EPS) nx.push([a, c0]); if (c1 < b - EPS) nx.push([c1, b]); } out = nx; }
   return out.filter(([a, b]) => b - a > .3);
 }
-function edgesOf(r) {
+// ---------- Room outlines: rectangle, right triangle, ellipse, or a custom polygon ----------
+// Custom points are stored in feet from the room's origin (r.pts). Triangle and round are drawn from the width and depth.
+const SHAPE_SEG = 16;
+function roomPoly(r) {
+  if (!r || r.shape === 'round') return r?.shape === 'round' ? roundPoly(r) : null;
+  if (r.shape === 'tri') return triPoly(r);
+  if (r.shape === 'poly' && r.pts?.length >= 3) return r.pts.map(([u, v]) => [r.x + u, r.z + v]);
+  return null;
+}
+function roundPoly(r) {
+  const cx = r.x + r.w / 2, cz = r.z + r.d / 2, rx = r.w / 2, rz = r.d / 2, pts = [];
+  for (let i = 0; i < SHAPE_SEG; i++) { const t = -Math.PI / 2 + i * 2 * Math.PI / SHAPE_SEG; pts.push([+(cx + Math.cos(t) * rx).toFixed(3), +(cz + Math.sin(t) * rz).toFixed(3)]); }
+  return pts;
+}
+function triPoly(r) {
+  const x = r.x, z = r.z, x1 = r.x + r.w, z1 = r.z + r.d;
+  return [[[x, z], [x1, z], [x, z1]], [[x1, z], [x1, z1], [x, z]], [[x1, z1], [x, z1], [x1, z]], [[x, z1], [x, z], [x1, z1]]][(r.spin || 0) % 4];
+}
+function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length]; a += x0 * z1 - x1 * z0; } return Math.abs(a) / 2; }
+function polyCentroid(pts) {
+  let x = 0, z = 0, a = 0;
+  for (let i = 0; i < pts.length; i++) { const [x0, z0] = pts[i], [x1, z1] = pts[(i + 1) % pts.length], c = x0 * z1 - x1 * z0; a += c; x += (x0 + x1) * c; z += (z0 + z1) * c; }
+  if (Math.abs(a) < 1e-6) return [(pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2];
+  return [x / (3 * a), z / (3 * a)];
+}
+const roomArea = r => { const p = roomPoly(r); return p ? polyArea(p) : r.w * r.d; };
+function pointInPoly(x, z, pts) {
+  let inn = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, zi] = pts[i], [xj, zj] = pts[j];
+    if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / ((zj - zi) || 1e-9) + xi) inn = !inn;
+  }
+  return inn;
+}
+function insideRoom(r, x, z) {
+  if (x <= r.x || x >= r.x + r.w || z <= r.z || z >= r.z + r.d) return false;
+  const p = roomPoly(r); return p ? pointInPoly(x, z, p) : true;
+}
+function fitShapeBox(r) {
+  if (r.shape !== 'poly' || r.pts?.length < 3) return;
+  const abs = r.pts.map(([u, v]) => [r.x + u, r.z + v]);
+  const x0 = Math.min(...abs.map(p => p[0])), z0 = Math.min(...abs.map(p => p[1])), x1 = Math.max(...abs.map(p => p[0])), z1 = Math.max(...abs.map(p => p[1]));
+  r.x = +x0.toFixed(2); r.z = +z0.toFixed(2); r.w = +(x1 - x0).toFixed(2); r.d = +(z1 - z0).toFixed(2);
+  r.pts = abs.map(([x, z]) => [+(x - r.x).toFixed(2), +(z - r.z).toFixed(2)]);
+}
+function edgeOut(poly, p, q) {
+  const dx = q[0] - p[0], dz = q[1] - p[1], len = Math.hypot(dx, dz) || 1, mx = (p[0] + q[0]) / 2, mz = (p[1] + q[1]) / 2;
+  let nx = -dz / len, nz = dx / len;
+  if (pointInPoly(mx + nx * .35, mz + nz * .35, poly)) { nx = -nx; nz = -nz; }
+  return [nx, nz, mx, mz, len];
+}
+function bboxEdges(r) {
   return [
     { side: 'n', axis: 'x', c: r.z, a: r.x, b: r.x + r.w, out: '-z' }, { side: 's', axis: 'x', c: r.z + r.d, a: r.x, b: r.x + r.w, out: '+z' },
     { side: 'w', axis: 'z', c: r.x, a: r.z, b: r.z + r.d, out: '-x' }, { side: 'e', axis: 'z', c: r.x + r.w, a: r.z, b: r.z + r.d, out: '+x' }];
+}
+function edgesOf(r) {
+  const poly = roomPoly(r);
+  if (!poly || r.shape === 'round') return poly ? [] : bboxEdges(r);
+  const edges = [];
+  for (let i = 0; i < poly.length; i++) {
+    const p = poly[i], q = poly[(i + 1) % poly.length], dx = q[0] - p[0], dz = q[1] - p[1], len = Math.hypot(dx, dz);
+    if (len < .4) continue;
+    const horiz = Math.abs(dz) < .08, vert = Math.abs(dx) < .08; if (!horiz && !vert) continue;
+    const [nx, nz] = edgeOut(poly, p, q), side = horiz ? (nz > 0 ? 's' : 'n') : (nx > 0 ? 'e' : 'w'), out = horiz ? (nz > 0 ? '+z' : '-z') : (nx > 0 ? '+x' : '-x');
+    edges.push({ side, axis: horiz ? 'x' : 'z', c: horiz ? (p[1] + q[1]) / 2 : (p[0] + q[0]) / 2, a: horiz ? Math.min(p[0], q[0]) : Math.min(p[1], q[1]), b: horiz ? Math.max(p[0], q[0]) : Math.max(p[1], q[1]), out, idx: r.shape === 'poly' ? [i, (i + 1) % poly.length] : null });
+  }
+  return edges;
 }
 const OPP = { n: 's', s: 'n', w: 'e', e: 'w' };
 const extKey = (r, out) => `${r.id}:${out}`;
@@ -230,7 +295,7 @@ const extMode = (r, out) => BM.ext?.[extKey(r, out)] || 'auto';
 const railKey = (r, out, a) => `${r.id}:${out}:${(+a).toFixed(1)}`;
 // the stretches of a room's side that are open (not against another indoor room): where its railing runs
 function railSegments(R, out) { const e = edgesOf(R).find(x => x.out === out); if (!e) return [];
-  return sub1d([e.a, e.b], BM.rooms.filter(o => o.level === R.level && !isOut(o) && o !== R).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; })); }
+  return sub1d([e.a, e.b], BM.rooms.filter(o => o.level === R.level && !isOut(o) && o !== R).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return f && Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; })); }
 const railFor = (r, out, a) => BM.rails?.[railKey(r, out, a)] ?? BM.rails?.[`${r.id}:*`] ?? 'glass';
 const pairKey = (a, b) => a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`;
 const wallMode = (a, b) => BM.walls?.[pairKey(a, b)] || (openPair(a, b) ? 'open' : doorPair(a, b) ? 'door' : 'wall');
@@ -238,7 +303,7 @@ const wallMode = (a, b) => BM.walls?.[pairKey(a, b)] || (openPair(a, b) ? 'open'
 function closeGaps(ids, maxGap = 1.5) {
   let n = 0;
   for (const R of BM.rooms.filter(r => !ids || ids.includes(r.id))) for (const O of BM.rooms) {
-    if (O === R || O.level !== R.level) continue;
+    if (O === R || O.level !== R.level || roomPoly(R) || roomPoly(O)) continue;
     const zo = Math.min(R.z + R.d, O.z + O.d) - Math.max(R.z, O.z), xo = Math.min(R.x + R.w, O.x + O.w) - Math.max(R.x, O.x);
     if (zo > 1) { let g = O.x - (R.x + R.w); if (g > .05 && g <= maxGap) { R.w = +(R.w + g).toFixed(2); n++; }
       g = R.x - (O.x + O.w); if (g > .05 && g <= maxGap) { R.x = +(O.x + O.w).toFixed(2); R.w = +(R.w + g).toFixed(2); n++; } }
@@ -249,17 +314,57 @@ function closeGaps(ids, maxGap = 1.5) {
 }
 // Basement windows: small ones up under the joists while the basement is deep in the ground; once enough of it stands
 // above grade (raised or bi-level houses) they become proper windows from just above the ground to the top of the foundation.
+function shapeCutsOn(e, lv) {
+  const cuts = [];
+  for (const r of BM.rooms) {
+    if (r.level !== lv || isOut(r) || !roomPoly(r)) continue;
+    const poly = roomPoly(r);
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length];
+      if (e.axis === 'x' && Math.abs(p[1] - e.c) < EPS && Math.abs(q[1] - e.c) < EPS) cuts.push([Math.min(p[0], q[0]), Math.max(p[0], q[0])]);
+      if (e.axis === 'z' && Math.abs(p[0] - e.c) < EPS && Math.abs(q[0] - e.c) < EPS) cuts.push([Math.min(p[1], q[1]), Math.max(p[1], q[1])]);
+    }
+  }
+  return cuts;
+}
+function addShapeWalls(lv, walls) {
+  const outs = BM.rooms.filter(r => r.level === lv && isOut(r));
+  for (const A of BM.rooms) {
+    if (A.level !== lv || isOut(A) || !roomPoly(A)) continue;
+    const poly = roomPoly(A);
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length], [nx, nz, mx, mz, len] = edgeOut(poly, p, q);
+      if (len < .3) continue;
+      const neighbor = BM.rooms.find(o => o !== A && o.level === lv && !isOut(o) && insideRoom(o, mx + nx * .55, mz + nz * .55));
+      if (neighbor && (wallMode(A, neighbor) === 'open' || A.id > neighbor.id)) continue;
+      const horiz = Math.abs(q[1] - p[1]) < .08, vert = Math.abs(q[0] - p[0]) < .08;
+      const out = Math.abs(nx) > Math.abs(nz) ? (nx > 0 ? '+x' : '-x') : (nz > 0 ? '+z' : '-z');
+      if ((horiz || vert) && len > .4) {
+        const c = horiz ? (p[1] + q[1]) / 2 : (p[0] + q[0]) / 2, a = horiz ? Math.min(p[0], q[0]) : Math.min(p[1], q[1]), b = horiz ? Math.max(p[0], q[0]) : Math.max(p[1], q[1]);
+        if (neighbor) walls.push({ ext: false, axis: horiz ? 'x' : 'z', c, a, b, rooms: [A, neighbor], ops: [], door: wallMode(A, neighbor) === 'door' });
+        else if (extMode(A, out) !== 'open') {
+          const off = { '-z': [0, -.6], '+z': [0, .6], '-x': [-.6, 0], '+x': [.6, 0] }[out], px = horiz ? (a + b) / 2 : c + off[0], pz = horiz ? c + off[1] : (a + b) / 2;
+          walls.push({ ext: true, axis: horiz ? 'x' : 'z', c, a, b, out, room: A, ops: [], toOut: outs.find(o => insideRoom(o, px, pz)) });
+        }
+        continue;
+      }
+      if (!neighbor && extMode(A, out) === 'open') continue;
+      const cardinal = Math.max(Math.abs(nx), Math.abs(nz)) > .96;
+      walls.push({ angled: true, x0: p[0], z0: p[1], x1: q[0], z1: q[1], nx, nz, ext: !neighbor, room: A, out, ops: [], win: !neighbor && !!RT[A.type]?.win && (A.shape === 'round' ? cardinal : len >= 6) });
+    }
+  }
+}
 function baseWin(c, L, lv = 'B') { const fl = LV_Y[lv], ceil = LV_C[lv], top = Math.min(TF, ceil + JOIST), exposed = top - .3; if (exposed < 3.2) return { c, w: 3.5, b: ceil - 2.2, h: 1.6 };
   const sill = Math.max(.6, fl + 2.5); return { c, w: Math.min(5, L - 1.5), b: sill, h: top - .3 - sill }; }
 function planLevel(lv) {
   const rs = BM.rooms.filter(r => r.level === lv && !isOut(r)), outs = BM.rooms.filter(r => r.level === lv && isOut(r)), walls = [];
-  for (const A of rs) for (const e of edgesOf(A)) {
+  for (const A of rs) { if (roomPoly(A)) continue; for (const e of edgesOf(A)) {
     const shared = [];
-    for (const B of rs) { if (B === A) continue; const f = edgesOf(B).find(x => x.side === OPP[e.side]);
-      if (Math.abs(f.c - e.c) > EPS) continue; const s0 = Math.max(e.a, f.a), s1 = Math.min(e.b, f.b); if (s1 - s0 > .3) shared.push([s0, s1, B]); }
-    for (const [a, b] of sub1d([e.a, e.b], shared)) {
+    for (const B of rs) { if (B === A || roomPoly(B)) continue; const f = edgesOf(B).find(x => x.side === OPP[e.side]);
+      if (!f || Math.abs(f.c - e.c) > EPS) continue; const s0 = Math.max(e.a, f.a), s1 = Math.min(e.b, f.b); if (s1 - s0 > .3) shared.push([s0, s1, B]); }
+    for (const [a, b] of sub1d([e.a, e.b], shared.concat(shapeCutsOn(e, lv)))) {
       const m = (a + b) / 2, off = { '-z': [0, -.6], '+z': [0, .6], '-x': [-.6, 0], '+x': [.6, 0] }[e.out], px = e.axis === 'x' ? m : e.c + off[0], pz = e.axis === 'x' ? e.c + off[1] : m;
-      const toOut = outs.find(o => px > o.x && px < o.x + o.w && pz > o.z && pz < o.z + o.d);
+      const toOut = outs.find(o => insideRoom(o, px, pz));
       if (A.type === 'bridge') { walls.push({ rail: true, kind: railFor(A, e.out, a), out: e.out, axis: e.axis, c: e.c, a, b, room: A, ops: [] }); continue; } // catwalk edges get railings (or not: per stretch)
       walls.push({ ext: true, axis: e.axis, c: e.c, a, b, out: e.out, room: A, ops: [], toOut });
     }
@@ -268,14 +373,16 @@ function planLevel(lv) {
       if (mode ? mode === 'open' : openPair(A, B)) continue;
       walls.push({ ext: false, axis: e.axis, c: e.c, a, b, rooms: [A, B], ops: [], door: mode ? mode === 'door' : doorPair(A, B) });
     }
-  }
+  } }
+  addShapeWalls(lv, walls);
   // openings
   let frontDone = lv !== 'M';
-  const frontCands = walls.filter(w => w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
+  const frontCands = walls.filter(w => !w.angled && w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
   if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
   for (const w of walls) {
+    if (w.angled) continue;
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
     if (!w.ext) { if (w.door && L >= 2.9) { const o = opAt(w, pairKey(...w.rooms), Math.min(2.67, L - .5), 6.67); w.ops.push({ c: o.c, w: o.w, b: y, h: o.h, k: 'door', sw: o.o.flip ? -1 : 1, hinge: o.o.hinge, style: o.o.style, color: o.o.color }); } continue; }
     if (w.front) continue;
@@ -331,7 +438,7 @@ const canTall = lv => !!tallInto(lv);
 const tallParts = r => canTall(r.level) ? rectCells([r], .5, upSolid(r.level)) : [];   // the open (double-height) parts of a room
 const isTall = r => r.tall && tallParts(r).length > 0;   // at least part of it is open above
 const fullyTall = r => isTall(r) && !upSolid(r.level).some(u => ovl(u, r));
-const inTall = (lv, x, z) => canTall(lv) && !coveredAt(lv, x, z) && BM.rooms.some(r => r.level === lv && r.tall && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
+const inTall = (lv, x, z) => canTall(lv) && !coveredAt(lv, x, z) && BM.rooms.some(r => r.level === lv && r.tall && insideRoom(r, x, z));
 // ---------- Stairs layer ----------
 // Staircases are their own objects (BM.stairs), sitting inside rooms: they don't take a room slot, make walls or change connections.
 // S = { id, level (where it starts), to? (the floor it climbs to; missing = automatic), cx, cz (centre), W (width), L (run length), dir? ('+x','+z','-x','-z'; missing = automatic) }
@@ -345,7 +452,7 @@ function stairUp(S) {
   return ups.find(l => BM.rooms.some(o => o.level === l && !isOut(o) && ovl(o, box))) || ups[0];
 }
 const stairBelow = S => levelBelow(S.level);
-function roomAt3(lv, x, z) { return BM.rooms.find(o => o.level === lv && !isOut(o) && x > o.x && x < o.x + o.w && z > o.z && z < o.z + o.d); }
+function roomAt3(lv, x, z) { return BM.rooms.find(o => o.level === lv && !isOut(o) && insideRoom(o, x, z)); }
 // Stair shapes: straight, U-turn (two flights side by side with a flat landing) or curved (the flights joined by a half-circle of
 // winder steps). Turning stairs climb up one half of their box, turn at the far end and arrive back beside where they started.
 const STAIR_SHAPES = ['auto', 'straight', 'u', 'curved'];
@@ -415,7 +522,7 @@ const ROOM_FLOORS = { oak: RF('Light oak', 'wood', .6, '#e0c49c'), natural: RF('
   bigtile: RF('Large tile', 'bigtile', .3, '#dcdad4'), mosaic: RF('Mosaic', 'mosaic', .3, '#e4e2dc'), marble: RF('Marble', 'marble', .15, '#f2f1ec'), slate: RF('Slate', 'slate', .7, '#8a8884'),
   terrazzo: RF('Terrazzo', 'terrazzo', .3, '#f0eee8'), carpet: RF('Carpet, oat', 'carpet', 1, '#cfc6b8'), carpetgrey: RF('Carpet, grey', 'carpet', 1, '#8f9296'), concrete: RF('Polished concrete', 'concrete', .35, '#b9b7b2') };
 const floorFor = r => { const f = ROOM_FLOORS[r.finish?.floor]; return f ? finMat(f[1](), f[2]) : floorMat(r.type); };
-const paintFor = (r, side) => { const F = r.finish || {}; const hex = F.accent?.side === side ? F.accent.color : F.paint; return hex ? finMat(M.paint, hex) : M.paint; };
+const paintFor = (r, side) => { const F = r.finish || {}; const hex = side && F.accent?.side === side ? F.accent.color : F.paint; return hex ? finMat(M.paint, hex) : M.paint; };
 // which side of room r a wall at coordinate c runs along
 const sideOfRoom = (r, axis, c) => axis === 'x' ? (Math.abs(c - r.z) < Math.abs(c - (r.z + r.d)) ? 'n' : 's') : (Math.abs(c - r.x) < Math.abs(c - (r.x + r.w)) ? 'w' : 'e');
 const likeOf = t => RT[t]?.like || t;
@@ -425,8 +532,9 @@ function rectCells(rooms, step = .5, minus = []) { // occupancy grid (rooms minu
   const x0 = Math.min(...rooms.map(r => r.x)), z0 = Math.min(...rooms.map(r => r.z));
   const X = Math.ceil((Math.max(...rooms.map(r => r.x + r.w)) - x0) / step), Z = Math.ceil((Math.max(...rooms.map(r => r.z + r.d)) - z0) / step);
   const g = new Uint8Array(X * Z);
-  for (const r of rooms) for (let i = Math.round((r.x - x0) / step); i < Math.round((r.x + r.w - x0) / step); i++) for (let j = Math.round((r.z - z0) / step); j < Math.round((r.z + r.d - z0) / step); j++) if (i >= 0 && j >= 0 && i < X && j < Z) g[j * X + i] = 1;
-  for (const r of minus) for (let i = Math.round((r.x - x0) / step); i < Math.round((r.x + r.w - x0) / step); i++) for (let j = Math.round((r.z - z0) / step); j < Math.round((r.z + r.d - z0) / step); j++) if (i >= 0 && j >= 0 && i < X && j < Z) g[j * X + i] = 0;
+  const stamp = (r, v) => { const poly = roomPoly(r); for (let i = Math.round((r.x - x0) / step); i < Math.round((r.x + r.w - x0) / step); i++) for (let j = Math.round((r.z - z0) / step); j < Math.round((r.z + r.d - z0) / step); j++) if (i >= 0 && j >= 0 && i < X && j < Z && (!poly || pointInPoly(x0 + (i + .5) * step, z0 + (j + .5) * step, poly))) g[j * X + i] = v; };
+  for (const r of rooms) stamp(r, 1);
+  for (const r of minus) stamp(r, 0);
   const out = [];
   for (let guard = 0; guard < 40; guard++) {
     let best = null; const h = new Int32Array(X);
@@ -455,7 +563,7 @@ function clearZones(lv) {
   }
   const rs = BM.rooms.filter(r => r.level === lv);
   for (const A of rs) for (const Bq of rs) { if (A.id >= Bq.id || wallMode(A, Bq) !== 'open') continue; // doorway-sized openings stay clear
-    for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
+    for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (!f || Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
   for (const S of stairsOn(lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
   for (const S of (BM.stairs || []).filter(t => stairUp(t) === lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
   return Z;
@@ -567,8 +675,18 @@ function buildHouse3() {
     const upLanes = (BM.stairs || []).filter(s => s.level === lv && stairUp(s) && has(stairUp(s))).map(s => turns(s) ? stairRect(s, stairDirOf(s)) : laneOf(s, 0));
     const holed = (rc, z) => { let ps = [rc]; for (const L of upLanes) ps = ps.flatMap(p => cutRect(p, L)); for (const [a0, a1, b0, b1] of ps) flat(CEIL, rect(a0, a1, b0, b1), [], z, M.ceil); };
     for (const r of rs) {
-      const rr = rect(r.x, r.x + r.w, r.z, r.z + r.d), g = r.type === 'garage' && lv === 'M', T = RT[r.type] || {};
+      const poly = roomPoly(r), rr = rect(r.x, r.x + r.w, r.z, r.z + r.d), g = r.type === 'garage' && lv === 'M', T = RT[r.type] || {};
       if (T.outdoor) { // decks, porches, balconies
+        if (poly) {
+          const up = lv !== 'M', fy = up ? y : y - .35, kind = BM.rails?.[`${r.id}:*`] ?? 'glass';
+          if (up) slab(P, poly, [], Math.max(0, fy - 1.04), fy, M.stucco, { walk: true });
+          else slab(P, poly, [], 0, fy, T.covered ? M.concrete : M.deck, { walk: true });
+          flat(P, poly, [], fy + .01, floorFor(r), { walk: true });
+          if (T.covered) flat(CEIL, poly, [], yc - .62, BM.style === 'modern' ? M.soffitM : M.soffit);
+          if (T.rail) for (let i = 0; i < poly.length; i++) { const a = poly[i], b = poly[(i + 1) % poly.length], [nx, nz, mx, mz, len] = edgeOut(poly, a, b); if (len < .3) continue; if (BM.rooms.some(o => o.level === lv && !isOut(o) && insideRoom(o, mx + nx * .5, mz + nz * .5))) continue; segRail(P, a[0], a[1], b[0], b[1], fy, kind); }
+          if (showFurnBuild) furnish(furn[lv], r, fy, zones);
+          continue;
+        }
         const up = lv !== 'M', fy = up ? y : y - .35, mat = floorFor(r);
         if (up) box(P, r.x, r.x + r.w, fy - 1.04, fy, r.z, r.z + r.d, M.stucco, { walk: true });
         else box(P, r.x, r.x + r.w, 0, fy, r.z, r.z + r.d, T.covered ? M.concrete : M.deck, { walk: true });
@@ -584,10 +702,18 @@ function buildHouse3() {
             else box(P, ...A(cx, 1.1), fy, yc - .6, ...A(cz, 1.1), M.stone, { solid: true }); }
           box(P, r.x, r.x + r.w, yc - .6, yc, r.z, r.z + r.d, BM.style === 'modern' ? M.trim2 : STY ? SIDE : M.stucco); flat(CEIL, rr, [], yc - .62, BM.style === 'modern' ? M.soffitM : M.soffit); }
         if (T.rail) for (const e of edgesOf(r)) { // railings on the open edges
-          const segs = sub1d([e.a, e.b], BM.rooms.filter(o => o.level === lv && !isOut(o) && o !== r).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; }));
+          const segs = sub1d([e.a, e.b], BM.rooms.filter(o => o.level === lv && !isOut(o) && o !== r).flatMap(o => { const f = edgesOf(o).find(x => x.side === OPP[e.side]); return f && Math.abs(f.c - e.c) < EPS ? [[f.a, f.b]] : []; }));
           for (const [a, b] of segs) railing(P, e.axis, e.c, a, b, fy, railFor(r, e.out, a));
         }
         if (showFurnBuild) furnish(furn[lv], r, fy, zones);
+        continue;
+      }
+      if (poly) {
+        const holes = list => list.filter(L => [[L.x + .2, L.z + .2], [L.x + L.w - .2, L.z + .2], [L.x + .2, L.z + L.d - .2], [L.x + L.w - .2, L.z + L.d - .2]].every(([x, z]) => pointInPoly(x, z, poly))).map(L => rect(L.x, L.x + L.w, L.z, L.z + L.d));
+        if (g) slab(P, poly, holes(lanes), 0, GF, M.concrete, { walk: true });
+        else { slab(P, poly, holes(lanes), y - 1.04, y, M.ceil, { walk: true, cast: false }); flat(P, poly, [], y + .01, floorFor(r), { walk: true }); }
+        flat(CEIL, poly, isTall(r) ? [] : holes(upLanes), (isTall(r) ? LV_C[tallInto(lv)] : yc) - .02, M.ceil);
+        if (showFurnBuild && !r.nofurn) { if (r.type === 'garage') { if (carDone) r._car = true; carDone = true; } furnish(furn[lv], r, g ? GF : y, zones); delete r._car; }
         continue;
       }
       let pieces = [[r.x, r.x + r.w, r.z, r.z + r.d]];
@@ -621,6 +747,15 @@ function buildHouse3() {
     }
     // walls
     for (const w of planLevel(lv)) {
+      if (w.angled) {
+        const ext = w.ext, y0 = belowGrade(lv) ? y : lv === 'M' ? (ext ? TF : y) : ext ? y - JOIST : y;
+        let y1 = belowGrade(lv) ? (ext ? Math.min(TF, yc + JOIST) : yc) : yc;
+        if (canTall(lv) && w.room.tall && isTall(w.room)) y1 = LV_C[tallInto(lv)];
+        const STY = BM.style === 'batten', STN = BM.style === 'stone', MOD = BM.style === 'modern';
+        const outer = !ext ? paintFor(w.room) : belowGrade(lv) ? M.found : CLAD()[w.room.clad] || (STY ? M.batten : STN ? M.fstone : MOD ? M.render : M.stucco);
+        segWall(P, w.x0, w.z0, w.x1, w.z1, { t: ext ? EXT : INT, y0, y1, mat: outer, inner: paintFor(w.room), nx: w.nx, nz: w.nz, win: w.win });
+        continue;
+      }
       if (w.rail) { railing(P, w.axis, w.c, w.a, w.b, LV_Y[lv], w.kind); continue; }
       if (w.open) continue; // Open: nothing at all on this edge, upstairs too
       const horiz = w.axis === 'x', ext = w.ext, garageRoom = (ext ? w.room.type : w.rooms.some(q => q.type === 'garage')) === 'garage' || (!ext && w.rooms.some(q => q.type === 'garage'));
@@ -765,8 +900,8 @@ function buildHouse3() {
   }
   placeItems();
   // HUD data
-  ROOMS3 = rooms.map(r => [rname(r), r.level, [[r.x, r.x + r.w, r.z, r.z + r.d]], [r.x + r.w / 2, r.z + r.d / 2, Math.PI]]);
-  OUTLINE3 = {}; for (const l of levelIds()) OUTLINE3[l] = (l === 'M' ? main : l === 'U' ? up : rooms.filter(r => r.level === l && !isOut(r))).map(r => rect(r.x, r.x + r.w, r.z, r.z + r.d));
+  ROOMS3 = rooms.map(r => { const poly = roomPoly(r), c = poly ? polyCentroid(poly) : [r.x + r.w / 2, r.z + r.d / 2], row = [rname(r), r.level, [[r.x, r.x + r.w, r.z, r.z + r.d]], [c[0], c[1], Math.PI]]; if (poly) { row.area = polyArea(poly); row.poly = poly; } return row; });
+  OUTLINE3 = {}; for (const l of levelIds()) OUTLINE3[l] = (l === 'M' ? main : l === 'U' ? up : rooms.filter(r => r.level === l && !isOut(r))).map(r => roomPoly(r) || rect(r.x, r.x + r.w, r.z, r.z + r.d));
   H3_WALK = walkables.slice(before);
 }
 let showFurnBuild = true;

@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.0c474d9a92.js">
-<link rel="stylesheet" href="/assets/playground.efb3fb875a.css">
+<link rel="modulepreload" href="/assets/playground.9fb5e5b20a.js">
+<link rel="stylesheet" href="/assets/playground.0f55d570a9.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -70,6 +70,8 @@
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="m16.5 7.5-7.8 7.8a3 3 0 0 1-4.2-4.2l8-8a4.2 4.2 0 0 1 6 6l-8 8a5.5 5.5 0 0 1-7.8-7.8l7.3-7.3"/></symbol>
   </defs>
 </svg>
 
@@ -117,6 +119,7 @@
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
+    <button class="tb-b" type="button" data-panel-btn="agent" data-tip="Chat with the design agent"><svg class="ic"><use href="#i-msg"/></svg><span class="tb-t">Chat</span></button>
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
     <button class="tb-b" type="button" data-panel-btn="export" data-tip="Download images, PDFs and files"><svg class="ic"><use href="#i-down"/></svg><span class="tb-t">Export</span></button>
@@ -145,7 +148,7 @@
     <button type="button" id="fullBtn"><svg class="ic"><use href="#i-full"/></svg>Full screen</button>
   </div>
   <div class="menu sepd">
-    <button type="button" id="dockBtn" data-pop="dockPop"><svg class="ic"><use href="#i-layout"/></svg>Layout, units and theme</button>
+    <button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface<kbd>\</kbd></button>
     <button type="button" id="helpBtn2"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts<kbd>?</kbd></button>
   </div>
 </div>
@@ -173,7 +176,13 @@
   <div class="dm-row dm-new"><span>New from</span><button class="btn" id="designNewPermit" type="button">Sample plan</button><button class="btn" id="designNewBlank" type="button">Blank page</button></div>
 </div>
 <div class="pop acct-menu" id="acctPop" hidden role="menu" aria-label="Account">
-  <div class="st-who"><b id="accName"></b><span id="accMail"></span><span id="accOrg" class="st-org"></span></div>
+  <div class="st-who"><div class="st-id"><b id="accName"></b><span id="accMail"></span></div><span id="accOrg" class="st-org"></span></div>
+  <h6>Toolbar position</h6>
+  <div class="dock-grid"><button type="button" data-dock="top"><i class="dk dk-top"></i>Top</button><button type="button" data-dock="bottom"><i class="dk dk-bottom"></i>Bottom</button><button type="button" data-dock="left"><i class="dk dk-left"></i>Left</button><button type="button" data-dock="right"><i class="dk dk-right"></i>Right</button></div>
+  <h6>Units</h6>
+  <div class="seg full"><button type="button" data-units="imperial">Feet &amp; inches</button><button type="button" data-units="metric">Metric</button></div>
+  <h6>Theme</h6>
+  <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
   <button type="button" id="accOutBtn" role="menuitem">Sign out</button>
 </div>
 <div class="pop" id="mePop" hidden role="dialog" aria-label="Walk">
@@ -191,15 +200,6 @@
   <div id="navList" class="nav-mini"></div>
   <h6>Saved views <button class="mini" id="saveView" type="button"><svg class="ic"><use href="#i-plus"/></svg>Save current</button></h6>
   <div class="menu" id="savedViews"></div>
-</div>
-<div class="pop" id="dockPop" hidden role="dialog" aria-label="Layout">
-  <h6>Toolbar position</h6>
-  <div class="dock-grid"><button type="button" data-dock="top"><i class="dk dk-top"></i>Top</button><button type="button" data-dock="bottom"><i class="dk dk-bottom"></i>Bottom</button><button type="button" data-dock="left"><i class="dk dk-left"></i>Left</button><button type="button" data-dock="right"><i class="dk dk-right"></i>Right</button></div>
-  <h6>Units</h6>
-  <div class="seg full"><button type="button" data-units="imperial">Feet &amp; inches</button><button type="button" data-units="metric">Metric</button></div>
-  <h6>Theme</h6>
-  <div class="seg full"><button type="button" data-theme-set="auto">Auto</button><button type="button" data-theme-set="light">Light</button><button type="button" data-theme-set="dark">Dark</button></div>
-  <div class="menu" style="margin-top:8px"><button type="button" id="hideUI"><svg class="ic"><use href="#i-eye"/></svg>Hide interface <kbd>\</kbd></button><button type="button" id="helpBtn"><svg class="ic"><use href="#i-key"/></svg>Keyboard shortcuts <kbd>?</kbd></button></div>
 </div>
 <div class="pop" id="peFloorsPop" hidden role="dialog" aria-label="Floors">
   <h6>Floors <span class="pop-out">heights in <span class="u-len">ft</span></span></h6>
@@ -271,6 +271,14 @@
         <label class="fld" for="peName">Name <input id="peName" type="text"></label>
         <label class="fld" for="peType">Type <select id="peType"></select></label>
         <div class="pe-wd"><label class="fld" for="peW"><span>Width (<span class="u-len">ft</span>)</span> <input id="peW" type="number" min="3" max="120" step="any"></label><label class="fld" for="peD"><span>Depth (<span class="u-len">ft</span>)</span> <input id="peD" type="number" min="3" max="120" step="any"></label></div>
+        <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:10px">Shape</h3>
+        <div id="peShape" class="seg full pe-wm" role="group" aria-label="Room shape"><button type="button" data-rshape="rect">Rect</button><button type="button" data-rshape="tri" title="A right triangle in this width and depth">Triangle</button><button type="button" data-rshape="round" title="A round room. Width and depth are the diameters">Round</button><button type="button" data-rshape="poly" title="Type the corners, or drag them on the plan">Custom</button></div>
+        <div id="peShapeMore" hidden>
+          <div class="pe-row" id="peShapeTurnRow"><button class="btn" id="peShapeTurn" type="button">Turn the corner</button></div>
+          <label class="fld fld-stack" id="pePolyWrap" for="pePoly">Coordinates <textarea id="pePoly" rows="6" spellcheck="false" aria-label="Corner coordinates, x and z in feet, one point per line"></textarea></label>
+          <div class="pe-row" id="pePolyBtns"><button class="btn" id="pePolyAdd" type="button">Add point</button><button class="btn" id="pePolyDel" type="button">Remove point</button></div>
+          <p id="peShapeNote" class="pe-note"></p>
+        </div>
         <label class="fld" for="peCeil" id="peCeilWrap">Ceiling <select id="peCeil"><option value="std">Standard · 9'-1"</option><option value="tall">Double height · 18'-2"</option></select></label>
         <h3 style="font-weight:500;font-size:11.5px;color:var(--ink-3);margin-top:10px">Furniture</h3>
         <div id="peFurn" class="seg full pe-wm" role="group" aria-label="Furniture"><button type="button" data-rf="auto" title="Furnished for you; Rotate and Shuffle change the layout">Auto</button><button type="button" data-rf="edit" title="Turn the furniture into pieces you can move, swap and delete">Editable</button><button type="button" data-rf="off" title="An empty room">None</button></div>
@@ -286,6 +294,27 @@
 
 <!-- ===== Side panels (one at a time, on demand) ===== -->
 <aside id="side" hidden aria-label="Panel">
+  <section class="sp chat-sp" data-panel="agent" id="agentPanel" hidden>
+    <div id="chatResize" role="separator" aria-orientation="vertical" aria-label="Drag to resize the chat" tabindex="0"></div>
+    <header class="sp-h">
+      <h2>Agent</h2>
+      <span class="chat-tools">
+        <button class="sp-x" id="agentNew" type="button" aria-label="New chat" data-tip="New chat"><svg class="ic"><use href="#i-plus"/></svg></button>
+        <button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button>
+      </span>
+    </header>
+    <div class="chat-log" id="agentLog" role="log" aria-live="polite" aria-relevant="additions"></div>
+    <form class="chat-compose" id="agentForm">
+      <div class="chat-pending" id="agentPending" hidden></div>
+      <div class="chat-line">
+        <textarea id="agentInput" rows="1" maxlength="4000" placeholder="Ask me anything…" aria-label="Message the agent"></textarea>
+        <button class="chat-pick" id="agentPick" type="button" aria-label="Attach a drawing" data-tip="Attach a drawing"><svg class="ic"><use href="#i-clip"/></svg></button>
+        <button class="chat-send" id="agentSend" type="submit" aria-label="Send" disabled><svg class="ic"><use href="#i-send"/></svg></button>
+      </div>
+      <input id="agentFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf" multiple hidden>
+    </form>
+    <div class="chat-drop" id="agentDrop" hidden><b>Drop a drawing</b><span>PDF or image</span></div>
+  </section>
   <section class="sp" data-panel="finish" id="finish" hidden>
     <header class="sp-h"><h2>Finishes</h2><button class="sp-x" type="button" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></header>
     <div class="sp-b" id="finishBody"></div>
@@ -422,5 +451,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.0c474d9a92.js"></script>
+<script type="module" src="/assets/playground.9fb5e5b20a.js"></script>
 </html>

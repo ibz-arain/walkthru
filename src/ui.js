@@ -17,8 +17,9 @@ function setEditLabel(t) { const el = document.getElementById('editLabel'); if (
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
   const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
-  const side = !document.getElementById('side')?.hidden;
-  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: side && innerWidth > 760 && !hidden ? 318 : 0 };
+  const side = document.getElementById('side');
+  const open = side && !side.hidden && innerWidth > 760 && !hidden;
+  return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: open ? side.offsetWidth + 10 : 0 };
 }
 
 // ---------- dock + theme ----------
@@ -46,7 +47,7 @@ document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnit
 let popOpen = null, popBtn = null;
 const POP_OPEN = {
   designMenu: () => fillDesignMenu(), viewPop: () => { renderNav(); renderSaved(); }, mePop: () => syncMe(),
-  dockPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
+  acctPop: () => { press('[data-units]', 'units', METRIC ? 'metric' : 'imperial'); press('[data-dock]', 'dock', dockSide()); press('[data-theme-set]', 'themeSet', ST.get('walkthru-theme', 'auto')); },
   peFloorsPop: () => renderFloorsPop(),
   pePlanPop: () => { $u('peFurnT').checked = !!PE.furn; $u('peChainT').checked = PE.autoDims !== false; $u('peGridT').checked = PE.grid; $u('peDimsT').checked = PE.dims; $u('peAreaT').checked = PE.areas; syncPlanPop(); },
 };
@@ -101,15 +102,16 @@ function openPanel(name) {
   if (panel === name) return closePanel();
   document.querySelectorAll('#side .sp').forEach(s => s.hidden = s.dataset.panel !== name);
   $u('side').hidden = false; panel = name; document.body.classList.add('panel-open');
+  document.body.classList.toggle('agent-open', name === 'agent');
   press('[data-panel-btn]', 'panelBtn', name); PANEL_OPEN[name]?.(); updateViewOffset();
 }
 function closePanel() {
   if (!uiReady || !panel) return;
-  $u('side').hidden = true; panel = null; document.body.classList.remove('panel-open'); press('[data-panel-btn]', 'panelBtn', ''); updateViewOffset();
+  $u('side').hidden = true; panel = null; document.body.classList.remove('panel-open', 'agent-open'); press('[data-panel-btn]', 'panelBtn', ''); updateViewOffset();
 }
 document.querySelectorAll('[data-panel-btn]').forEach(b => b.onclick = () => openPanel(b.dataset.panelBtn));
 document.querySelectorAll('#side [data-close]').forEach(b => b.onclick = closePanel);
-$u('helpBtn').onclick = $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
+$u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 
 // ---------- navigate ----------
 let navKey = '';
@@ -123,7 +125,7 @@ function renderNav() {
 const NOT_LIVING = /porch|patio|balcony|deck|bridge|garage|open space/i;
 function areaData() {
   const lv = Object.fromEntries((curHouse === 3 ? levelIds() : ['B', 'M', 'U']).map(l => [l, []]));
-  for (const [name, l, rs] of roomsOf(curHouse)) lv[l]?.push([name, rs.reduce((a, r) => a + (r[1] - r[0]) * (r[3] - r[2]), 0)]);
+  for (const rm of roomsOf(curHouse)) lv[rm[1]]?.push([rm[0], rm.area ?? rm[2].reduce((a, r) => a + (r[1] - r[0]) * (r[3] - r[2]), 0)]);
   const living = l => lv[l].filter(([n]) => !NOT_LIVING.test(n)).reduce((a, [, s]) => a + s, 0);
   const names = Object.values(lv).flat().map(([n]) => n);
   const beds = names.filter(n => /bed|nursery|guest/i.test(n) && !/bath/i.test(n)).length;

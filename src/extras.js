@@ -38,9 +38,10 @@ function drawSheetPlan(lv, W, H) {
   const x0 = Math.min(...all.map(r => r.x)) - 3, x1 = Math.max(...all.map(r => r.x + r.w)) + 3, z0 = Math.min(...all.map(r => r.z)) - 3, z1 = Math.max(...all.map(r => r.z + r.d)) + 3;
   const s = Math.min(W / (x1 - x0), H / (z1 - z0)), ox = (W - (x1 - x0) * s) / 2 - x0 * s, oy = (H - (z1 - z0) * s) / 2 - z0 * s, P = (x, z) => [x * s + ox, z * s + oy];
   g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.textAlign = 'center'; g.textBaseline = 'middle';
-  for (const q of rs) { const [a, b] = P(q.x, q.z); g.fillStyle = (RT[q.type]?.color || '#eee') + '66'; g.fillRect(a, b, q.w * s, q.d * s); }
+  for (const q of rs) { const poly = roomPoly(q); g.fillStyle = (RT[q.type]?.color || '#eee') + '66'; g.beginPath(); if (poly) poly.forEach(([x, z], i) => { const [X, Y] = P(x, z); i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); else { const [a, b] = P(q.x, q.z); g.rect(a, b, q.w * s, q.d * s); } g.fill(); }
   for (const it of (BM.items || []).filter(i => i.level === lv && PE.furn)) { const c2 = CATALOG[it.kind]; if (!c2) continue; const [w, d] = itemDims(it), [a, b] = P(it.x - w / 2, it.z - d / 2); g.strokeStyle = '#999'; g.lineWidth = .8; g.strokeRect(a, b, w * s, d * s); }
   for (const w of planLevel(lv)) { // walls with gaps where doors and windows are
+    if (w.angled) { g.strokeStyle = '#111'; g.lineWidth = w.ext ? 3.2 : 1.8; g.beginPath(); g.moveTo(...P(w.x0, w.z0)); g.lineTo(...P(w.x1, w.z1)); g.stroke(); continue; }
     const th = w.ext ? 3.2 : 1.8, cuts = (w.ops || []).map(o => [o.c - o.w / 2, o.c + o.w / 2]).sort((p, q) => p[0] - q[0]);
     let a = w.a; const segs = []; for (const [c0, c1] of cuts) { if (c0 > a) segs.push([a, c0]); a = Math.max(a, c1); } if (a < w.b) segs.push([a, w.b]);
     g.strokeStyle = w.rail ? '#4c7fd6' : '#111'; g.lineWidth = w.rail ? 1.2 : th; g.lineCap = 'square';

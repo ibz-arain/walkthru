@@ -7,9 +7,15 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-if (existsSync(path.join(root, '.env.local'))) for (const line of readFileSync(path.join(root, '.env.local'), 'utf8').split('\n')) {
-  const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
+// .env, then .env.local on top of it. A variable already in the environment wins over both files.
+const fromFile = {};
+for (const name of ['.env', '.env.local']) {
+  const file = path.join(root, name); if (!existsSync(file)) continue;
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/); if (m) fromFile[m[1]] = m[2].replace(/^["']|["']$/g, '');
+  }
 }
+for (const [k, v] of Object.entries(fromFile)) if (!(k in process.env)) process.env[k] = v;
 await mkdir(path.join(root, '.data'), { recursive: true });
 process.chdir(root);
 const PORT = +(process.env.PORT || 8787);
@@ -39,4 +45,4 @@ http.createServer(async (req, res) => {
   if (!path.extname(file) && existsSync(file + '.html')) file += '.html'; // clean URLs, like Vercel: /playground → playground.html
   try { const data = await readFile(file); res.writeHead(200, { 'content-type': TYPES[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' }); res.end(data); }
   catch { res.writeHead(404); res.end('Not found'); }
-}).listen(PORT, () => console.log(`Walkthru dev server → http://localhost:${PORT}  (playground: /playground · studio: /playground#admin)  db: ${process.env.TURSO_DATABASE_URL || 'file:.data/local.db'}`));
+}).listen(PORT, () => console.log(`Walkthru dev server → http://localhost:${PORT}  (playground: /playground · studio: /playground#admin)  db: ${process.env.TURSO_DATABASE_URL || 'file:.data/local.db'}  agent: ${process.env.OPENROUTER_API_KEY ? 'openrouter' : 'no key'}`));

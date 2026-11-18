@@ -147,7 +147,7 @@ body.cl-pinning #stage{cursor:crosshair}
 body.dock-left .tb-proj,body.dock-right .tb-proj{flex-direction:column}
 body.dock-left .cl-title,body.dock-right .cl-title,body.dock-left .cl-save,body.dock-right .cl-save,body.dock-left .tb-proj .cl-brand,body.dock-right .tb-proj .cl-brand{display:none}
 body.editing .cl-save{display:none}
-@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]) .tb-t{display:none}}
+@media (max-width:1480px){.cl-save{display:none} #tbPanels .tb-b:not([data-panel-btn="finish"]):not([data-panel-btn="agent"]) .tb-t{display:none}}
 @media (max-width:1180px){#segMode .tb-t,#viewNow{display:none} .cl-title{max-width:150px}}
 @media (max-width:900px){#tbView .tb-t,#designNow{display:none} #segLvl .l{display:none} #segLvl .s{display:inline}}
 
@@ -190,6 +190,10 @@ body.editing .cl-save{display:none}
 #peSide .pe-row kbd{font-size:10.5px;color:var(--ink-3);background:none;border:0;padding:0}
 #peSide .pe-row + .pe-row{border-top:0;margin-top:0;padding-top:0}
 #peSide .fld.fld-stack{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+#peSide #peShape{flex-wrap:wrap}
+#peSide #peShape button{flex:1 1 42%;font-size:11.5px;padding:6px 2px}
+#peSide #pePoly{width:100%;min-height:108px;resize:vertical;font:12px/1.45 var(--f-mono);padding:6px 8px;border:1px solid var(--rule-2);border-radius:7px;background:var(--paper-2);color:var(--ink);box-sizing:border-box}
+#peSide #pePoly:focus{outline:none;border-color:var(--ink-3);background:var(--paper)}
 #peSide .chips{gap:6px}
 
 /* project card: ⋯ appears on hover, opens Rename / Delete */

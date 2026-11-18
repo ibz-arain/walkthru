@@ -245,7 +245,7 @@ function stepWalk(dt) {
   // HUD room lookup (also tells the camera whether there is a ceiling overhead)
   const lv = curHouse === 3 ? levelAtY(player.feet) : player.feet < Math.min(-0.3, BF + 2.5) ? 'B' : player.feet < UF - 2 ? 'M' : 'U';
   const RM = roomsOf(curHouse);
-  let hit = null; for (const rm of RM) if (rm[1] === lv && rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3])) { hit = rm; break; }
+  let hit = null; for (const rm of RM) if (rm[1] === lv && (rm.poly ? pointInPoly(player.x, player.z, rm.poly) : rm[2].some(r => player.x >= r[0] && player.x <= r[1] && player.z >= r[2] && player.z <= r[3]))) { hit = rm; break; }
   if (AV.third) {
     const moving = f !== 0 || s !== 0, sprint = keys.ShiftLeft || keys.ShiftRight, air = player.vy !== 0;
     AV.t += dt;
@@ -342,7 +342,7 @@ function drawMini(lv) { // heading-up: you stay in the middle pointing up, the p
   mg.lineWidth = 2 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.fillStyle = css.getPropertyValue('--paper-2');
   for (const poly of outlineOf(curHouse)[lv] || []) { mg.beginPath(); poly.forEach(([x, z], i) => i ? mg.lineTo(x, z) : mg.moveTo(x, z)); mg.closePath(); mg.fill(); mg.stroke(); }
   mg.lineWidth = 1 / s; mg.strokeStyle = css.getPropertyValue('--rule');
-  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) for (const r of rm[2]) mg.strokeRect(r[0], r[2], r[1] - r[0], r[3] - r[2]);
+  for (const rm of roomsOf(curHouse)) if (rm[1] === lv) { if (rm.poly) { mg.beginPath(); rm.poly.forEach(([x, z], i) => i ? mg.lineTo(x, z) : mg.moveTo(x, z)); mg.closePath(); mg.stroke(); } else for (const r of rm[2]) mg.strokeRect(r[0], r[2], r[1] - r[0], r[3] - r[2]); }
   // doors you can open: a dot, filled when shut
   for (const d of DOORS) { if (!shown(d.parts[0].g) || Math.abs(d.at[1] - 3 - (player.feet)) > 5) continue; mg.beginPath(); mg.arc(d.at[0], d.at[2], 4.5 / s, 0, Math.PI * 2);
     if (doorClosed(d)) { mg.fillStyle = css.getPropertyValue('--ink-2'); mg.fill(); } else { mg.lineWidth = 1.5 / s; mg.strokeStyle = css.getPropertyValue('--ink-2'); mg.stroke(); } }

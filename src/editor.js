@@ -24,7 +24,32 @@ function peSize() {
 }
 // The plan area changes height when the bottom strip grows or shrinks (e.g. a room gets selected): keep the canvas in step.
 if (window.ResizeObserver) new ResizeObserver(() => { if (PE.open) peSize(); }).observe(pc.parentElement);
-function overlaps(a) { return lvRooms().some(b => b !== a && a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05); }
+function segsCross(a, b, c, d) {
+  const o = (p, q, r) => Math.sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
+  const o1 = o(a, b, c), o2 = o(a, b, d), o3 = o(c, d, a), o4 = o(c, d, b);
+  return o1 && o2 && o3 && o4 && o1 !== o2 && o3 !== o4;
+}
+function shapeOverlap(a, b) {
+  if (!(a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05)) return false;
+  const pa = roomPoly(a), pb = roomPoly(b); if (!pa && !pb) return true;
+  const A = pa || rect(a.x, a.x + a.w, a.z, a.z + a.d), B = pb || rect(b.x, b.x + b.w, b.z, b.z + b.d);
+  const inn = (pts, other) => { const c = polyCentroid(pts); return pts.some(([x, z]) => { const L = Math.hypot(c[0] - x, c[1] - z) || 1; return pointInPoly(x + (c[0] - x) / L * .3, z + (c[1] - z) / L * .3, other); }); };
+  if (inn(A, B) || inn(B, A)) return true;
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length; j++) if (segsCross(A[i], A[(i + 1) % A.length], B[j], B[(j + 1) % B.length])) return true;
+  return false;
+}
+function overlaps(a) { return lvRooms().some(b => b !== a && shapeOverlap(a, b)); }
+function traceRoom(q) {
+  const p = roomPoly(q); px.beginPath();
+  if (!p) { const [a, b] = W2S(q.x, q.z); px.rect(a, b, q.w * PE.s, q.d * PE.s); return; }
+  p.forEach(([x, z], i) => { const [X, Y] = W2S(x, z); i ? px.lineTo(X, Y) : px.moveTo(X, Y); }); px.closePath();
+}
+function shapeDim(q) {
+  if (q.shape === 'round') return `⌀ ${ftin(q.w)} × ${ftin(q.d)}`;
+  if (q.shape === 'tri') return `${ftin(q.w)} × ${ftin(q.d)} △`;
+  if (q.shape === 'poly') return `custom ${ftin(q.w)} × ${ftin(q.d)}`;
+  return `${ftin(q.w)} × ${ftin(q.d)}`;
+}
 let warnBoxes = []; // red warnings already drawn this frame: the next one moves down instead of printing over them
 function warnText(t, x, y) {
   px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; const w = px.measureText(t).width + 8;
@@ -45,18 +70,18 @@ function peDraw() {
   const gm = guideMode(), guideLv = gm === 'none' ? null : gm === 'above' ? levelAbove(PE.lv) : levelBelow(PE.lv);
   const guide = guideLv ? BM.rooms.filter(q => q.level === guideLv) : [];
   if (guide.length) { px.setLineDash([5, 4]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1; px.textAlign = 'center'; px.textBaseline = 'middle';
-    for (const q of guide) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a, b, q.w * s, q.d * s);
-      if (q.w * s > 50 && q.d * s > 22 && !lvRooms().some(o => ovl(o, q))) { px.fillStyle = css('--ink-2'); px.globalAlpha = .55; px.font = '11px Inter, system-ui, sans-serif'; px.fillText(rname(q), a + q.w * s / 2, b + q.d * s / 2); px.globalAlpha = 1; } }
+    for (const q of guide) { traceRoom(q); px.stroke();
+      if (q.w * s > 50 && q.d * s > 22 && !lvRooms().some(o => ovl(o, q))) { const c = roomPoly(q) ? polyCentroid(roomPoly(q)) : [q.x + q.w / 2, q.z + q.d / 2], [X, Y] = W2S(c[0], c[1]); px.fillStyle = css('--ink-2'); px.globalAlpha = .55; px.font = '11px Inter, system-ui, sans-serif'; px.fillText(rname(q), X, Y); px.globalAlpha = 1; } }
     px.setLineDash([]); }
   // double-height rooms show as open to below on the 2nd floor
-  if (PE.lv === 'U') for (const q of BM.rooms.filter(r => r.level === 'M' && isTall(r))) { const [a, b] = W2S(q.x, q.z); px.save(); px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } px.clip();
+  if (PE.lv === 'U') for (const q of BM.rooms.filter(r => r.level === 'M' && isTall(r))) { const [a, b] = W2S(q.x, q.z); px.save(); const poly = roomPoly(q); if (poly) traceRoom(q); else { px.beginPath(); for (const [a0, a1, b0, b1] of tallParts(q)) { const [c, d] = W2S(a0, b0); px.rect(c, d, (a1 - a0) * s, (b1 - b0) * s); } } px.clip();
     px.strokeStyle = 'rgba(31,63,209,.35)'; px.lineWidth = 1; px.beginPath(); for (let k = -q.d * s; k < q.w * s; k += 10) { px.moveTo(a + k, b + q.d * s); px.lineTo(a + k + q.d * s, b); } px.stroke(); px.restore();
     px.fillStyle = css('--ink-2'); px.font = '600 11px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText(`Open to below · ${rname(q)}`, a + q.w * s / 2, b + q.d * s / 2); }
   // rooms
   px.textAlign = 'center'; px.textBaseline = 'middle'; const roomLabels = [];
   for (const q of lvRooms()) {
-    const [a, b] = W2S(q.x, q.z); px.fillStyle = (RT[q.type]?.color || '#ddd') + 'd9'; px.fillRect(a, b, q.w * s, q.d * s);
-    if (RT[q.type]?.outdoor) { px.setLineDash([3, 3]); px.strokeStyle = '#4c7fd6'; px.lineWidth = 1.5; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); px.setLineDash([]);
+    const [a, b] = W2S(q.x, q.z); px.fillStyle = (RT[q.type]?.color || '#ddd') + 'd9'; traceRoom(q); px.fill();
+    if (RT[q.type]?.outdoor) { px.setLineDash([3, 3]); px.strokeStyle = '#4c7fd6'; px.lineWidth = 1.5; traceRoom(q); px.stroke(); px.setLineDash([]);
       const lv = RT[q.type].levels; if (!lvOK(q.type, q.level)) { px.fillStyle = '#ff6b6b'; px.font = '600 11px Inter, system-ui, sans-serif'; px.fillText(lv === 'U' ? 'Balconies go on the 2nd floor' : 'Put this on the main floor', a + q.w * s / 2, b + q.d * s + 13); } }
     if (q.type === 'stairs') { // draw the treads and which way they go
       const st = stairStatus(q), sd = stairDir(q), alongX = sd[1] === 'x', n = 12;
@@ -68,10 +93,10 @@ function peDraw() {
       if (st.msg) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2);
         if (q.id === PE.sel) warnText(st.msg, a + q.w * s / 2, b + q.d * s + 13); else warnBadge(a + q.w * s - 2, b + 2); }
     }
-    if (overlaps(q)) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.setLineDash([4, 3]); px.strokeRect(a + 2, b + 2, q.w * s - 4, q.d * s - 4); px.setLineDash([]); }
+    if (overlaps(q)) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.setLineDash([4, 3]); traceRoom(q); px.stroke(); px.setLineDash([]); }
     if (q.w * s > 44 && q.d * s > 26) roomLabels.push(() => { // name, size and notes, moved off staircases and furniture; drawn last so nothing covers them
       const nameF = `500 ${Math.max(10, Math.min(14, s * 1.1))}px Inter, system-ui, sans-serif`, subF = `${Math.max(9, Math.min(12, s))}px "JetBrains Mono", monospace`;
-      let sub = [PE.dims && `${ftin(q.w)} × ${ftin(q.d)}`, PE.areas && fmtArea(q.w * q.d)].filter(Boolean).join(' · '), tallTxt = q.tall && q.level === 'M' ? (fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above') : '';
+      let sub = [PE.dims && shapeDim(q), PE.areas && fmtArea(roomArea(q))].filter(Boolean).join(' · '), tallTxt = q.tall && q.level === 'M' ? (fullyTall(q) ? '↑ double height' : isTall(q) ? '↑ double height (part)' : '↑ blocked above') : '';
       const measure = () => { px.font = nameF; let w = px.measureText(rname(q)).width; px.font = subF; if (sub) w = Math.max(w, px.measureText(sub).width); return [w, 16 + (sub ? 15 : 0) + (tallTxt ? 13 : 0)]; };
       let [tw, th] = measure(), [lx, ly] = labelSpot(q, tw + 10, th + 6, s);
       if (lx === null && (sub || tallTxt)) { const keep = [sub, tallTxt]; sub = ''; tallTxt = ''; [tw, th] = measure(); [lx, ly] = labelSpot(q, tw + 10, th + 6, s); if (lx === null) [sub, tallTxt] = keep, [tw, th] = measure(); } // squeezed: the name alone
@@ -83,6 +108,8 @@ function peDraw() {
   }
   // walls + openings from the same generator the 3D uses
   for (const w of planLevel(PE.lv)) {
+    if (w.angled) { const [x0, y0] = W2S(w.x0, w.z0), [x1, y1] = W2S(w.x1, w.z1), dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1; px.strokeStyle = css('--ink'); px.lineWidth = Math.max(2, (w.ext ? EXT : INT) * s); px.lineCap = 'butt'; px.beginPath();
+      if (w.win && L > 8) { const g = .22; px.moveTo(x0, y0); px.lineTo(x0 + dx * ( .5 - g), y0 + dy * (.5 - g)); px.moveTo(x0 + dx * (.5 + g), y0 + dy * (.5 + g)); px.lineTo(x1, y1); } else { px.moveTo(x0, y0); px.lineTo(x1, y1); } px.stroke(); continue; }
     if (w.rail) { px.strokeStyle = w.kind === 'none' ? css('--ink-3') : '#4c7fd6'; px.lineWidth = 2; px.setLineDash(w.kind === 'none' ? [4, 4] : []); px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); px.setLineDash([]); continue; }
     if (w.open) { px.strokeStyle = css('--ink-2'); px.lineWidth = 1.5; px.setLineDash([5, 4]); px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(w.a, w.c)); px.lineTo(...W2S(w.b, w.c)); } else { px.moveTo(...W2S(w.c, w.a)); px.lineTo(...W2S(w.c, w.b)); } px.stroke(); px.setLineDash([]); continue; }
     const hz = w.axis === 'x', th = Math.max(2, (w.ext ? EXT : INT) * s);
@@ -125,7 +152,7 @@ function peDraw() {
   }
   // hovered / dragged wall and selected room
   for (const q of lvRooms()) for (const o of lvRooms()) { if (q.id >= o.id) continue; // open connections, dashed so they can be clicked
-    for (const e of edgesOf(q)) { const f = edgesOf(o).find(x => x.side === OPP[e.side]); if (Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a < .3 || wallMode(q, o) !== 'open') continue;
+    for (const e of edgesOf(q)) { const f = edgesOf(o).find(x => x.side === OPP[e.side]); if (!f || Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a < .3 || wallMode(q, o) !== 'open') continue;
       px.setLineDash([6, 5]); px.strokeStyle = css('--ink-2'); px.lineWidth = 1.2; px.beginPath(); if (e.axis === 'x') { px.moveTo(...W2S(a, e.c)); px.lineTo(...W2S(b, e.c)); } else { px.moveTo(...W2S(e.c, a)); px.lineTo(...W2S(e.c, b)); } px.stroke(); px.setLineDash([]); } }
   if (PE.selWall && !(PE.drag?.kind === 'wall')) { const w = PE.selWall, line = w.scope === 'line', a0 = line ? w.la : w.a, b0 = line ? w.lb : w.b; px.strokeStyle = css('--accent'); px.lineWidth = 6; px.beginPath(); if (w.axis === 'x') { px.moveTo(...W2S(a0, w.c)); px.lineTo(...W2S(b0, w.c)); } else { px.moveTo(...W2S(w.c, a0)); px.lineTo(...W2S(w.c, b0)); } px.stroke();
     if (w.scope === 'seg') { px.fillStyle = css('--accent'); for (const t of [a0, b0]) { const [X, Y] = w.axis === 'x' ? W2S(t, w.c) : W2S(w.c, t); px.beginPath(); px.arc(X, Y, 4.5, 0, 7); px.fill(); } } }
@@ -133,7 +160,7 @@ function peDraw() {
   if (hv?.kind === 'wall') { px.strokeStyle = css('--accent'); px.lineWidth = 4; px.beginPath();
     if (hv.axis === 'x') { px.moveTo(...W2S(hv.a, hv.c + (hv.delta || 0))); px.lineTo(...W2S(hv.b, hv.c + (hv.delta || 0))); } else { px.moveTo(...W2S(hv.c + (hv.delta || 0), hv.a)); px.lineTo(...W2S(hv.c + (hv.delta || 0), hv.b)); } px.stroke(); }
   const sel = BM.rooms.find(q => q.id === PE.sel);
-  if (sel && sel.level === PE.lv) { const [a, b] = W2S(sel.x, sel.z); px.strokeStyle = css('--accent'); px.lineWidth = 2.5; px.strokeRect(a, b, sel.w * s, sel.d * s); }
+  if (sel && sel.level === PE.lv) { px.strokeStyle = css('--accent'); px.lineWidth = 2.5; traceRoom(sel); px.stroke(); drawShapeHandles(sel); }
   // empty floor: say what to do instead of showing a blank grid
   if (!lvRooms().length && !guide.length) { px.textAlign = 'center'; px.fillStyle = css('--ink'); px.font = '600 15px Inter, system-ui, sans-serif';
     px.fillText(`No ${LV_NAME[PE.lv].toLowerCase()} rooms yet`, W / 2, H / 2); }
@@ -145,17 +172,17 @@ function peDraw() {
 }
 // Where a room's label fits without sitting on a staircase (screen px): the centre if free, else the nearest free spot inside the room; [null, null] if none.
 function labelSpot(q, w, h, s) {
-  const [a, b] = W2S(q.x, q.z), A = q.w * s, B = q.d * s, blocks = (BM.stairs || []).filter(o => o.level === PE.lv || stairUp(o) === PE.lv).map(o => { const r = stairRect(o, stairDirOf(o)), [x, y] = W2S(r.x, r.z); return [x - 4, y - 4, r.w * s + 8, r.d * s + 8]; })
+  const [a, b] = W2S(q.x, q.z), A = q.w * s, B = q.d * s, poly = roomPoly(q), blocks = (BM.stairs || []).filter(o => o.level === PE.lv || stairUp(o) === PE.lv).map(o => { const r = stairRect(o, stairDirOf(o)), [x, y] = W2S(r.x, r.z); return [x - 4, y - 4, r.w * s + 8, r.d * s + 8]; })
     .concat((BM.items || []).filter(i => i.level === PE.lv && i.kind !== 'rug').map(i => { const [iw, id] = itemDims(i), [x, y] = W2S(i.x - iw / 2, i.z - id / 2); return [x - 2, y - 2, iw * s + 4, id * s + 4]; })); // and placed furniture (rugs are fine to sit on)
-  const free = (cx, cy) => cx - w / 2 >= a + 2 && cx + w / 2 <= a + A - 2 && cy - h / 2 >= b + 2 && cy + h / 2 <= b + B - 2 && !blocks.some(([x, y, bw, bh]) => cx + w / 2 > x && cx - w / 2 < x + bw && cy + h / 2 > y && cy - h / 2 < y + bh);
-  const cx0 = a + A / 2, cy0 = b + B / 2; if (free(cx0, cy0)) return [cx0, cy0];
+  const free = (cx, cy) => { const [wx, wz] = S2W(cx, cy); return cx - w / 2 >= a + 2 && cx + w / 2 <= a + A - 2 && cy - h / 2 >= b + 2 && cy + h / 2 <= b + B - 2 && (!poly || pointInPoly(wx, wz, poly)) && !blocks.some(([x, y, bw, bh]) => cx + w / 2 > x && cx - w / 2 < x + bw && cy + h / 2 > y && cy - h / 2 < y + bh); };
+  const c0 = poly ? polyCentroid(poly) : [q.x + q.w / 2, q.z + q.d / 2], [cx0, cy0] = W2S(c0[0], c0[1]); if (free(cx0, cy0)) return [cx0, cy0];
   let best = null, bd = Infinity; for (let gy = b + h / 2 + 2; gy <= b + B - h / 2 - 2; gy += 6) for (let gx = a + w / 2 + 2; gx <= a + A - w / 2 - 2; gx += 6) { const d = Math.hypot(gx - cx0, gy - cy0); if (d < bd && free(gx, gy)) { bd = d; best = [gx, gy]; } }
   return best || [null, null];
 }
 // can this room type go on this floor? Decks and porches sit on the main floor, balconies and catwalks on any floor above it
 const lvOK = (type, lv) => { const want = RT[type]?.levels; return !want || (want === 'M' ? lv === 'M' : upperLevel(lv)); };
 function peStatus() {
-  const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + q.w * q.d, 0));
+  const rs = lvRooms(), sf = Math.round(rs.filter(q => !RT[q.type]?.outdoor && q.type !== 'garage' && q.type !== 'open').reduce((a, q) => a + roomArea(q), 0));
   const el = document.getElementById('peStatus'); if (el) el.textContent = `${LV_NAME[PE.lv]} · ${rs.length} room${rs.length === 1 ? '' : 's'} · ${fmtArea(sf)}`;
   const z = document.getElementById('peZoomV'); if (z) z.textContent = Math.round(PE.s / 10 * 100) + '%';
 }
@@ -189,7 +216,21 @@ function snapToWalls(v, axis, tol = 1.2) { // nearest room edge on this level wi
   return best !== null ? best : snapH(v);
 }
 function setStairRect(S, dir, r) { const ax = dir[1] === 'x'; S.cx = +(r.x + r.w / 2).toFixed(2); S.cz = +(r.z + r.d / 2).toFixed(2); S.L = +(ax ? r.w : r.d).toFixed(2); S.W = +(ax ? r.d : r.w).toFixed(2); }
-function roomAt(wx, wz) { const rs = lvRooms(); for (let i = rs.length - 1; i >= 0; i--) { const q = rs[i]; if (wx > q.x && wx < q.x + q.w && wz > q.z && wz < q.z + q.d) return q; } return null; }
+function roomAt(wx, wz) { const rs = lvRooms(); for (let i = rs.length - 1; i >= 0; i--) if (insideRoom(rs[i], wx, wz)) return rs[i]; return null; }
+function drawShapeHandles(q) {
+  const dot = (x, z) => { const [X, Y] = W2S(x, z); px.beginPath(); px.arc(X, Y, 5, 0, 7); px.fillStyle = '#fff'; px.fill(); px.lineWidth = 2; px.strokeStyle = css('--accent'); px.stroke(); };
+  if (q.shape === 'poly') for (const [u, v] of q.pts || []) dot(q.x + u, q.z + v);
+  else if (q.shape === 'round') { dot(q.x + q.w, q.z + q.d / 2); dot(q.x, q.z + q.d / 2); dot(q.x + q.w / 2, q.z); dot(q.x + q.w / 2, q.z + q.d); }
+  else if (q.shape === 'tri') for (const [x, z] of roomPoly(q)) dot(x, z);
+}
+function shapeHandleAt(wx, wz) {
+  const q = BM.rooms.find(r => r.id === PE.sel && r.level === PE.lv && r.shape && r.shape !== 'rect'); if (!q) return null;
+  const tol = 9 / PE.s; let best = null; const near = (x, z, hit) => { const d = Math.hypot(x - wx, z - wz); if (d < tol && (!best || d < best.d)) best = { ...hit, d, q }; };
+  if (q.shape === 'poly') (q.pts || []).forEach((p, i) => near(q.x + p[0], q.z + p[1], { kind: 'pt', i }));
+  else if (q.shape === 'round') { near(q.x + q.w, q.z + q.d / 2, { kind: 'round', side: 'e' }); near(q.x, q.z + q.d / 2, { kind: 'round', side: 'w' }); near(q.x + q.w / 2, q.z, { kind: 'round', side: 'n' }); near(q.x + q.w / 2, q.z + q.d, { kind: 'round', side: 's' }); }
+  else if (q.shape === 'tri') roomPoly(q).forEach((p, i) => near(p[0], p[1], { kind: 'tri', i }));
+  return best;
+}
 const snapshot = () => JSON.stringify(BM);
 function pushHist() { PE.redo = []; PE.hist.push(snapshot()); if (PE.hist.length > 80) PE.hist.shift(); }
 let peTimer = 0;
@@ -201,6 +242,8 @@ pc.addEventListener('pointerdown', e => {
   if (e.button === 2) { peMenuAt(sx, sy, wx, wz); return; }
   PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
   if (peToolDown(e, sx, sy, wx, wz)) { peDraw(); return; }
+  const hd = e.button === 0 ? shapeHandleAt(wx, wz) : null;
+  if (hd) { PE.sel = hd.q.id; PE.selWall = null; PE.selStair = null; const q = hd.q; PE.drag = { kind: hd.kind, q, i: hd.i, side: hd.side, x: q.x, z: q.z, w: q.w, d: q.d, pts: q.pts && q.pts.map(p => p.slice()), poly: roomPoly(q), before: snapshot() }; peInspector(); peDraw(); return; }
   const w = e.button === 0 ? wallAt(wx, wz, 7 / PE.s) : null;
   const prevSel = w && onSelWall(w, w.axis === 'x' ? wx : wz) ? PE.selWall : null;
   PE.selWall = null;
@@ -213,7 +256,7 @@ pc.addEventListener('pointerdown', e => {
     const seg = prevSel?.scope === 'seg', ids = seg ? (prevSel.ext ? [prevSel.R.id] : [prevSel.A.id, prevSel.B.id]) : null;
     const members = seg ? w.members.filter(m => ids.includes(m.q.id) && (!prevSel.ext || m.e.out === prevSel.out)) : w.members;
     const ext = seg ? { a: Math.min(...members.map(m => m.e.a)), b: Math.max(...members.map(m => m.e.b)) } : {};
-    PE.drag = { ...w, ...ext, members, prevSel, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d })), before: snapshot(), delta: 0 }; return; }
+    PE.drag = { ...w, ...ext, members, prevSel, pickAlong: w.axis === 'x' ? wx : wz, start: w.axis === 'x' ? wz : wx, base: members.map(m => ({ q: m.q, side: m.e.side, x: m.q.x, z: m.q.z, w: m.q.w, d: m.q.d, pts: m.q.pts && m.q.pts.map(p => p.slice()), idx: m.e.idx })), before: snapshot(), delta: 0 }; return; }
   const q = e.button === 0 ? roomAt(wx, wz) : null;
   if (q && e.shiftKey) { // shift-click builds a multi-selection
     if (!PE.multi.size && PE.sel) PE.multi.add(PE.sel); if (PE.multi.has(q.id)) PE.multi.delete(q.id); else PE.multi.add(q.id);
@@ -226,15 +269,39 @@ pc.addEventListener('pointerdown', e => {
 pc.addEventListener('pointermove', e => {
   const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
   if (peToolMove(e, wx, wz)) return;
-  if (!D) { const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
+  if (!D) { const hd = shapeHandleAt(wx, wz); if (hd) { PE.hover = null; pc.style.cursor = 'grab'; peDraw(); return; }
+    const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
     PE.hover = wallAt(wx, wz, 7 / PE.s); if (PE.hover && PE.selWall?.scope === 'seg' && onSelWall(PE.hover, PE.hover.axis === 'x' ? wx : wz)) Object.assign(PE.hover, { a: PE.selWall.a, b: PE.selWall.b });
     pc.style.cursor = PE.hover ? (PE.hover.axis === 'x' ? 'ns-resize' : 'ew-resize') : roomAt(wx, wz) ? 'move' : 'grab'; peDraw(); return; }
+  if (D.kind === 'pt' || D.kind === 'round' || D.kind === 'tri') {
+    const q = D.q; q.x = D.x; q.z = D.z; q.w = D.w; q.d = D.d; if (D.pts) q.pts = D.pts.map(p => p.slice());
+    if (D.kind === 'pt') {
+      q.pts[D.i] = [snapH(wx - D.x), snapH(wz - D.z)];
+      const xs = q.pts.map(p => p[0]), zs = q.pts.map(p => p[1]);
+      if (Math.max(...xs) - Math.min(...xs) >= 1 && Math.max(...zs) - Math.min(...zs) >= 1) fitShapeBox(q); else { q.pts = D.pts.map(p => p.slice()); q.x = D.x; q.z = D.z; q.w = D.w; q.d = D.d; }
+    } else if (D.kind === 'round') {
+      const x1 = D.x + D.w, z1 = D.z + D.d;
+      if (D.side === 'e') q.w = Math.max(3, +(snapH(wx) - D.x).toFixed(2));
+      if (D.side === 'w') { q.x = Math.min(snapH(wx), x1 - 3); q.w = +(x1 - q.x).toFixed(2); }
+      if (D.side === 's') q.d = Math.max(3, +(snapH(wz) - D.z).toFixed(2));
+      if (D.side === 'n') { q.z = Math.min(snapH(wz), z1 - 3); q.d = +(z1 - q.z).toFixed(2); }
+    } else {
+      const p = D.poly[D.i]; let x = D.x, z = D.z, x1 = D.x + D.w, z1 = D.z + D.d;
+      if (Math.abs(p[0] - D.x) < .05) x = snapH(wx); else x1 = snapH(wx);
+      if (Math.abs(p[1] - D.z) < .05) z = snapH(wz); else z1 = snapH(wz);
+      if (x1 - x >= 3 && z1 - z >= 3) { q.x = +x.toFixed(2); q.z = +z.toFixed(2); q.w = +(x1 - x).toFixed(2); q.d = +(z1 - z).toFixed(2); }
+    }
+    peDraw(); peInspector(); return;
+  }
   if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
   if (D.kind === 'wall') {
     let delta = snapH((D.axis === 'x' ? wz : wx) - D.start);
     for (const b of D.base) { const size = D.axis === 'x' ? b.d : b.w; if (b.side === 'w' || b.side === 'n') delta = Math.min(delta, size - 3); else delta = Math.max(delta, 3 - size); }
     D.delta = delta;
-    for (const b of D.base) { if (b.side === 'w') { b.q.x = b.x + delta; b.q.w = b.w - delta; } else if (b.side === 'e') b.q.w = b.w + delta; else if (b.side === 'n') { b.q.z = b.z + delta; b.q.d = b.d - delta; } else b.q.d = b.d + delta; }
+    for (const b of D.base) {
+      if (b.pts && b.idx) { b.q.x = b.x; b.q.z = b.z; b.q.w = b.w; b.q.d = b.d; b.q.pts = b.pts.map(p => p.slice()); for (const i of b.idx) { if (D.axis === 'x') b.q.pts[i][1] = +(b.pts[i][1] + delta).toFixed(2); else b.q.pts[i][0] = +(b.pts[i][0] + delta).toFixed(2); } fitShapeBox(b.q); continue; }
+      if (b.side === 'w') { b.q.x = b.x + delta; b.q.w = b.w - delta; } else if (b.side === 'e') b.q.w = b.w + delta; else if (b.side === 'n') { b.q.z = b.z + delta; b.q.d = b.d - delta; } else b.q.d = b.d + delta;
+    }
     peDraw(); return;
   }
   if (D.kind === 'stair') {
@@ -408,7 +475,15 @@ function peInspector() {
   box.hidden = !q; document.getElementById('peEmpty').hidden = !!(q || PE.selStair || PE.selWall || extra);
   const anySel = !!(q || PE.selStair || PE.selWall || extra); if (!anySel) PE.menu = false;
   document.getElementById('planEd').classList.toggle('has-sel', anySel); document.getElementById('planEd').classList.toggle('pe-menu', anySel && !!PE.menu); if (!q) return;
-  document.getElementById('peArea').textContent = fmtArea(q.w * q.d);
+  document.getElementById('peArea').textContent = fmtArea(roomArea(q));
+  const shape = q.shape || 'rect';
+  document.querySelectorAll('[data-rshape]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rshape === shape)));
+  const more = document.getElementById('peShapeMore'); more.hidden = shape === 'rect';
+  document.getElementById('peShapeTurnRow').hidden = shape !== 'tri';
+  document.getElementById('pePolyWrap').hidden = document.getElementById('pePolyBtns').hidden = shape !== 'poly';
+  const note = document.getElementById('peShapeNote');
+  note.textContent = shape === 'tri' ? 'The triangle fills this width and depth. Turn the corner to change which way it points, or drag a corner.' : shape === 'round' ? 'Width and depth are the diameters. Drag the four handles to resize.' : shape === 'poly' ? 'One point per line, in feet: x, z. Drag a point on the plan, or drag a straight wall.' : '';
+  const polyIn = document.getElementById('pePoly'); if (shape === 'poly' && document.activeElement !== polyIn) polyIn.value = (roomPoly(q) || []).map(([x, z]) => `${+x.toFixed(2)}, ${+z.toFixed(2)}`).join('\n');
   const set = (id, v) => { const el = document.getElementById(id); if (document.activeElement !== el) el.value = v; };
   set('peName', rname(q)); set('peType', q.type); set('peW', toDisp(q.w)); set('peD', toDisp(q.d));
   document.getElementById('peCeilWrap').hidden = q.level !== 'M'; set('peCeil', q.tall ? 'tall' : 'std');
@@ -420,7 +495,36 @@ function peInspector() {
 document.getElementById('peName').oninput = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; q.name = e.target.value; planChanged(); };
 document.getElementById('peCeil').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); if (e.target.value === 'tall') q.tall = true; else delete q.tall; planChanged(); };
 document.getElementById('peType').onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); q.type = e.target.value; delete q.name; planChanged(); };
-for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = fromDisp(parseFloat(e.target.value)); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); q[k] = snapH(v); closeGaps([q.id]); planChanged(); };
+for (const [id, k] of [['peW', 'w'], ['peD', 'd']]) document.getElementById(id).onchange = e => { const q = BM.rooms.find(r => r.id === PE.sel); const v = fromDisp(parseFloat(e.target.value)); if (!q || !(v >= 3 && v <= 120)) return; pushHist(); if (q.shape === 'poly' && q.pts && q[k] > 0) q.pts = q.pts.map(([u, vv]) => k === 'w' ? [+(u * v / q.w).toFixed(2), vv] : [u, +(vv * v / q.d).toFixed(2)]); q[k] = snapH(v); if (!roomPoly(q)) closeGaps([q.id]); planChanged(); };
+function setRoomShape(q, shape) {
+  if ((q.shape || 'rect') === shape) return; pushHist();
+  if (shape === 'rect') { delete q.shape; delete q.pts; delete q.spin; }
+  else if (shape === 'poly') { const abs = roomPoly(q) || [[q.x, q.z], [q.x + q.w, q.z], [q.x + q.w, q.z + q.d], [q.x, q.z + q.d]]; q.shape = 'poly'; delete q.spin; q.pts = abs.map(([x, z]) => [+(x - q.x).toFixed(2), +(z - q.z).toFixed(2)]); }
+  else { q.shape = shape; delete q.pts; if (shape === 'tri') q.spin = q.spin || 0; else delete q.spin; }
+  planChanged();
+}
+document.querySelectorAll('[data-rshape]').forEach(b => b.onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (q) setRoomShape(q, b.dataset.rshape); });
+document.getElementById('peShapeTurn').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q || q.shape !== 'tri') return; pushHist(); q.spin = ((q.spin || 0) + 1) % 4; planChanged(); };
+function parsePolyText(text) {
+  const pts = [];
+  for (const line of text.split(/\n/)) { if (!line.trim()) continue; const m = line.trim().match(/^(-?\d*\.?\d+)\s*[, ]\s*(-?\d*\.?\d+)$/); if (!m) return null; pts.push([+m[1], +m[2]]); }
+  return pts.length >= 3 ? pts : null;
+}
+document.getElementById('pePoly').onchange = e => {
+  const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return;
+  const cur = (roomPoly(q) || []).map(([x, z]) => `${+x.toFixed(2)}, ${+z.toFixed(2)}`).join('\n');
+  if (e.target.value.trim() === cur.trim()) return;
+  const pts = parsePolyText(e.target.value); if (!pts) { peInspector(); return toast('Use one point per line, like 12, 4'); }
+  const x0 = Math.min(...pts.map(p => p[0])), z0 = Math.min(...pts.map(p => p[1])), x1 = Math.max(...pts.map(p => p[0])), z1 = Math.max(...pts.map(p => p[1]));
+  if (x1 - x0 < 1 || z1 - z0 < 1) { peInspector(); return toast('The shape needs at least a foot each way'); }
+  pushHist(); q.shape = 'poly'; delete q.spin; q.x = +x0.toFixed(2); q.z = +z0.toFixed(2); q.w = +(x1 - x0).toFixed(2); q.d = +(z1 - z0).toFixed(2); q.pts = pts.map(([x, z]) => [+(x - q.x).toFixed(2), +(z - q.z).toFixed(2)]); planChanged();
+};
+document.getElementById('pePolyAdd').onclick = () => {
+  const q = BM.rooms.find(r => r.id === PE.sel); if (!q?.pts || q.pts.length < 3) return; pushHist();
+  let bi = 0, bl = -1; for (let i = 0; i < q.pts.length; i++) { const a = q.pts[i], b = q.pts[(i + 1) % q.pts.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L > bl) { bl = L; bi = i; } }
+  const a = q.pts[bi], b = q.pts[(bi + 1) % q.pts.length]; q.pts.splice(bi + 1, 0, [+((a[0] + b[0]) / 2).toFixed(2), +((a[1] + b[1]) / 2).toFixed(2)]); planChanged();
+};
+document.getElementById('pePolyDel').onclick = () => { const q = BM.rooms.find(r => r.id === PE.sel); if (!q?.pts || q.pts.length <= 3) return toast('A custom shape needs at least 3 points'); pushHist(); q.pts.pop(); fitShapeBox(q); planChanged(); };
 document.getElementById('peDup').onclick = () => { // a copy next to it, on the first free side (right, left, behind, in front)
   const q = BM.rooms.find(r => r.id === PE.sel); if (!q) return; pushHist(); const c = JSON.parse(JSON.stringify({ ...q, id: BID++ })); delete c.group;
   const spots = [[q.x + q.w, q.z], [q.x - q.w, q.z], [q.x, q.z + q.d], [q.x, q.z - q.d]], clear = ([x, z]) => !BM.rooms.some(o => o.level === q.level && ovl(o, { x, z, w: q.w, d: q.d }));
@@ -490,7 +594,7 @@ function peNudge(key, step) { // arrows move the selected room or stairs; one un
 }
 const edEl = document.getElementById('planEd'), rz = document.getElementById('peResize');
 let edW = 0; try { edW = +localStorage.getItem('walkthru-edw') || 0; } catch (e) { }
-function applyEdW() { if (innerWidth <= 760) { edEl.style.width = ''; return; } if (edW) edEl.style.width = Math.max(520, Math.min(innerWidth - 260, edW)) + 'px'; }
+function applyEdW() { if (innerWidth <= 760) { edEl.style.width = ''; return; } if (edW) edEl.style.width = Math.max(420, Math.min(innerWidth - 260, edW)) + 'px'; }
 rz.addEventListener('pointerdown', e => { rz.dataset.drag = '1'; try { rz.setPointerCapture(e.pointerId); } catch (er) { } e.preventDefault(); });
 rz.addEventListener('pointermove', e => { if (!rz.dataset.drag) return; edW = e.clientX - edEl.getBoundingClientRect().left; applyEdW(); updateViewOffset(); });
 rz.addEventListener('pointerup', () => { if (!rz.dataset.drag) return; delete rz.dataset.drag; try { localStorage.setItem('walkthru-edw', edW); } catch (e) { } updateViews3(); goView(PE.lv, true); });

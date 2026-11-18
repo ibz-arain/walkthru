@@ -7,7 +7,7 @@ mkdirSync('.data', { recursive: true });
 const file = `.data/test-${process.pid}.db`;
 process.env.TURSO_DATABASE_URL = `file:${file}`; delete process.env.ADMIN_KEY; delete process.env.RESEND_API_KEY; process.env.VERCEL = '1'; // VERCEL=1 keeps mail quiet
 const H = {};
-for (const n of ['auth', 'team', 'designs', 'projects', 'project', 'share', 'comments', 'log', 'catalog']) H[n] = (await import(`../api/${n}.js`)).default;
+for (const n of ['auth', 'team', 'designs', 'projects', 'project', 'share', 'comments', 'log', 'catalog', 'agent']) H[n] = (await import(`../api/${n}.js`)).default;
 
 // A tiny client that keeps its own cookie, like one browser.
 function client() {
@@ -159,6 +159,15 @@ test('price list: owners edit, buyers read, project base price wins', async () =
   assert.equal((await buyer('share', 'PUT', { token: tok }, { bm: { ...bm, rooms: [], finishes: { counter: 1 }, addons: [r.body.catalog.addons[0].id] } })).code, 200);
   const saved = (await buyer('share', 'GET', { token: tok })).body.bm;
   assert.equal(saved.rooms.length, 1, 'finishes-only links keep the builder layout'); assert.deepEqual(saved.addons, [r.body.catalog.addons[0].id]);
+});
+
+test('agent chat requires a signed-in user and a real drawing', async () => {
+  const anon = client();
+  assert.equal((await anon('agent', 'POST', {}, { messages: [{ role: 'user', text: 'hello' }] })).code, 401);
+  const ann = client();
+  await ann('auth', 'POST', { action: 'signup' }, { email: 'agent@example.com', password: 'longpassword', workspace: 'A' });
+  const bad = await ann('agent', 'POST', {}, { messages: [{ role: 'user', text: 'look', files: [{ name: 'notes.txt', mime: 'text/plain', data: 'data:text/plain;base64,aGk=' }] }] });
+  assert.equal(bad.code, 400);
 });
 
 test.after(() => { try { rmSync(file); } catch (e) { } });

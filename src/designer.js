@@ -152,7 +152,7 @@ function peDrawExtras(s) {
     px.fillStyle = '#111114'; px.textAlign = 'left'; px.fillText(n.text, a + 12, b - 12, 220);
   }
   // several rooms selected
-  if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { const [a, b] = W2S(q.x, q.z); px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2); } px.setLineDash([]); }
+  if (PE.multi.size) { px.strokeStyle = css('--accent'); px.lineWidth = 2; px.setLineDash([5, 3]); for (const q of BM.rooms.filter(r => PE.multi.has(r.id) && r.level === PE.lv)) { traceRoom(q); px.stroke(); } px.setLineDash([]); }
   px.restore();
   if (PE.autoDims !== false) dimChains(px, W2S, PE.lv, css('--ink-2'));
 }

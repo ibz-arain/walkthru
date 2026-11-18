@@ -59,7 +59,7 @@ function accRender() {
   const u = ACC.user, initials = u ? (u.name || u.email).split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') : '';
   b.innerHTML = `<span class="avatar">${initials}</span>`; b.dataset.tip = u ? (u.name || u.email) : '';
   const st = accEl('syncState'); if (st) st.textContent = !u ? 'Designs are saved in this browser only.' : { saving: 'Saving to your account…', saved: 'All designs saved to your account.', error: 'Couldn’t reach the server. Changes are kept here and will retry.', local: 'Saved in this browser.' }[ACC.sync];
-  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? `${ACC.org.name} · ${ACC.role}` : ''; }
+  if (u) { accEl('accName').textContent = u.name || u.email; accEl('accMail').textContent = u.email; accEl('accOrg').textContent = ACC.org ? ACC.org.name : ''; }
 }
 accEl('accOutBtn').onclick = async () => { await accApi('POST', 'auth?action=logout').catch(() => { }); location.href = '/'; };
 accEl('homeLink').onclick = () => { location.hash = '#admin'; };
