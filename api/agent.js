@@ -2,7 +2,6 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
-import { agentBrief } from '../src/agentplan.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const SYSTEM = `You are the design agent inside Walkthru. You answer questions, and you change the house the person is looking at.
@@ -78,9 +77,16 @@ export default route({
     const plan = body(req).plan;
     let brief = '';
     if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
-      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan); } catch { /* a bad plan is ignored */ }
+      try {
+        if (JSON.stringify(plan).length <= 40000) {
+          // Loaded on demand so a missing traced file cannot crash the function before it answers.
+          const { agentBrief } = await import('../src/agentplan.js');
+          brief = agentBrief(plan);
+        }
+      } catch (e) { console.error('agent brief', e.name || e.message); }
     }
-    const lastUser = picked.findLastIndex(m => m.role === 'user');
+    let lastUser = -1;
+    for (let i = picked.length - 1; i >= 0; i--) if (picked[i].role === 'user') { lastUser = i; break; }
     const messages = picked.flatMap((m, i) => {
       const parts = partsOf[i];
       let text = m.text;
@@ -88,10 +94,11 @@ export default route({
       if (!text && !parts.length) return [];
       return [{ role: m.role, content: parts.length ? [{ type: 'text', text: text || 'Look at this drawing.' }, ...parts] : text }];
     });
-    if (!messages.length || messages.at(-1).role !== 'user') return fail(res, 400, 'Send a message');
-    const lastIn = picked.at(-1);
-    if (lastIn?.files.length && !partsOf.at(-1).length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
-    const key = process.env.OPENROUTER_API_KEY; if (!key) return fail(res, 503, 'The agent is not configured');
+    if (!messages.length || messages[messages.length - 1].role !== 'user') return fail(res, 400, 'Send a message');
+    const lastIn = picked[picked.length - 1];
+    if (lastIn?.files.length && !partsOf[partsOf.length - 1].length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
+    let key = String(process.env.OPENROUTER_API_KEY || '').trim().replace(/^OPENROUTER_API_KEY=/i, '').replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
+    if (!key) return fail(res, 503, 'The agent is not configured');
 
     let upstream;
     try {
@@ -106,15 +113,18 @@ export default route({
       let detail = '';
       try { const j = await upstream.json(); detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ }
       console.error('agent', upstream.status, String(detail).slice(0, 200));
-      return fail(res, 502, upstream.status === 429 ? 'The model is busy. Try again in a moment.' : 'The agent could not reply');
+      const why = upstream.status === 429 ? 'The model is busy. Try again in a moment.'
+        : upstream.status === 401 || upstream.status === 403 ? 'OpenRouter rejected the API key.'
+        : 'The agent could not reply';
+      return fail(res, 502, why);
     }
 
     res.statusCode = 200;
     res.setHeader('content-type', 'text/plain; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
-    const reader = upstream.body.getReader(), dec = new TextDecoder();
     let buf = '', wrote = false;
     try {
+      const reader = upstream.body.getReader(), dec = new TextDecoder();
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;

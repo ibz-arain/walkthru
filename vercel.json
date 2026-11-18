@@ -3,6 +3,9 @@
   "buildCommand": "",
   "outputDirectory": "site",
   "cleanUrls": true,
+  "functions": {
+    "api/agent.js": { "includeFiles": "src/agentplan.js", "maxDuration": 60 }
+  },
   "headers": [
     { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
     { "source": "/(.*)", "headers": [

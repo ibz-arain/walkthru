@@ -1,6 +1,13 @@
 import { randomBytes } from 'node:crypto';
 
-export const send = (res, code, body) => { res.status(code).json(body); };
+export const send = (res, code, body) => {
+  // Vercel only adds res.status().json() on some Node functions. The raw methods always exist.
+  if (typeof res.status === 'function' && typeof res.json === 'function') return res.status(code).json(body);
+  const payload = JSON.stringify(body);
+  res.statusCode = code;
+  if (!res.headersSent) res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(payload);
+};
 export const fail = (res, code, message) => send(res, code, { error: message });
 
 // Studio access. Set ADMIN_KEY in Vercel; with it unset (local demo) the studio is open.
@@ -16,7 +23,11 @@ export function route(handlers) {
     const h = handlers[req.method];
     if (!h) return fail(res, 405, 'Method not allowed');
     try { await h(req, res); }
-    catch (e) { console.error(e); fail(res, 500, 'Something went wrong on the server'); }
+    catch (e) {
+      console.error(e);
+      try { fail(res, 500, 'Something went wrong on the server'); }
+      catch { /* the response already started */ }
+    }
   };
 }
 export const ACCESS = ['view', 'finishes', 'edit'];
