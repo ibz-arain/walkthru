@@ -220,17 +220,17 @@ async function sendChat(text, files) {
       if (turn.ask) { finished = true; break; }
       if (turn.errors.length) {
         review = true;
-        extra = `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and decide the next step. A stair is removed with @@del and its id. If more than one room or stair fits, @@ask with those choices and stop. If you know the fix, do it. Do not repeat the failed command, and do not quote this failure to the user.`;
+        extra = `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.`;
         continue;
       }
       if (turn.done) { finished = true; break; }
       if (!turn.edited && !turn.more) {
-        if (!build || step > 1 || /@@/.test(turn.raw || '')) break;
-        extra = 'That reply did not change the house. If this request builds or edits the design, use @@ commands (@@think, @@add, @@set, @@del, @@wall, @@stair, @@roof, @@clear) and end with @@done.';
+        if (!build || step > 1) break;
+        extra = 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.';
         continue;
       }
       if (!turn.edited) break;
-      extra = 'Continue the same request. The design block is the house as it stands now. If you are unsure which room or stair, @@ask with 2 to 4 options and stop. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
+      extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
     }
     if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
     else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'say', text: 'I need you to tell me which room or stair you mean.' });

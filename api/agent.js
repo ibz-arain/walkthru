@@ -2,9 +2,9 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
-import { agentBrief } from '../src/agentplan.js';
+import { agentBrief } from './_lib/agentplan.js';
 
-const MODEL = 'nvidia/nemotron-3.5-super-vl:free';
+const MODEL = 'nvidia/nemotron-3.5-super-vl';
 const SYSTEM = `You are the design agent inside Walkthru. You answer questions, and you change the house the person is looking at.
 
 The house is rooms: axis-aligned rectangles in feet. x grows to the right, z grows from the front yard toward the back. Rooms on one floor must share edges exactly. They must not overlap and must not leave a gap. The design block lists every room, the neighbour on each side, and the furniture inside it. Read that before you change a size.
@@ -36,7 +36,7 @@ When a file is attached, look at it. If it is not a floor plan, elevation, or se
 
 Work in passes, the way an engineer checks a drawing. When the job changes the house, do one floor or one small change, then @@more, so you can read the updated design and its issues before you continue. No more than 12 commands in a reply. When the request is finished, @@done. When the user only asked a question, answer in a sentence or two and @@done, with no @@add.
 
-When you are not sure which room, which direction to grow, or what the user wants, stop and @@ask. Give 2 to 4 options taken from the design list. Do not guess, and do not emit any command after @@ask.
+The back of the house is the rooms with the larger z. The front is the smaller z. An open space is every touching living, great, kitchen, dining, foyer, hall, or rec room in that part of the house. When the user says to remove or resize something, and the design block shows which rooms those are, change them in this reply: one @@del per room you remove, or @@set for a new size. Do that even when several rooms make up one open space. @@ask only when two listed rooms have the same name and the request does not say which. Give 2 to 4 options from the design list, and do not emit any command after @@ask. Never answer a remove or resize with only a question.
 
 A failed command is handed back to you, not shown to the user. Read it against the design, then fix it or @@ask. Do not repeat the failure in your reply.
 
@@ -80,7 +80,8 @@ export default route({
     if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
       try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan); } catch { /* a bad plan is ignored */ }
     }
-    const lastUser = picked.findLastIndex(m => m.role === 'user');
+    let lastUser = -1;
+    for (let i = picked.length - 1; i >= 0; i--) if (picked[i].role === 'user') { lastUser = i; break; }
     const messages = picked.flatMap((m, i) => {
       const parts = partsOf[i];
       let text = m.text;
@@ -88,10 +89,11 @@ export default route({
       if (!text && !parts.length) return [];
       return [{ role: m.role, content: parts.length ? [{ type: 'text', text: text || 'Look at this drawing.' }, ...parts] : text }];
     });
-    if (!messages.length || messages.at(-1).role !== 'user') return fail(res, 400, 'Send a message');
-    const lastIn = picked.at(-1);
-    if (lastIn?.files.length && !partsOf.at(-1).length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
-    const key = process.env.OPENROUTER_API_KEY; if (!key) return fail(res, 503, 'The agent is not configured');
+    if (!messages.length || messages[messages.length - 1].role !== 'user') return fail(res, 400, 'Send a message');
+    const lastIn = picked[picked.length - 1];
+    if (lastIn?.files.length && !partsOf[partsOf.length - 1].length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
+    let key = String(process.env.OPENROUTER_API_KEY || '').trim().replace(/^OPENROUTER_API_KEY=/i, '').replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
+    if (!key) return fail(res, 503, 'The agent is not configured');
 
     let upstream;
     try {
@@ -106,15 +108,18 @@ export default route({
       let detail = '';
       try { const j = await upstream.json(); detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ }
       console.error('agent', upstream.status, String(detail).slice(0, 200));
-      return fail(res, 502, upstream.status === 429 ? 'The model is busy. Try again in a moment.' : 'The agent could not reply');
+      const why = upstream.status === 429 ? 'The model is busy. Try again in a moment.'
+        : upstream.status === 401 || upstream.status === 403 ? 'OpenRouter rejected the API key.'
+        : (String(detail || '').trim().slice(0, 180) || 'The agent could not reply');
+      return fail(res, 502, why);
     }
 
     res.statusCode = 200;
     res.setHeader('content-type', 'text/plain; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
-    const reader = upstream.body.getReader(), dec = new TextDecoder();
     let buf = '', wrote = false;
     try {
+      const reader = upstream.body.getReader(), dec = new TextDecoder();
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
