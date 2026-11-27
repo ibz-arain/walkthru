@@ -31,7 +31,9 @@ Commands, one per line, JSON on that same line:
 
 @@wall mode is open, door, or wall, and only when the automatic wall is wrong. @@clear only when the user asked to start over or to build a new house from a drawing. A @@stair sits inside a hall or foyer: one on M reaches U, one on B reaches M.
 
-@@set of x, z, w, or d keeps the rooms separate for you. The rooms beyond the edge you moved, and the furniture and stairs inside them, shift by the same amount. Do not @@set those neighbours yourself just to make space. Each room stays its own rectangle.
+@@set of x, z, w, or d keeps the plan together for you. Growing a room pushes the rooms beyond that edge out; shrinking it pulls them in. Their furniture and stairs go with them, and the rooms above and below them shift or stretch so the floors stay lined up. Do not @@set those neighbours yourself to make space. A room listed with a triangle, round, or drawn outline keeps that shape inside its box.
+
+@@add refuses a room that sits on top of one already listed, or that has the same name on that floor. Change the listed room with @@set instead.
 
 When a file is attached, look at it. If it is not a floor plan, elevation, or section, say so and @@done. Do not invent a house from it. If it is a drawing, build only the rooms you can actually see.
 
@@ -89,7 +91,7 @@ export default route({
     const plan = body(req).plan;
     let brief = '';
     if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
-      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan); } catch { /* a bad plan is ignored */ }
+      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan, plan.checks); } catch { /* a bad plan is ignored */ }
     }
     let lastUser = -1;
     for (let i = picked.length - 1; i >= 0; i--) if (picked[i].role === 'user') { lastUser = i; break; }

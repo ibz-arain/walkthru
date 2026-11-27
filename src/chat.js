@@ -133,13 +133,23 @@ async function addFiles(list) {
   renderPending(); syncSend();
 }
 
+// The warnings the plan editor draws in red, worded for the agent.
+function agentChecks() {
+  const out = [];
+  try {
+    for (const S of BM.stairs || []) { const st = stairStatus(S); if (!st.ok) out.push(`Stair ${S.id} on the ${LV_NAME[S.level]}: ${st.msg.replace(/ or ↻ rotate (it|them)$/, '')}.`); }
+    for (const r of BM.rooms) if (!lvOK(r.type, r.level)) out.push(`${r.name || r.type} #${r.id} is on the wrong floor for a ${r.type}.`);
+  } catch { /* checks are a help, never a blocker */ }
+  return out.slice(0, 8);
+}
 function agentPlan() {
   return {
     roof: BM.roof || 'hip',
-    rooms: BM.rooms.map(r => ({ id: r.id, type: r.type, level: r.level, name: r.name || '', x: r.x, z: r.z, w: r.w, d: r.d })),
+    rooms: BM.rooms.map(r => ({ id: r.id, type: r.type, level: r.level, name: r.name || '', x: r.x, z: r.z, w: r.w, d: r.d, ...(r.shape && r.shape !== 'rect' ? { shape: r.shape } : {}) })),
     stairs: (BM.stairs || []).map(s => ({ id: s.id, level: s.level, cx: s.cx, cz: s.cz, W: s.W, L: s.L })),
     walls: BM.walls || {},
     levels: BM.levels || {},
+    checks: agentChecks(),
     items: (BM.items || []).map(it => ({ id: it.id, kind: it.kind, name: (typeof CATALOG !== 'undefined' && CATALOG[it.kind]?.[0]) || it.kind, level: it.level, x: it.x, z: it.z })),
   };
 }
@@ -227,13 +237,16 @@ async function sendChat(text, files) {
   chatMsgs.push({ role: 'user', text, files });
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
+  const applied = () => { const acts = (reply.steps || []).filter(s => s.k === 'act').map(s => '- ' + s.t).slice(-30);
+    return acts.length ? `Already done for this message (do not repeat these; each size change is applied and final):\n${acts.join('\n')}\n\n` : ''; };
+  const problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(problems());
   const build = files.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(text);
   try {
-    let extra = null, step = 0, finished = false, review = false;
+    let extra = null, step = 0, finished = false, review = false, rechecked = false;
     while (step < 5) {
       if (gen !== chatGen) return;
       step++;
-      const turn = await agentTurn(gen, reply, extra);
+      const turn = await agentTurn(gen, reply, extra && applied() + extra);
       if (gen !== chatGen || turn.stop) return;
       reply.raw = [reply.raw, turn.raw].filter(Boolean).join('\n').slice(-8000);
       if (turn.ask) { finished = true; break; }
@@ -242,7 +255,13 @@ async function sendChat(text, files) {
         extra = `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.`;
         continue;
       }
-      if (turn.done) { finished = true; break; }
+      if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
+        const fresh = rechecked || step >= 5 || !reply.steps?.some(s => s.k === 'act') ? [] : problems().filter(i => !before.has(i));
+        if (!fresh.length) { finished = true; break; }
+        rechecked = true;
+        extra = `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.`;
+        continue;
+      }
       if (!turn.edited && !turn.more) {
         if (!build || step > 1) break;
         extra = 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.';

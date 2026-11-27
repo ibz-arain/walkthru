@@ -88,57 +88,99 @@ function agentTouch(a, b) {
   if (xo > .5 && Math.abs(b.z + b.d - a.z) < .25) return { side: 'north', along: xo, room: b };
   return null;
 }
-function agentGrew(before, after) {
-  const out = [];
-  const east = +((after.x + after.w) - (before.x + before.w)).toFixed(2);
-  const west = +(before.x - after.x).toFixed(2);
-  const south = +((after.z + after.d) - (before.z + before.d)).toFixed(2);
-  const north = +(before.z - after.z).toFixed(2);
-  if (east > .05) out.push({ axis: 'x', sign: 1, edge: before.x + before.w, delta: east });
-  if (west > .05) out.push({ axis: 'x', sign: -1, edge: before.x, delta: west });
-  if (south > .05) out.push({ axis: 'z', sign: 1, edge: before.z + before.d, delta: south });
-  if (north > .05) out.push({ axis: 'z', sign: -1, edge: before.z, delta: north });
-  return out;
+const agentArea = (a, b) => Math.max(0, agentSpan(a.x, a.x + a.w, b.x, b.x + b.w)) * Math.max(0, agentSpan(a.z, a.z + a.d, b.z, b.z + b.d));
+// A drawn outline (r.pts, in feet from the room's corner) stretches with its box, as the editor does.
+function agentResize(r, w, d) {
+  if (r.shape === 'poly' && Array.isArray(r.pts) && r.w > 0 && r.d > 0) r.pts = r.pts.map(([u, v]) => [+(u * w / r.w).toFixed(2), +(v * d / r.d).toFixed(2)]);
+  r.w = +w.toFixed(2); r.d = +d.toFixed(2);
 }
-// A room grown into its neighbours pushes that whole side, and the furniture in it, so nothing merges.
-function agentFit(plan, room, before) {
+// The edges of a room that moved: delta > 0 grew outward, < 0 came in.
+function agentEdges(before, after) {
+  const e = (axis, sign, edge, delta) => ({ axis, sign, edge, delta: +delta.toFixed(2) });
+  return [
+    e('x', 1, before.x + before.w, (after.x + after.w) - (before.x + before.w)),
+    e('x', -1, before.x, before.x - after.x),
+    e('z', 1, before.z + before.d, (after.z + after.d) - (before.z + before.d)),
+    e('z', -1, before.z, before.z - after.z),
+  ].filter(m => Math.abs(m.delta) > .05);
+}
+const EDGE_SIDE = { x1: 'east', 'x-1': 'west', z1: 'south', 'z-1': 'north' };
+// A resized room keeps the plan whole. Growing pushes the rooms on that side out; shrinking pulls them in when they can
+// follow without hitting anything. Rooms above and below the ones that moved shift or stretch the same way, so floors stay lined up.
+function agentFit(plan, room, before, sized) {
   const after = { x: room.x, z: room.z, w: room.w, d: room.d };
-  const shifts = new Map();
-  for (const push of agentGrew(before, after)) {
-    const dx = push.axis === 'x' ? push.sign * push.delta : 0;
-    const dz = push.axis === 'z' ? push.sign * push.delta : 0;
-    const moved = new Set([room.id]);
-    const queue = (plan.rooms || []).filter(r => {
-      if (r.level !== room.level || r.id === room.id || moved.has(r.id)) return false;
-      const touch = agentTouch(before, r);
-      const onEdge = touch && ((push.sign > 0 && touch.side === (push.axis === 'x' ? 'east' : 'south')) || (push.sign < 0 && touch.side === (push.axis === 'x' ? 'west' : 'north')));
-      return onEdge || (agentOverlap(after, r) && !agentOverlap(before, r));
-    });
-    while (queue.length) {
-      const r = queue.pop();
-      if (!r || moved.has(r.id)) continue;
-      moved.add(r.id);
-      r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
-      const prev = shifts.get(r.id) || { dx: 0, dz: 0, name: agentLabel(r) };
-      shifts.set(r.id, { dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2), name: prev.name });
-      for (const o of plan.rooms || []) if (o.level === room.level && !moved.has(o.id) && agentOverlap(r, o)) queue.push(o);
+  const rooms = plan.rooms || [];
+  const shifts = new Map(), lined = new Map(), gaps = [];
+  const shift = (r, dx, dz) => {
+    const prev = shifts.get(r.id) || { dx: 0, dz: 0, name: agentLabel(r), level: r.level, old: { level: r.level, x: r.x, z: r.z, w: r.w, d: r.d } };
+    r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
+    shifts.set(r.id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
+  };
+  for (const m of agentEdges(before, after)) {
+    if (m.delta < 0 && !sized) continue; // a plain move never drags along the rooms it leaves
+    const amount = m.sign * m.delta, dx = m.axis === 'x' ? amount : 0, dz = m.axis === 'z' ? amount : 0, side = EDGE_SIDE[m.axis + m.sign];
+    const same = rooms.filter(r => r.level === room.level && r.id !== room.id);
+    const group = new Set(), olds = new Map();
+    const take = r => { if (group.has(r.id)) return false; group.add(r.id); olds.set(r.id, { x: r.x, z: r.z, w: r.w, d: r.d }); return true; };
+    if (m.delta > 0) {
+      const queue = same.filter(r => agentTouch(before, r)?.side === side || (agentOverlap(after, r) && !agentOverlap(before, r)));
+      while (queue.length) {
+        const r = queue.pop(); if (!take(r)) continue;
+        r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
+        for (const o of same) if (!group.has(o.id) && agentOverlap(r, o)) queue.push(o);
+      }
+    } else {
+      const queue = same.filter(r => agentTouch(before, r)?.side === side);
+      while (queue.length) {
+        const r = queue.pop(); if (!take(r)) continue;
+        for (const o of same) if (!group.has(o.id) && agentTouch(r, o)?.side === side) queue.push(o);
+      }
+      for (const id of group) { const r = rooms.find(q => q.id === id); r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2); }
+      const blocked = [...group].some(id => { const r = rooms.find(q => q.id === id); return [room, ...same].some(o => !group.has(o.id) && agentOverlap(r, o)); });
+      if (blocked) { // something is in the way: leave them, and say there is a gap to fix
+        for (const id of group) { const r = rooms.find(q => q.id === id), o = olds.get(id); r.x = o.x; r.z = o.z; }
+        gaps.push(...[...group].map(id => agentLabel(rooms.find(q => q.id === id))).slice(0, 2));
+        group.clear();
+      }
+    }
+    for (const id of group) { // record the move once, from where the room was before this edge
+      const r = rooms.find(q => q.id === id), o = olds.get(id);
+      const prev = shifts.get(id) || { dx: 0, dz: 0, name: agentLabel(r), level: r.level, old: { level: r.level, ...o } };
+      shifts.set(id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
+    }
+    if (!group.size || !sized) continue; // only a resize reaches other floors: a moved room is a local fix
+    // Other floors: rooms over (or under) the ones that moved follow the edge.
+    const moved = [...group].map(id => olds.get(id));
+    const perp = (a, b) => m.axis === 'x' ? agentSpan(a.z, a.z + a.d, b.z, b.z + b.d) : agentSpan(a.x, a.x + a.w, b.x, b.x + b.w);
+    for (const o of rooms) {
+      if (o.level === room.level || !moved.some(r => perp(r, o) > .5)) continue;
+      const lo = m.axis === 'x' ? o.x : o.z, hi = lo + (m.axis === 'x' ? o.w : o.d), E = m.edge;
+      const beyond = m.sign > 0 ? lo >= E - .05 : hi <= E + .05, across = lo < E - .05 && hi > E + .05;
+      if (beyond) shift(o, dx, dz);
+      else if (across) { // it spans the edge: stretch it (or shrink it) by the same amount
+        const size = (m.axis === 'x' ? o.w : o.d) + m.delta;
+        if (size < 3) continue;
+        if (m.sign < 0) { if (m.axis === 'x') o.x = +(o.x + amount).toFixed(2); else o.z = +(o.z + amount).toFixed(2); }
+        agentResize(o, m.axis === 'x' ? size : o.w, m.axis === 'z' ? size : o.d);
+      } else continue;
+      lined.set(o.id, agentLabel(o));
     }
   }
   let furn = 0;
   const carry = (p, xk, zk) => {
-    if (!p || p.level !== room.level) return;
-    for (const [id, sh] of shifts) {
-      const r = (plan.rooms || []).find(q => q.id === id); if (!r) continue;
-      const old = { ...r, x: +(r.x - sh.dx).toFixed(2), z: +(r.z - sh.dz).toFixed(2) };
-      if (agentInside(old, { level: p.level, x: p[xk], z: p[zk] })) { p[xk] = +(p[xk] + sh.dx).toFixed(2); p[zk] = +(p[zk] + sh.dz).toFixed(2); furn++; return; }
+    if (!p) return;
+    for (const [, sh] of shifts) {
+      if (sh.level !== p.level || !agentInside(sh.old, { level: p.level, x: p[xk], z: p[zk] })) continue;
+      p[xk] = +(p[xk] + sh.dx).toFixed(2); p[zk] = +(p[zk] + sh.dz).toFixed(2); furn++; return;
     }
-    if (!agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) return;
+    if (p.level !== room.level || !agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) return;
     p[xk] = +Math.min(room.x + room.w - .5, Math.max(room.x + .5, p[xk])).toFixed(2);
     p[zk] = +Math.min(room.z + room.d - .5, Math.max(room.z + .5, p[zk])).toFixed(2);
   };
   for (const it of plan.items || []) carry(it, 'x', 'z');
   for (const s of plan.stairs || []) carry(s, 'cx', 'cz');
-  return { rooms: [...shifts.values()], furn };
+  const here = [...shifts.values()].filter(s => s.level === room.level);
+  return { rooms: here, lined: [...lined.values()], gaps: [...new Set(gaps)], furn };
 }
 
 export function agentIssues(plan) {
@@ -162,12 +204,13 @@ export function agentIssues(plan) {
   return out.slice(0, 8);
 }
 
-export function agentBrief(plan) {
+// `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
+export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Resizing a room shifts the rooms and furniture on that side. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
   const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
@@ -175,12 +218,14 @@ export function agentBrief(plan) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
       .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
     const pieces = (Array.isArray(plan?.items) ? plan.items : []).filter(it => agentInside(r, it)).slice(0, 6).map(it => it.name || it.kind);
-    lines.push(`${r.id} ${r.type} ${r.level} "${agentName(r.name)}" ${r.x},${r.z} ${r.w}x${r.d}${neighbours ? ` | ${neighbours}` : ''}${pieces.length ? ` | furn: ${pieces.join(', ')}` : ''}`);
+    const shape = r.shape && r.shape !== 'rect' ? ` ${r.shape === 'tri' ? 'triangle' : r.shape === 'round' ? 'round' : 'drawn outline'} in its box` : '';
+    lines.push(`${r.id} ${r.type} ${r.level} "${agentName(r.name)}" ${r.x},${r.z} ${r.w}x${r.d}${shape}${neighbours ? ` | ${neighbours}` : ''}${pieces.length ? ` | furn: ${pieces.join(', ')}` : ''}`);
   }
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
-  const issues = agentIssues(plan);
+  const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
+  const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
   return lines.join('\n').slice(0, 8000);
 }
@@ -232,6 +277,11 @@ export function applyAgentLine(plan, line, types) {
     const x = agentNum(body.x, -40, 300), z = agentNum(body.z, -40, 300), w = agentNum(body.w, 3, 80), d = agentNum(body.d, 3, 80);
     if (x == null || z == null || w == null || d == null) return say('err', 'A room needs x, z, w, and d in feet.');
     const name = agentName(body.name);
+    const where = AGENT_LV[level] || level;
+    const twin = name && plan.rooms.find(o => o.level === level && agentName(o.name).toLowerCase() === name.toLowerCase());
+    if (twin) return say('err', `${name} is already on the ${where} (#${twin.id}). Change it with @@set {"id":${twin.id}}, or give the new room another name.`);
+    const clash = plan.rooms.find(o => o.level === level && agentArea(o, { x, z, w, d }) > .5 * Math.min(o.w * o.d, w * d));
+    if (clash) return say('err', `${agentLabel(clash)} (#${clash.id}) is already there on the ${where}. Change it with @@set {"id":${clash.id}}, or @@del it first.`);
     const room = { id: agentNextId(plan), type, level, x, z, w, d };
     if (name) room.name = name;
     plan.rooms.push(room);
@@ -252,15 +302,19 @@ export function applyAgentLine(plan, line, types) {
     if (body.name != null && body.id != null) r.name = agentName(body.name);
     if (body.x != null) { const n = agentNum(body.x, -40, 300); if (n == null) return say('err', 'Bad x.'); r.x = n; }
     if (body.z != null) { const n = agentNum(body.z, -40, 300); if (n == null) return say('err', 'Bad z.'); r.z = n; }
-    if (body.w != null) { const n = agentNum(body.w, 3, 80); if (n == null) return say('err', 'Bad width.'); r.w = n; }
-    if (body.d != null) { const n = agentNum(body.d, 3, 80); if (n == null) return say('err', 'Bad depth.'); r.d = n; }
+    let w = r.w, d = r.d;
+    if (body.w != null) { const n = agentNum(body.w, 3, 80); if (n == null) return say('err', 'Bad width.'); w = n; }
+    if (body.d != null) { const n = agentNum(body.d, 3, 80); if (n == null) return say('err', 'Bad depth.'); d = n; }
+    agentResize(r, w, d);
     const geom = before.x !== r.x || before.z !== r.z || before.w !== r.w || before.d !== r.d;
-    const fit = geom ? agentFit(plan, r, before) : { rooms: [], furn: 0 };
+    const sized = before.w !== r.w || before.d !== r.d;
+    const fit = geom ? agentFit(plan, r, before, sized) : { rooms: [], lined: [], gaps: [], furn: 0 };
     const names = [...new Set(fit.rooms.map(s => s.name))];
     const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` and ${names.length - 3} more` : '');
-    const sized = before.w !== r.w || before.d !== r.d;
     let text = sized ? `Resized ${agentLabel(r)} to ${r.w} × ${r.d} ft.` : geom ? `Moved ${agentLabel(r)}.` : `Updated ${agentLabel(r)}.`;
-    if (names.length) text += ` Shifted ${shown} so the rooms stay separate.`;
+    if (names.length) text += ` Shifted ${shown} to keep the rooms together.`;
+    if (fit.lined.length) text += ` Lined up ${fit.lined.slice(0, 3).join(', ')}${fit.lined.length > 3 ? ` and ${fit.lined.length - 3} more` : ''} on the other floor.`;
+    if (fit.gaps.length) text += ` ${fit.gaps.join(' and ')} could not move in, so there is a gap to fix.`;
     if (fit.furn) text += ' Furniture moved with them.';
     return say('act', text, true);
   }
