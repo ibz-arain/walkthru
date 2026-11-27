@@ -27,6 +27,7 @@ test('agent commands build a floor, then a bad command is refused', () => {
   assert.equal(plan.rooms.some(r => r.name === 'Dining'), false);
   assert.match(agentBrief(plan), /Kitchen/);
   assert.equal(applyAgentLine(plan, 'The kitchen is on the main floor.').kind, 'say');
+  assert.equal(applyAgentLine(plan, '@@think, placing the kitchen').kind, 'think', 'punctuation after a command name is ignored');
   assert.equal(applyAgentLine(plan, '{"id":8}').kind, 'err', 'bare JSON is a broken command, not speech');
 
   const buf = { plan, hold: '' };

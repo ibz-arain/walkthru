@@ -367,7 +367,7 @@ export function applyAgentLine(plan, line, types) {
   if (/^\{.*\}$/.test(raw)) return { kind: 'err', text: 'That line was a command without its @@ name.' }; // bare JSON is never meant for the user
   if (!raw.startsWith('@@')) return { kind: 'say', text: raw };
   const sp = raw.indexOf(' ');
-  const cmd = (sp < 0 ? raw.slice(2) : raw.slice(2, sp)).toLowerCase();
+  const cmd = (sp < 0 ? raw.slice(2) : raw.slice(2, sp)).toLowerCase().replace(/[^a-z]+$/, ''); // "@@think," is still @@think
   const rest = sp < 0 ? '' : raw.slice(sp + 1).trim();
   const say = (kind, text, edit) => ({ kind, text, edit: !!edit });
   if (cmd === 'think') return say('think', rest);

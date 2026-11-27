@@ -38,7 +38,7 @@ function fileBits(files) {
     return `<span class="chat-file"><svg class="ic"><use href="#${icon}"/></svg><b>${chatEsc(f.name)}</b></span>`;
   }).join('');
 }
-const STEP_VERB = /^(Added|Updated|Removed|Opened|Closed|Cleared|Set|Put)\b/;
+const STEP_VERB = /^(Added|Updated|Removed|Opened|Closed|Cleared|Set|Put|Resized|Moved)\b/;
 function stepHtml(s, caret) {
   const verb = s.k === 'act' ? (s.t.match(STEP_VERB) || [])[1] : '';
   const text = chatEsc(s.t).replace(STEP_VERB, m => `<b class="chat-verb">${m}</b>`);
@@ -50,7 +50,7 @@ function renderChat() {
     log.innerHTML = '<div class="chat-empty"><svg class="ic"><use href="#i-msg"/></svg><b>Design agent</b><p>Drop a floor plan and ask for a house, or describe a change. It builds the plan floor by floor.</p></div>';
     return;
   }
-  const caret = '<i class="chat-caret" aria-hidden="true"></i>';
+  const caret = '<i class="chat-caret" aria-hidden="true"></i>', thinking = '<span class="chat-thinking" role="status">Thinking<i></i><i></i><i></i></span>';
   log.innerHTML = chatMsgs.map((m, i) => {
     const bits = m.files?.length ? `<span class="chat-files">${fileBits(m.files)}</span>` : '';
     const writing = chatBusy && i === chatMsgs.length - 1 && m.role === 'assistant';
@@ -59,23 +59,26 @@ function renderChat() {
       const parts = []; let work = [];
       const flush = open => {
         if (!work.length) return;
-        const n = work.length, label = n === 1 ? '1 step' : `${n} steps`;
+        const kinds = work.map(w => w.k), acts = kinds.filter(k => k === 'act').length, errs = kinds.filter(k => k === 'err').length, n = work.length;
+        const label = (acts ? `${acts} change${acts === 1 ? '' : 's'}` : `${n} step${n === 1 ? '' : 's'}`) + (errs ? ` · ${errs} didn’t apply` : '');
+        work = work.map(w => w.html);
         parts.push(`<details class="chat-work"${open ? ' open' : ''}><summary>${label}</summary><div class="chat-work-b">${work.join('')}</div></details>`);
         work = [];
       };
       m.steps.forEach((s, n) => {
         const mark = writing && n === m.steps.length - 1 ? caret : '';
-        if (s.k === 'say') { flush(false); parts.push(stepHtml(s, mark)); }
-        else work.push(stepHtml(s, mark));
+        if (s.k === 'say' || s.k === 'note') { flush(false); parts.push(stepHtml(s, mark)); } // the app's own notes ("Still to fix…") sit apart from the agent's words
+        else work.push({ k: s.k, html: stepHtml(s, mark) });
       });
       flush(writing);
       body = parts.join('');
-    } else if (m.text || writing) body = `<span class="chat-text">${chatEsc(m.text)}${writing ? caret : ''}</span>`;
+    } else if (m.text) body = `<span class="chat-text">${chatEsc(m.text)}${writing ? caret : ''}</span>`;
+    else if (writing) body = thinking;
     const choices = !writing && m.ask?.options?.length && i === chatMsgs.length - 1
       ? `<div class="chat-ask" role="group" aria-label="${chatEsc(m.ask.q || 'Choose')}">${m.ask.options.map((o, n) => `<button type="button" class="chat-opt" data-opt="${n}">${chatEsc(o.label)}</button>`).join('')}</div>`
       : '';
     return `<div class="chat-row ${m.role}"><div class="chat-bubble">${bits}${body}${choices}</div></div>`;
-  }).join('') + (chatBusy && chatMsgs[chatMsgs.length - 1]?.role !== 'assistant' ? `<div class="chat-row assistant"><div class="chat-bubble chat-wait" aria-label="Agent is working">${caret}</div></div>` : '');
+  }).join('') + (chatBusy && chatMsgs[chatMsgs.length - 1]?.role !== 'assistant' ? `<div class="chat-row assistant"><div class="chat-bubble">${thinking}</div></div>` : '');
   log.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => pickAsk(+b.dataset.opt));
   log.scrollTop = log.scrollHeight;
 }
@@ -180,7 +183,7 @@ function agentNote(reply, res) {
     if (res.text) reply.steps.push({ k: 'say', t: res.text });
   } else if ((res.kind === 'done' || res.kind === 'more') && res.text) reply.steps.push({ k: 'say', t: res.text });
   else if (res.kind !== 'done' && res.kind !== 'more') reply.steps.push({ k: res.kind === 'act' ? 'act' : res.kind, t: res.text });
-  reply.text = reply.steps.filter(s => s.k === 'say' || s.k === 'act').map(s => s.t).join('\n');
+  reply.text = reply.steps.filter(s => s.k === 'say' || s.k === 'act' || s.k === 'note').map(s => s.t).join('\n');
   if (!chatMsgs.includes(reply)) chatMsgs.push(reply);
   paintChat();
 }
@@ -195,7 +198,7 @@ async function agentTurn(gen, reply, extra) {
   if (!r.ok || !r.body) {
     let msg = 'The agent could not reply.';
     try { msg = (await r.json()).error || msg; } catch { /* not JSON */ }
-    agentNote(reply, { kind: 'say', text: msg });
+    agentNote(reply, { kind: 'note', text: msg });
     return { stop: true };
   }
   const pass = agentPass(BM, new Set(Object.keys(RT)));
@@ -251,18 +254,18 @@ async function sendChat(text, files) {
     if (agentRepairFailed(fixing, !!reply.steps?.some(s => s.k === 'act'), startCount, BM) && startSnap) { // the repair made things worse: put the house back
       BM = JSON.parse(startSnap); if (PE.hist.at(-1) === startSnap) PE.hist.pop();
       resetBID(); planChanged(); agentSettle();
-      agentNote(reply, { kind: 'say', text: AGENT_REVERTED });
+      agentNote(reply, { kind: 'note', text: AGENT_REVERTED });
     }
     const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
-    if (left.length) agentNote(reply, { kind: 'say', text: agentLeftNote(left) });
+    if (left.length) agentNote(reply, { kind: 'note', text: agentLeftNote(left) });
     const lastErr = reply.steps?.at(-1)?.k === 'err';
-    if (!finished && step >= AGENT_PASSES && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
-    else if (!finished && lastErr) agentNote(reply, { kind: 'say', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
-    else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'say', text: 'I need you to tell me which room or stair you mean.' });
-    if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'say', text: 'The agent returned an empty reply.' });
+    if (!finished && step >= AGENT_PASSES && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'note', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
+    else if (!finished && lastErr) agentNote(reply, { kind: 'note', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
+    else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'note', text: 'I need you to tell me which room or stair you mean.' });
+    if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'note', text: 'The agent returned an empty reply.' });
   } catch (e) {
     if (gen !== chatGen) return;
-    if (!reply.text) agentNote(reply, { kind: 'say', text: 'Couldn’t reach the agent.' });
+    if (!reply.text) agentNote(reply, { kind: 'note', text: 'Couldn’t reach the agent.' });
   } finally {
     if (gen === chatGen) { chatBusy = false; chatCtl = null; saveChat(); renderChat(); syncSend(); $u('agentInput').focus(); }
   }
@@ -272,7 +275,7 @@ function stopChat() {
   if (!chatBusy) return;
   chatCtl?.abort(); chatGen++; chatBusy = false; chatCtl = null;
   const last = chatMsgs.at(-1);
-  if (last?.role === 'assistant') agentNote(last, { kind: 'say', text: 'Stopped.' }); else chatMsgs.push({ role: 'assistant', text: 'Stopped.', steps: [{ k: 'say', t: 'Stopped.' }] });
+  if (last?.role === 'assistant') agentNote(last, { kind: 'note', text: 'Stopped.' }); else chatMsgs.push({ role: 'assistant', text: 'Stopped.', steps: [{ k: 'note', t: 'Stopped.' }] });
   if (PE.hist.length || BM.rooms.length) agentSettle();
   saveChat(); renderChat(); syncSend();
 }
