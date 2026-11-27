@@ -410,3 +410,39 @@ body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="a
 .plan-chk-list li::before{content:"";position:absolute;left:2px;top:.55em;width:5px;height:5px;border-radius:50%;background:#d97706}
 .plan-chk-fix{width:100%;justify-content:center}
 .plan-chk-fix + .plan-chk-fix{margin-top:6px}
+
+/* ---------- phones: the bar becomes two rows on top. Row one: back, the name, plan check, account, Edit plan.
+   Row two: the tools (view, floors, overview/walk, chat, finishes, more). Labels go; icons stay. ---------- */
+@media (max-width:760px){
+  body{--tbh:100px}
+  body.dock-top .tb{height:auto;min-height:var(--tbh);flex-wrap:wrap;justify-content:space-between;row-gap:4px;padding:5px 6px;overflow:visible}
+  .tb .tb-t,.tb .tb-sep,#charBtn,.tb [data-panel-btn="export"]{display:none}
+  .tb > .tb-g:first-child{order:0;min-width:0;flex:1 1 auto}
+  .tb > .tb-g:last-child{order:1}
+  .tb-fill{order:2;flex:0 0 100%;height:0}
+  .tb > *:not(.tb-g:first-child):not(.tb-g:last-child):not(.tb-fill){order:3}
+  .tb-b{height:36px;min-width:34px;padding:0 5px;gap:3px}
+  .tb .chev{display:none}
+  .tb-primary{height:36px;padding:0 10px}
+  .tb .seg button{min-height:32px;padding:0 8px}
+  .tb > *:not(.tb-fill){gap:1px}
+  .cl-title{max-width:none;min-width:0;flex:1}
+  .tb-proj{min-width:0;flex:1}
+  input,select,textarea{font-size:16px} /* under 16px, iPhone Safari zooms the page when you tap a field */
+  body .tb .tb-sep,body.editing .tb .tb-sep{display:none!important} .tb-fill{height:0!important;margin:0!important;padding:0!important}
+  #segPeLvl .l,#segLvl .l{display:none} #segPeLvl .s,#segLvl .s{display:inline}
+  body.editing .tb [data-panel-btn="finish"],body.editing #moreBtn{display:none!important} /* the plan editor has its own menu */
+  /* Safari's address bar comes and goes: size by the visible height (dvh), and keep clear of the notch and home bar */
+  body.dock-top .tb{top:calc(var(--gap) + env(safe-area-inset-top));left:calc(var(--gap) + env(safe-area-inset-left));right:calc(var(--gap) + env(safe-area-inset-right))}
+  #side,#clSide{height:58dvh;bottom:calc(var(--gap) + env(safe-area-inset-bottom))}
+  .pop{max-height:calc(100dvh - var(--tbh) - 40px)}
+  #stSearch{width:100%!important;font-size:16px}
+}
+/* tablets (portrait iPads and the like): one row still fits once the labels and arrows go */
+@media (min-width:761px) and (max-width:1000px){
+  .tb .tb-t,.tb .chev{display:none}
+  .tb-b{padding:0 6px}
+  .cl-title{max-width:130px}
+  #segPeLvl .l{display:none} #segPeLvl .s{display:inline}
+  body.editing .tb [data-panel-btn="finish"],body.editing #moreBtn{display:none!important}
+}

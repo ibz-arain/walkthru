@@ -10,23 +10,27 @@ const $u = id => document.getElementById(id);
 const ST = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 const press = (sel, key, val) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[key] === String(val))));
+const PHONE = () => innerWidth <= 760; // phones keep the bar on top, in two rows (see the phone styles in ui.css)
 const dockSide = () => ['top', 'bottom', 'left', 'right'].find(d => document.body.classList.contains('dock-' + d)) || 'top';
 const VIEW_NAME = { front: 'Front', rear: 'Rear', aerial: 'Aerial', left: 'Left', right: 'Right', top: 'Top', B: 'Basement', M: 'Main floor', U: '2nd floor', saved: 'Saved view' };
 
 function setEditLabel(t) { const el = document.getElementById('editLabel'); if (el) el.textContent = t; const b = document.getElementById('editBtn'); if (b) b.dataset.tip = `${t} (E)`; }
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
-  const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
+  const b = document.body, hidden = b.classList.contains('ui-hidden'), bar = document.querySelector('.tb');
+  const H = hidden ? 0 : PHONE() && bar ? bar.offsetHeight + 20 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides (two rows on a phone)
   const side = document.getElementById('side');
   const open = side && !side.hidden && innerWidth > 760 && !hidden;
   return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: open ? side.offsetWidth + 10 : 0 };
 }
 
 // ---------- dock + theme ----------
-function setDock(d) {
-  document.body.classList.remove('dock-top', 'dock-bottom', 'dock-left', 'dock-right'); document.body.classList.add('dock-' + d);
-  ST.set('walkthru-dock', d); press('[data-dock]', 'dock', d); closePops(); relayout();
+function setDock(d, remember = true) {
+  const at = PHONE() ? 'top' : d; // a phone is too narrow for a side bar: the saved choice comes back on a wider screen
+  document.body.classList.remove('dock-top', 'dock-bottom', 'dock-left', 'dock-right'); document.body.classList.add('dock-' + at);
+  if (remember) ST.set('walkthru-dock', d); press('[data-dock]', 'dock', d); closePops(); relayout();
 }
+matchMedia('(max-width:760px)').addEventListener('change', () => setDock(ST.get('walkthru-dock', 'top'), false));
 function setTheme(t) {
   if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
   ST.set('walkthru-theme', t); press('[data-theme-set]', 'themeSet', t); if (PE.open) peDraw();
@@ -279,14 +283,14 @@ $u('exLink').onclick = async () => {
 };
 
 // ---------- editor extras ----------
-let libOn = ST.get('walkthru-lib', '1') === '1';
+let libOn = !PHONE() && ST.get('walkthru-lib', '1') === '1'; // a phone opens the plan full width; Add shows the room list
 function uiEditing(on) {
   if (!uiReady) return;
   closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
 }
-$u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
+$u('peLibBtn').onclick = () => { libOn = !libOn; if (!PHONE()) ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
 $u('peFind').oninput = e => {
   const q = e.target.value.trim().toLowerCase();
