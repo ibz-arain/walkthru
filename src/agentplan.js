@@ -193,11 +193,18 @@ const agentUp = lv => ({ B: 'M', M: 'U' })[lv];
 // ---------- stairs: placed by code, where the flight starts and arrives in a hall or open room ----------
 const stairXY = s => [+(s.cx ?? s.x), +(s.cz ?? s.z)];
 const agentInsideRooms = plan => (plan.rooms || []).filter(r => !AGENT_OUTSIDE.has(r.type));
+// The whole flight stands in rooms a stair may be in (one room, or open rooms that join), one way round or the other:
+// every corner of its W × L box, a few inches in, lands in such a room. Otherwise it runs through a wall or into the ground.
+function flightFits(inside, s) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
+  return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
+}
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
 export function agentStairOk(plan, s) {
   const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
   const here = agentAt(inside, s.level, cx, cz);
   if (!here || !AGENT_LANDING.has(here.type)) return false;
+  if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
   if (!up || !inside.some(r => r.level === up)) return true;
   const above = agentAt(inside, up, cx, cz);
   return !!above && AGENT_LANDING.has(above.type);
@@ -322,9 +329,10 @@ function agentLayout(rooms, stairs) {
   for (const s of stairs) {
     const cx = +(s.cx ?? s.x), cz = +(s.cz ?? s.z), where = AGENT_LV[s.level] || s.level, up = agentUp(s.level);
     if (!Number.isFinite(cx) || !Number.isFinite(cz)) continue;
-    const here = agentAt(inside, s.level, cx, cz);
+    const here = agentAt(inside, s.level, cx, cz), W = s.W ?? 3.5, L = s.L ?? 12;
     if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
     else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    else if (!flightFits(inside, s)) out.push(`Stair ${s.id} does not fit inside ${agentLabel(here)}: its ${W} × ${L} ft flight runs out through the walls${s.level === 'B' ? ' into the ground' : ''}. Move it, or make the room bigger.`);
     const clash = stairClash({ stairs }, s);
     if (clash && (+clash.id || 0) > (+s.id || 0)) out.push(`Stairs ${s.id} and ${clash.id} run into each other: one comes up through the floor where the other stands. Stack the lower flight under the upper one, or move one.`);
     if (!up || !inside.some(r => r.level === up)) continue;

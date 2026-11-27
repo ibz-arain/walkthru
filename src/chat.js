@@ -12,22 +12,36 @@ let chatMsgs = [];
 let chatPending = [];
 let chatBusy = false;
 let chatGen = 0;
-try {
-  const saved = JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]');
-  if (Array.isArray(saved)) chatMsgs = saved.flatMap(m => {
-    if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
-    const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
-    const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
-    const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
-    return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
-  });
-} catch (e) { }
+// Each design keeps its own conversation (a Studio project, a customer link, or one of this browser's designs), so the
+// agent never answers about the last house you had open.
+const chatKey = () => { const r = typeof CL !== 'undefined' ? CL.route : null;
+  return `${CHAT_KEY}:${r?.kind === 'project' ? `p:${r.id}` : r?.kind === 'customer' ? `c:${r.token}` : `d:${typeof DS !== 'undefined' ? DS.cur : ''}`}`; };
+let chatAt = null;
+function loadChat(key) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(key) || '[]');
+    return !Array.isArray(saved) ? [] : saved.flatMap(m => {
+      if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
+      const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
+      const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err', 'note'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
+      const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
+      return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
+    });
+  } catch (e) { return []; }
+}
+// Another design is open: put this conversation away and bring that one's back (a reply in flight is stopped).
+function syncChatDesign() {
+  const key = chatKey(); if (key === chatAt) return;
+  if (chatAt !== null && chatBusy) { chatCtl?.abort(); chatCtl = null; chatGen++; chatBusy = false; }
+  chatAt = key; chatMsgs = loadChat(key); chatPending = [];
+  if (typeof renderChat === 'function' && $u('agentLog')) { renderPending(); renderChat(); syncSend(); }
+}
 
 const chatEsc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function saveChat() {
   try {
     const slim = chatMsgs.map(m => ({ role: m.role, text: m.text, files: (m.files || []).map(f => ({ name: f.name, kind: f.kind })), steps: (m.steps || []).map(s => ({ k: s.k, t: s.t })), ...(m.ask?.options?.length ? { ask: m.ask } : {}) }));
-    sessionStorage.setItem(CHAT_KEY, JSON.stringify(slim));
+    sessionStorage.setItem(chatAt || chatKey(), JSON.stringify(slim));
   } catch (e) { }
 }
 
@@ -226,6 +240,7 @@ async function agentTurn(gen, reply, extra) {
   return pass.out;
 }
 async function sendChat(text, files) {
+  syncChatDesign();
   const gen = ++chatGen;
   const pendingAsk = chatMsgs.at(-1);
   if (pendingAsk?.ask) delete pendingAsk.ask;
@@ -348,3 +363,22 @@ $u('agentForm').onsubmit = e => {
   t.value = ''; fitComposer(); sendChat(text, files);
 };
 renderChat();
+
+// ---------- Plan check: what's wrong with this house, for everyone who can edit it (not just the agent) ----------
+// The agent's layout checks plus the editor's own stair warnings, after every rebuild. Hidden when the plan is clean,
+// on the sample houses, and for customers on a share link.
+let planProblems = [];
+function planCheck() {
+  syncChatDesign(); // a rebuild follows every design switch, so the right conversation is up by then
+  const btn = $u('planChkBtn'); if (!btn) return;
+  planProblems = curHouse === 3 ? [...new Set([...agentIssues(BM, Infinity), ...agentChecks()])] : [];
+  btn.hidden = !planProblems.length || document.body.classList.contains('cl-customer');
+  $u('planChkN').textContent = planProblems.length;
+  btn.dataset.tip = `${planProblems.length} problem${planProblems.length === 1 ? '' : 's'} in this plan`;
+  $u('planChkList').innerHTML = planProblems.map(p => `<li>${escH(p)}</li>`).join('');
+  $u('planChkFix').hidden = !document.body.classList.contains('agent-on');
+}
+$u('planChkFix').onclick = () => {
+  closePops?.(); openPanel('agent');
+  if (!chatBusy) sendChat('Fix the problems the plan check lists.', []);
+};

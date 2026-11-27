@@ -412,6 +412,14 @@ body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,bo
 body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
 .chat-send.stop .ic{width:12px;height:12px}
 
+/* plan check: a quiet warning button in the bar, and the list of problems */
+.tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}
+#planChkPop{width:340px;max-width:calc(100vw - 32px)}
+.plan-chk-list{list-style:none;margin:4px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.plan-chk-list li{position:relative;padding-left:14px;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.plan-chk-list li::before{content:"";position:absolute;left:2px;top:.55em;width:5px;height:5px;border-radius:50%;background:#d97706}
+.plan-chk-fix{width:100%;justify-content:center}
+
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
 .pe-body{flex:1;display:flex;min-height:0;position:relative}
@@ -679,6 +687,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.7-2.6h1.6a3.8 3.8 0 0 0 3.8-3.8c0-4.8-3.8-8.7-8.5-8.7z"/><circle cx="8" cy="11" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s6.5-6 6.5-11a6.5 6.5 0 0 0-13 0c0 5 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17v.01"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 19.5h15"/></symbol>
@@ -754,6 +763,7 @@ body.editing .cl-save{display:none}
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
+    <button class="tb-b plan-chk" id="planChkBtn" type="button" data-pop="planChkPop" hidden data-tip="Problems in this plan"><svg class="ic"><use href="#i-alert"/></svg><span class="plan-chk-n" id="planChkN"></span></button>
     <button class="tb-b" type="button" data-panel-btn="agent" data-tip="Chat with the design agent"><svg class="ic"><use href="#i-msg"/></svg><span class="tb-t">Chat</span></button>
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
@@ -769,6 +779,11 @@ body.editing .cl-save{display:none}
 </header>
 
 <!-- "More" menus: everything occasional lives here instead of on the bar -->
+<div class="pop" id="planChkPop" hidden role="dialog" aria-label="Plan check">
+  <h6>Plan check</h6>
+  <ul class="plan-chk-list" id="planChkList"></ul>
+  <button class="btn plan-chk-fix" id="planChkFix" type="button"><svg class="ic"><use href="#i-msg"/></svg>Ask the agent to fix these</button>
+</div>
 <div class="pop" id="morePop" hidden role="menu" aria-label="More">
   <div class="menu">
     <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
@@ -5520,7 +5535,7 @@ sel.onchange = () => {
   const r = roomsOf(curHouse)[+v]; enterWalk([r[3][0], r[3][1], r[3][2], H.levelY[r[1]] + 1], third);
 };
 // House 1 / House 2 tabs
-function setHouse(n, fromHash) {
+function setHouse(n, fromHash) { setTimeout(planCheck, 0);
   const tab = n; if (n === 4) n = 3;
   if (n === 3 && usePreset(tab === 4)) { PE.sel = PE.selStair = PE.selWall = null; PE.hist = []; if (PE.open && tab === 4) openEditor(false); rebuildHouse3(); }
   curHouse = n;
@@ -5600,6 +5615,7 @@ setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
 const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
+  setTimeout(planCheck, 0); // the plan changed: recount its problems once this rebuild is done
   buildHouse3();
   scene.updateMatrixWorld(true);
   const cols = []; HOUSE3.traverse(o => { if (o.isMesh && o.userData.solid) { const b = new THREE.Box3().setFromObject(o); b.mesh = o.parent; cols.push(b); } });
@@ -6623,11 +6639,18 @@ const agentUp = lv => ({ B: 'M', M: 'U' })[lv];
 // ---------- stairs: placed by code, where the flight starts and arrives in a hall or open room ----------
 const stairXY = s => [+(s.cx ?? s.x), +(s.cz ?? s.z)];
 const agentInsideRooms = plan => (plan.rooms || []).filter(r => !AGENT_OUTSIDE.has(r.type));
+// The whole flight stands in rooms a stair may be in (one room, or open rooms that join), one way round or the other:
+// every corner of its W × L box, a few inches in, lands in such a room. Otherwise it runs through a wall or into the ground.
+function flightFits(inside, s) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
+  return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
+}
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
 export function agentStairOk(plan, s) {
   const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
   const here = agentAt(inside, s.level, cx, cz);
   if (!here || !AGENT_LANDING.has(here.type)) return false;
+  if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
   if (!up || !inside.some(r => r.level === up)) return true;
   const above = agentAt(inside, up, cx, cz);
   return !!above && AGENT_LANDING.has(above.type);
@@ -6752,9 +6775,10 @@ function agentLayout(rooms, stairs) {
   for (const s of stairs) {
     const cx = +(s.cx ?? s.x), cz = +(s.cz ?? s.z), where = AGENT_LV[s.level] || s.level, up = agentUp(s.level);
     if (!Number.isFinite(cx) || !Number.isFinite(cz)) continue;
-    const here = agentAt(inside, s.level, cx, cz);
+    const here = agentAt(inside, s.level, cx, cz), W = s.W ?? 3.5, L = s.L ?? 12;
     if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
     else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    else if (!flightFits(inside, s)) out.push(`Stair ${s.id} does not fit inside ${agentLabel(here)}: its ${W} × ${L} ft flight runs out through the walls${s.level === 'B' ? ' into the ground' : ''}. Move it, or make the room bigger.`);
     const clash = stairClash({ stairs }, s);
     if (clash && (+clash.id || 0) > (+s.id || 0)) out.push(`Stairs ${s.id} and ${clash.id} run into each other: one comes up through the floor where the other stands. Stack the lower flight under the upper one, or move one.`);
     if (!up || !inside.some(r => r.level === up)) continue;
@@ -7063,22 +7087,36 @@ let chatMsgs = [];
 let chatPending = [];
 let chatBusy = false;
 let chatGen = 0;
-try {
-  const saved = JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]');
-  if (Array.isArray(saved)) chatMsgs = saved.flatMap(m => {
-    if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
-    const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
-    const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
-    const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
-    return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
-  });
-} catch (e) { }
+// Each design keeps its own conversation (a Studio project, a customer link, or one of this browser's designs), so the
+// agent never answers about the last house you had open.
+const chatKey = () => { const r = typeof CL !== 'undefined' ? CL.route : null;
+  return `${CHAT_KEY}:${r?.kind === 'project' ? `p:${r.id}` : r?.kind === 'customer' ? `c:${r.token}` : `d:${typeof DS !== 'undefined' ? DS.cur : ''}`}`; };
+let chatAt = null;
+function loadChat(key) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(key) || '[]');
+    return !Array.isArray(saved) ? [] : saved.flatMap(m => {
+      if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
+      const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
+      const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err', 'note'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
+      const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
+      return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
+    });
+  } catch (e) { return []; }
+}
+// Another design is open: put this conversation away and bring that one's back (a reply in flight is stopped).
+function syncChatDesign() {
+  const key = chatKey(); if (key === chatAt) return;
+  if (chatAt !== null && chatBusy) { chatCtl?.abort(); chatCtl = null; chatGen++; chatBusy = false; }
+  chatAt = key; chatMsgs = loadChat(key); chatPending = [];
+  if (typeof renderChat === 'function' && $u('agentLog')) { renderPending(); renderChat(); syncSend(); }
+}
 
 const chatEsc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function saveChat() {
   try {
     const slim = chatMsgs.map(m => ({ role: m.role, text: m.text, files: (m.files || []).map(f => ({ name: f.name, kind: f.kind })), steps: (m.steps || []).map(s => ({ k: s.k, t: s.t })), ...(m.ask?.options?.length ? { ask: m.ask } : {}) }));
-    sessionStorage.setItem(CHAT_KEY, JSON.stringify(slim));
+    sessionStorage.setItem(chatAt || chatKey(), JSON.stringify(slim));
   } catch (e) { }
 }
 
@@ -7277,6 +7315,7 @@ async function agentTurn(gen, reply, extra) {
   return pass.out;
 }
 async function sendChat(text, files) {
+  syncChatDesign();
   const gen = ++chatGen;
   const pendingAsk = chatMsgs.at(-1);
   if (pendingAsk?.ask) delete pendingAsk.ask;
@@ -7399,6 +7438,25 @@ $u('agentForm').onsubmit = e => {
   t.value = ''; fitComposer(); sendChat(text, files);
 };
 renderChat();
+
+// ---------- Plan check: what's wrong with this house, for everyone who can edit it (not just the agent) ----------
+// The agent's layout checks plus the editor's own stair warnings, after every rebuild. Hidden when the plan is clean,
+// on the sample houses, and for customers on a share link.
+let planProblems = [];
+function planCheck() {
+  syncChatDesign(); // a rebuild follows every design switch, so the right conversation is up by then
+  const btn = $u('planChkBtn'); if (!btn) return;
+  planProblems = curHouse === 3 ? [...new Set([...agentIssues(BM, Infinity), ...agentChecks()])] : [];
+  btn.hidden = !planProblems.length || document.body.classList.contains('cl-customer');
+  $u('planChkN').textContent = planProblems.length;
+  btn.dataset.tip = `${planProblems.length} problem${planProblems.length === 1 ? '' : 's'} in this plan`;
+  $u('planChkList').innerHTML = planProblems.map(p => `<li>${escH(p)}</li>`).join('');
+  $u('planChkFix').hidden = !document.body.classList.contains('agent-on');
+}
+$u('planChkFix').onclick = () => {
+  closePops?.(); openPanel('agent');
+  if (!chatBusy) sendChat('Fix the problems the plan check lists.', []);
+};
 
 
 // =====================================================================

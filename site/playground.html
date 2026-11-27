@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.6871e9c5c1.js">
-<link rel="stylesheet" href="/assets/playground.b3e63e9ebe.css">
+<link rel="modulepreload" href="/assets/playground.c4679d572a.js">
+<link rel="stylesheet" href="/assets/playground.e6dc1db412.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -45,6 +45,7 @@
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.7-2.6h1.6a3.8 3.8 0 0 0 3.8-3.8c0-4.8-3.8-8.7-8.5-8.7z"/><circle cx="8" cy="11" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s6.5-6 6.5-11a6.5 6.5 0 0 0-13 0c0 5 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17v.01"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 19.5h15"/></symbol>
@@ -120,6 +121,7 @@
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
+    <button class="tb-b plan-chk" id="planChkBtn" type="button" data-pop="planChkPop" hidden data-tip="Problems in this plan"><svg class="ic"><use href="#i-alert"/></svg><span class="plan-chk-n" id="planChkN"></span></button>
     <button class="tb-b" type="button" data-panel-btn="agent" data-tip="Chat with the design agent"><svg class="ic"><use href="#i-msg"/></svg><span class="tb-t">Chat</span></button>
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
@@ -135,6 +137,11 @@
 </header>
 
 <!-- "More" menus: everything occasional lives here instead of on the bar -->
+<div class="pop" id="planChkPop" hidden role="dialog" aria-label="Plan check">
+  <h6>Plan check</h6>
+  <ul class="plan-chk-list" id="planChkList"></ul>
+  <button class="btn plan-chk-fix" id="planChkFix" type="button"><svg class="ic"><use href="#i-msg"/></svg>Ask the agent to fix these</button>
+</div>
 <div class="pop" id="morePop" hidden role="menu" aria-label="More">
   <div class="menu">
     <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
@@ -452,5 +459,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.6871e9c5c1.js"></script>
+<script type="module" src="/assets/playground.c4679d572a.js"></script>
 </html>

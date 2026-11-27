@@ -401,3 +401,11 @@ body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,bo
 /* the design agent: only where the server has it set up, never on a shared link (viewers can't sign in) */
 body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
 .chat-send.stop .ic{width:12px;height:12px}
+
+/* plan check: a quiet warning button in the bar, and the list of problems */
+.tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}
+#planChkPop{width:340px;max-width:calc(100vw - 32px)}
+.plan-chk-list{list-style:none;margin:4px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.plan-chk-list li{position:relative;padding-left:14px;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.plan-chk-list li::before{content:"";position:absolute;left:2px;top:.55em;width:5px;height:5px;border-radius:50%;background:#d97706}
+.plan-chk-fix{width:100%;justify-content:center}

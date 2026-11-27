@@ -340,3 +340,10 @@ test('a basement stair stacks under the main stair instead of cutting through th
   const fresh = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 8, 24], [5, 'Rec', 'rec', 'B', 0, 0, 24, 24]], [{ id: 6, level: 'M', cx: 4, cz: 12, W: 3.5, L: 12 }]);
   assert.match(applyAgentLine(fresh, '@@stair {"level":"B","cx":20,"cz":20}').text, /under stair 6, as one stairwell/);
 });
+
+test('a stair whose flight pokes out of its room is caught, and one across open rooms is fine', () => {
+  const plan = plan2([[1, 'Rec', 'rec', 'B', 20, 0, 16, 14], [2, 'Hall', 'hall', 'M', 30, 0, 6, 28]], [{ id: 3, level: 'B', cx: 33, cz: 12, W: 4, L: 10 }]);
+  assert.match(agentIssues(plan).join(' '), /Stair 3 does not fit inside Rec: its 4 × 10 ft flight runs out through the walls into the ground/);
+  const open = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 6, 10], [2, 'Living', 'living', 'M', 6, 0, 14, 10]], [{ id: 3, level: 'M', cx: 7, cz: 5, W: 3.5, L: 12 }]);
+  assert.equal(agentIssues(open).some(i => /Stair 3/.test(i)), false, 'a flight from the hall into the open living room is fine');
+});
