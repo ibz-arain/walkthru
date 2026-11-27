@@ -46,6 +46,7 @@ npm test           # API tests against a throwaway database
 
 1. `turso db create home-studio` → `turso db show home-studio --url` and `turso db tokens create home-studio`
 2. In Vercel, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_KEY` (see `.env.example`).
+   For the design agent, also set `GEMINI_API_KEY` (or `OPENROUTER_API_KEY`); without one, the Chat button stays hidden.
 3. Run `npm install && npm run build`, then deploy (`npx vercel --prod`). Tables (and new columns) are created on the first request.
 
 ## Where things live

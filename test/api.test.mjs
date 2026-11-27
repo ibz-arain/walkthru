@@ -196,4 +196,44 @@ test('agent streams the reply and stops at the daily limit', async () => {
   }
 });
 
+test('the agent talks to Gemini when its key is set, and explains its errors', async () => {
+  const sres = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, getHeader(k) { return this.headers[k.toLowerCase()]; }, status() { return sres; }, json() { } };
+  await H.auth({ method: 'POST', query: { action: 'signup' }, headers: { host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.8' }, body: { email: 'gemini@example.com', password: 'longpassword', workspace: 'G' } }, sres);
+  const cookie = String(sres.headers['set-cookie']).split(';')[0];
+  const saved = { fetch: globalThis.fetch, GEMINI_API_KEY: process.env.GEMINI_API_KEY, OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, AGENT_MODEL: process.env.AGENT_MODEL };
+  let sent, reply = () => new Response('data: {"choices":[{"delta":{"content":"Hello\\n@@done\\n"}}]}\n\n', { status: 200 });
+  globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
+  process.env.GEMINI_API_KEY = ' "g-key" '; process.env.OPENROUTER_API_KEY = 'or-key'; delete process.env.AGENT_MODEL;
+  const ask = async files => {
+    const out = { code: 200, text: '', headers: {} };
+    const res = { set statusCode(c) { out.code = c; }, get statusCode() { return out.code; }, setHeader(k, v) { out.headers[k.toLowerCase()] = v; }, getHeader(k) { return out.headers[k.toLowerCase()]; }, status(c) { out.code = c; return res; }, json(b) { out.body = b; }, write(t) { out.text += t; }, end() { } };
+    await H.agent({ method: 'POST', query: {}, headers: { cookie, host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.8' }, body: { messages: [{ role: 'user', text: 'hello', files }], bm } }, res);
+    return out;
+  };
+  try {
+    const pdf = [{ name: 'plan.pdf', mime: 'application/pdf', data: 'data:application/pdf;base64,JVBERi0=' }];
+    const a = await ask(pdf);
+    assert.equal(a.code, 200); assert.equal(a.text, 'Hello\n@@done\n');
+    assert.match(sent.url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+    assert.equal(sent.headers.authorization, 'Bearer g-key', 'quotes and spaces around the key are trimmed');
+    assert.equal(sent.body.model, 'gemini-flash-latest'); assert.equal(sent.body.reasoning_effort, 'low'); assert.equal(sent.body.reasoning, undefined);
+    const part = sent.body.messages.at(-1).content.find(p => p.type !== 'text');
+    assert.equal(part.type, 'image_url', 'Google reads a PDF sent as a data URL'); assert.match(part.image_url.url, /^data:application\/pdf;base64,/);
+
+    process.env.AGENT_MODEL = 'gemini-test-model'; await ask(); assert.equal(sent.body.model, 'gemini-test-model');
+    reply = () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.' } }]), { status: 400 });
+    assert.match((await ask()).body.error, /Google rejected the API key/);
+    reply = () => new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 });
+    assert.match((await ask()).body.error, /free allowance/);
+
+    delete process.env.GEMINI_API_KEY; delete process.env.AGENT_MODEL;
+    reply = () => new Response('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n', { status: 200 });
+    await ask(pdf);
+    assert.match(sent.url, /openrouter\.ai/, 'without a Gemini key it falls back to OpenRouter'); assert.equal(sent.body.messages.at(-1).content.find(p => p.type !== 'text').type, 'file');
+  } finally {
+    globalThis.fetch = saved.fetch;
+    for (const k of ['GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'AGENT_MODEL']) if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+  }
+});
+
 test.after(() => { try { rmSync(file); } catch (e) { } });

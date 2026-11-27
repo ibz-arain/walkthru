@@ -4,8 +4,8 @@ import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
 import { db } from './_lib/db.js';
 import { agentBrief } from './_lib/agentplan.js';
+import { agentProvider, cleanKey } from './_lib/ai.js';
 
-const MODEL = 'nvidia/nemotron-3.5-super-vl';
 const SYSTEM = `You are the design agent inside Walkthru. You answer questions about the house the person is looking at, and you change it.
 
 THE HOUSE
@@ -70,11 +70,11 @@ async function spend(w) {
 const FILE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']);
 
 // A data URL the model can see. Anything else is dropped before the request.
-function filePart(f) {
+function filePart(f, google) {
   const m = String(f?.data || '').match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
   if (!m || !FILE_MIME.has(m[1]) || m[2].length > 12_000_000) return null;
   const url = `data:${m[1]};base64,${m[2].replace(/\s/g, '')}`;
-  if (m[1] === 'application/pdf') return { type: 'file', file: { filename: String(f.name || 'drawing.pdf').slice(0, 120), file_data: url } };
+  if (m[1] === 'application/pdf' && !google) return { type: 'file', file: { filename: String(f.name || 'drawing.pdf').slice(0, 120), file_data: url } };
   return { type: 'image_url', image_url: { url } };
 }
 
@@ -98,7 +98,7 @@ export default route({
     let fileBudget = 4;
     for (let i = picked.length - 1; i >= 0 && fileBudget > 0; i--) for (const f of picked[i].files) {
       if (fileBudget <= 0) break;
-      const part = filePart(f); if (!part) continue;
+      const part = filePart(f, !!cleanKey('GEMINI_API_KEY')); if (!part) continue;
       partsOf[i].push(part); fileBudget--;
     }
     const plan = body(req).plan;
@@ -118,25 +118,26 @@ export default route({
     if (!messages.length || messages[messages.length - 1].role !== 'user') return fail(res, 400, 'Send a message');
     const lastIn = picked[picked.length - 1];
     if (lastIn?.files.length && !partsOf[partsOf.length - 1].length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
-    let key = String(process.env.OPENROUTER_API_KEY || '').trim().replace(/^OPENROUTER_API_KEY=/i, '').replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
-    if (!key) return fail(res, 503, 'The agent is not configured');
+    const ai = agentProvider();
+    if (!ai) return fail(res, 503, 'The agent is not configured');
     if (!(await spend(w))) return fail(res, 429, 'You’ve used the design agent a lot today. It will be ready again tomorrow.');
 
     let upstream;
     try {
-      upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      upstream = await fetch(ai.url, {
         method: 'POST',
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
-        body: JSON.stringify({ model: MODEL, stream: true, max_tokens: 3000, temperature: 0.3, reasoning: { enabled: false }, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
+        headers: { authorization: `Bearer ${ai.key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
+        body: JSON.stringify({ model: ai.model, stream: true, temperature: 0.3, ...ai.options, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
         signal: AbortSignal.timeout(TIME_LIMIT), // covers reading the stream below too
       });
     } catch (e) { console.error('agent', e.name || e.message); return fail(res, 502, 'Could not reach the agent'); }
     if (!upstream.ok || !upstream.body) {
       let detail = '';
-      try { const j = await upstream.json(); detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ }
-      console.error('agent', upstream.status, String(detail).slice(0, 200));
-      const why = upstream.status === 429 ? 'The model is busy. Try again in a moment.'
-        : upstream.status === 401 || upstream.status === 403 ? 'OpenRouter rejected the API key.'
+      try { let j = await upstream.json(); if (Array.isArray(j)) j = j[0]; detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ } // Google can wrap its error in a list
+      console.error('agent', ai.name, upstream.status, String(detail).slice(0, 200));
+      const why = upstream.status === 429 ? (/quota|per day|exhausted/i.test(detail) ? 'The agent has used its free allowance for now. Try again later.' : 'The model is busy. Try again in a moment.')
+        : upstream.status === 401 || upstream.status === 403 || /api key/i.test(detail) ? `${ai.name} rejected the API key.`
+        : upstream.status === 404 ? `${ai.name} has no model called ${ai.model}. Check AGENT_MODEL.`
         : (String(detail || '').trim().slice(0, 180) || 'The agent could not reply');
       return fail(res, 502, why);
     }
@@ -156,7 +157,8 @@ export default route({
           const s = line.trim(); if (!s.startsWith('data:')) continue;
           const data = s.slice(5).trim(); if (!data || data === '[DONE]') continue;
           let j; try { j = JSON.parse(data); } catch { continue; }
-          if (j.error) { if (!wrote) res.write(j.error.message || 'The agent could not reply'); wrote = true; return; }
+          if (Array.isArray(j)) j = j[0];
+          if (j?.error) { if (!wrote) res.write(j.error.message || 'The agent could not reply'); wrote = true; return; }
           const piece = textOf(j.choices?.[0]?.delta);
           if (piece) { res.write(piece); wrote = true; }
         }
