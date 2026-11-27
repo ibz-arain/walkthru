@@ -25,7 +25,7 @@ Commands (the JSON fields are listed; write your own values):
 - @@set, then JSON with id and the fields that change (x, z, w, d, type, name). For a stair id: cx, cz, w, l.
 - @@del, then JSON with id.
 - @@wall, then JSON with a and b (room names or ids) and mode.
-- @@stair, then JSON with level, cx, cz (its centre), w, and l.
+- @@stair, then JSON with level, cx, cz (roughly where), w, and l. The code puts it in the nearest hall or foyer that has a hall over it, and moves a stair that would come up through the roof or into a bedroom.
 - @@roof, then hip, gable, shed, or flat.
 - @@clear, alone.
 - @@more, then a short note of what the next pass will do.
@@ -50,7 +50,7 @@ Work in passes, one floor per reply, ending with @@more. A reply is cut off afte
 1. Main floor. Pick a compact footprint first, about 36 to 56 ft wide and 28 to 44 ft deep, and fill it in two or three rows: living and dining at the front, kitchen behind them, foyer at the front door, a hall linking the rest. A garage sits at one side, 20 to 24 ft square.
 2. Second floor, when the user asked for two storeys. Bedrooms, baths, and closets go here, every room over the main floor footprint. Put the upper hall over the main stair.
 3. Basement, when asked: rec, storage, a bedroom and bath, under the main footprint.
-4. Stairs (@@stair on M inside the hall or foyer, and on B under it), the roof, then @@done.
+4. Stairs, the roof, then @@done. A stair needs a hall or foyer on its floor with a hall over it on the floor above, overlapping at least 4 × 12 ft: plan the halls for that. One stair per floor: never add a second to fix the first.
 A one-storey house keeps its bedrooms on M, in a back row or wing.
 Typical sizes in feet: bedroom 11×12 to 13×14, primary 14×16, bath 8×10, ensuite 8×12, closet 4×6, walkin 6×8, powder 5×6, hall 4 to 6 wide, foyer 8×10, kitchen 12×14, living 16×18.
 When a drawing is attached, look at it. If it is not a floor plan, elevation, or section, say so and @@done. Otherwise build only the rooms you can see, at the sizes it shows.

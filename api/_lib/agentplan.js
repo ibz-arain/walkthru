@@ -191,6 +191,58 @@ const ft = n => String(+n.toFixed(1));
 const agentAt = (rooms, lv, x, z) => rooms.find(r => r.level === lv && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
 const agentUp = lv => ({ B: 'M', M: 'U' })[lv];
 
+// ---------- stairs: placed by code, where the flight starts and arrives in a hall or open room ----------
+const stairXY = s => [+(s.cx ?? s.x), +(s.cz ?? s.z)];
+const agentInsideRooms = plan => (plan.rooms || []).filter(r => !AGENT_OUTSIDE.has(r.type));
+// The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
+export function agentStairOk(plan, s) {
+  const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
+  const here = agentAt(inside, s.level, cx, cz);
+  if (!here || !AGENT_LANDING.has(here.type)) return false;
+  if (!up || !inside.some(r => r.level === up)) return true;
+  const above = agentAt(inside, up, cx, cz);
+  return !!above && AGENT_LANDING.has(above.type);
+}
+// The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
+// above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
+export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
+  const inside = agentInsideRooms(plan), up = agentUp(level);
+  const lows = inside.filter(r => r.level === level && AGENT_LANDING.has(r.type));
+  const highs = up && inside.some(r => r.level === up) ? inside.filter(r => r.level === up && AGENT_LANDING.has(r.type)) : null;
+  const others = (plan.stairs || []).filter(o => o !== skip && o.level === level);
+  let best = null;
+  for (const low of lows) for (const high of highs || [low]) {
+    const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
+    const w = x1 - x0, d = z1 - z0; if (w <= 0 || d <= 0) continue;
+    const alongX = w >= L && d >= W && low.w >= L + 2, alongZ = d >= L && w >= W && low.d >= L + 2;
+    if (!alongX && !alongZ) continue;
+    const cx = +((x0 + x1) / 2).toFixed(2), cz = +((z0 + z1) / 2).toFixed(2);
+    if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) continue;
+    const dist = Math.hypot(cx - nx, cz - nz);
+    if (!best || dist < best.dist) best = { cx, cz, dist, low, high: highs ? high : null };
+  }
+  return best;
+}
+const spotWords = (spot, level) => spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
+// After a pass: a stair stacked on another goes, and a stair that would come up through the roof or into a bedroom moves
+// to the nearest place that works. Returns what changed, as results the chat can show.
+export function agentFixStairs(plan) {
+  const out = [], stairs = plan.stairs || [];
+  for (const s of [...stairs].sort((a, b) => (+b.id || 0) - (+a.id || 0))) { // the newest of a stacked pair goes
+    const [cx, cz] = stairXY(s);
+    const twin = stairs.find(o => o !== s && o.level === s.level && (+o.id || 0) < (+s.id || 0) && Math.hypot(stairXY(o)[0] - cx, stairXY(o)[1] - cz) < 4);
+    if (twin) { plan.stairs = plan.stairs.filter(o => o !== s); out.push({ kind: 'act', text: `Removed stair ${s.id}: stair ${twin.id} is already there.`, edit: true }); }
+  }
+  for (const s of plan.stairs || []) {
+    if (agentStairOk(plan, s)) continue;
+    const [cx, cz] = stairXY(s), spot = agentStairSpot(plan, s.level, s.W ?? 3.5, s.L ?? 12, cx, cz, s);
+    if (!spot) continue; // nowhere better: the issue list says what is wrong
+    s.cx = spot.cx; s.cz = spot.cz; delete s.x; delete s.z;
+    out.push({ kind: 'act', text: `Moved stair ${s.id} ${spotWords(spot, s.level)}, so it reaches the next floor.`, edit: true });
+  }
+  return out;
+}
+
 // Empty space on one floor, found on a half-foot grid: a slot between two rooms is a gap, an enclosed space is a hole,
 // and a small bite out of the outline is a notch. A long step in the outline (beside a garage, say) is left alone.
 function agentEmpty(on, where) {
@@ -433,8 +485,15 @@ export function applyAgentLine(plan, line, types) {
     const W = agentNum(spec.w ?? spec.W ?? 3.5, 3, 8), L = agentNum(spec.l ?? spec.L ?? 12, 6, 24);
     if (cx == null || cz == null || W == null || L == null) return say('err', 'A stair needs a center cx, cz.');
     plan.stairs = plan.stairs || [];
-    plan.stairs.push({ id: agentNextId(plan), level, cx, cz, W, L });
-    return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true);
+    const stair = { id: agentNextId(plan), level, cx, cz, W, L };
+    if (agentStairOk(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
+    const spot = agentStairSpot(plan, level, W, L, cx, cz); // the spot asked for does not work: use the nearest one that does
+    if (!spot) {
+      const up = AGENT_LV[agentUp(level)] || 'floor above';
+      return say('err', `No place fits a ${W} × ${L} ft stair on the ${AGENT_LV[level] || level}: it needs a hall or foyer there with a hall over it on the ${up}, overlapping at least ${W} × ${L} ft. Make that space, then add the stair.`);
+    }
+    stair.cx = spot.cx; stair.cz = spot.cz; plan.stairs.push(stair);
+    return say('act', `Added a stair ${spotWords(spot, level)}, so it reaches the next floor.`, true);
   }
   return say('err', `Unknown command @@${cmd}.`);
 }
@@ -510,7 +569,8 @@ export function agentPass(plan, types) {
     }
     return shown;
   };
-  return { out, line: l => { if (out.ended) return []; out.raw += l + '\n'; return take(feedAgentLine(buf, l)); }, end: () => out.ended ? [] : take(flushAgentLine(buf)) };
+  const settle = () => { const fixed = out.edited ? agentFixStairs(plan) : []; if (fixed.length) out.edited = true; return fixed; }; // stairs are placed by code once the pass's rooms are in
+  return { out, line: l => { if (out.ended) return []; out.raw += l + '\n'; return take(feedAgentLine(buf, l)); }, end: () => [...(out.ended ? [] : take(flushAgentLine(buf))), ...settle()] };
 }
 // What to do after a pass: { finish }, { stop }, or the hidden note (extra) that starts the next pass.
 // s: { step, build, rechecked, acted (anything changed this message), fresh() (problems this message added) }

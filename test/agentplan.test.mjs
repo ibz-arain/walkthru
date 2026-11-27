@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAgentLine, agentIssues, agentBrief, feedAgentLine, agentRepairFailed, agentWantsFix, agentBadness } from '../src/agentplan.js';
+import { applyAgentLine, agentIssues, agentBrief, feedAgentLine, agentRepairFailed, agentWantsFix, agentBadness, agentFixStairs, agentPass } from '../src/agentplan.js';
 
 test('agent commands build a floor, then a bad command is refused', () => {
   const plan = { roof: 'hip', rooms: [], stairs: [], walls: {} };
@@ -293,4 +293,37 @@ test('a repair that does not reduce the problems is undone', () => {
   applyAgentLine(plan, '@@set {"id":2,"x":10,"z":0}');
   assert.equal(agentRepairFailed(true, true, before, plan), false, 'fixed: keep it');
   assert.equal(agentRepairFailed(false, true, 0, plan), false, 'only repairs are judged this way');
+});
+
+const plan2 = (R, stairs) => ({ rooms: R.map(([id, name, type, level, x, z, w, d]) => ({ id, name, type, level, x, z, w, d })), stairs });
+test('stairs through the roof move under the upper hall, and a stacked twin goes', () => {
+  // the repaired house from a bug report: two stairs in the one-storey back hall, climbing through the roof
+  const plan = plan2([[1, 'Living', 'living', 'M', 0, -6, 12, 20], [2, 'Kitchen', 'kitchen', 'M', 12, 6, 14, 8], [3, 'Foyer', 'foyer', 'M', 12, -6, 6, 12], [4, 'Dining', 'dining', 'M', 18, -6, 16, 12],
+    [5, 'Hall', 'hall', 'M', 0, 14, 30, 10], [6, 'Powder', 'powder', 'M', 26, 6, 8, 8], [7, 'Garage', 'garage', 'M', 30, 20, 16, 20], [8, 'Primary', 'primary', 'U', 0, -6, 14, 14],
+    [9, 'Bed2', 'bedroom', 'U', 14, -6, 14, 14], [10, 'UpperHall', 'hall', 'U', 0, 8, 28, 6], [11, 'Bed3', 'bedroom', 'U', 0, 14, 14, 6], [12, 'Bed4', 'bedroom', 'U', 14, 14, 14, 6]],
+    [{ id: 15, level: 'M', cx: 2, cz: 22, W: 3, L: 10 }, { id: 16, level: 'M', cx: 4, cz: 22, W: 3, L: 10 }]);
+  assert.match(agentIssues(plan).join(' '), /Stair 15 comes up into empty space/);
+  const notes = agentFixStairs(plan).map(n => n.text).join(' ');
+  assert.equal(plan.stairs.length, 1); assert.match(notes, /Removed stair 16/);
+  assert.match(notes, /Moved stair 15 in Living, under UpperHall/);
+  assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz], [6, 11]);
+  assert.equal(agentIssues(plan).some(i => /Stair/.test(i)), false);
+});
+
+test('a new stair asked for in the wrong place lands where it works, or is refused with what to build', () => {
+  const plan = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 6, 16], [2, 'Bed', 'bedroom', 'M', 6, 0, 12, 16], [3, 'Landing', 'hall', 'U', 0, 0, 6, 16], [4, 'Bed 2', 'bedroom', 'U', 6, 0, 12, 16]], []);
+  const res = applyAgentLine(plan, '@@stair {"level":"M","cx":12,"cz":8,"w":3.5,"l":12}');
+  assert.equal(res.kind, 'act'); assert.match(res.text, /in Hall, under Landing/); assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz], [3, 8]);
+  const none = plan2([[1, 'Bed', 'bedroom', 'M', 0, 0, 12, 12], [2, 'Bed 2', 'bedroom', 'U', 0, 0, 12, 12]], []);
+  const refused = applyAgentLine(none, '@@stair {"level":"M","cx":6,"cz":6}');
+  assert.equal(refused.kind, 'err'); assert.match(refused.text, /needs a hall or foyer/); assert.equal(none.stairs.length, 0);
+});
+
+test('a pass that changed the house settles its stairs at the end', () => {
+  const plan = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 6, 16], [2, 'Den', 'great', 'M', 6, 0, 12, 16], [3, 'Landing', 'hall', 'U', 0, 0, 6, 16], [4, 'Bed 2', 'bedroom', 'U', 6, 0, 12, 16]],
+    [{ id: 5, level: 'M', cx: 3, cz: 8, W: 3.5, L: 12 }]);
+  const pass = agentPass(plan);
+  pass.line('@@set {"id":3,"x":6}'); pass.line('@@set {"id":4,"x":0,"w":6}'); // the landing and a bedroom swap sides upstairs
+  const end = pass.end().map(r => r.text).join(' ');
+  assert.match(end, /Moved stair 5 in Den, under Landing/); assert.equal(plan.stairs[0].cx, 9);
 });
