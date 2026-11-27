@@ -496,6 +496,9 @@ function stairStatus(S) {
   if (!roomAt3(up, ...e.top)) return { msg: `The top lands outside: put a ${LV_NAME[up]} room where it arrives`, dir };
   if (!roomAt3(S.level, ...e.start)) return { msg: 'The bottom step faces a wall or outside: move it or ↻ rotate it', dir };
   if (stairFits(S, dir) < 2) return { msg: 'These stairs cross a wall: move them inside one room or ↻ rotate them', dir };
+  // a flight on the next floor up or down shares a floor with this one: stacked is one stairwell, anything else collides
+  const mine = stairRect(S, dir), clash = (BM.stairs || []).find(o => o !== S && (stairUp(o) === S.level || o.level === up) && Math.hypot(o.cx - S.cx, o.cz - S.cz) >= 3 && ovl(stairRect(o, stairDirOf(o)), mine));
+  if (clash) return { msg: `Runs into the ${clash.level === up ? 'stair above' : 'stair from below'}: stack them or move one`, dir };
   return { ok: true, dir, up };
 }
 // Old plans used a "Stairs" room: turn each into a hall plus a staircase object in the same spot.
@@ -564,8 +567,10 @@ function clearZones(lv) {
   const rs = BM.rooms.filter(r => r.level === lv);
   for (const A of rs) for (const Bq of rs) { if (A.id >= Bq.id || wallMode(A, Bq) !== 'open') continue; // doorway-sized openings stay clear
     for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (!f || Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
-  for (const S of stairsOn(lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
-  for (const S of (BM.stairs || []).filter(t => stairUp(t) === lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
+  // stairs and the openings of flights coming up from below: steered around like a door, and also a hard zone (`hard`):
+  // a piece that still lands on the flight or in the hole is taken out (see furnish)
+  for (const S of stairsOn(lv).concat((BM.stairs || []).filter(t => stairUp(t) === lv))) { const r = stairRect(S, stairDirOf(S));
+    Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99, hard: { x0: r.x - .5, x1: r.x + r.w + .5, z0: r.z - .5, z1: r.z + r.d + .5 } }); }
   return Z;
 }
 // Guard rail round a floor opening, only along the stretches where you could actually walk up to the edge:

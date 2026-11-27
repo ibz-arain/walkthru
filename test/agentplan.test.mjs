@@ -328,3 +328,15 @@ test('a pass that changed the house settles its stairs at the end', () => {
   const end = pass.end().map(r => r.text).join(' ');
   assert.match(end, /Moved stair 5 in Den, under Landing/); assert.equal(plan.stairs[0].cx, 9);
 });
+
+test('a basement stair stacks under the main stair instead of cutting through the floor beside it', () => {
+  const plan = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 8, 24], [2, 'Living', 'living', 'M', 8, 0, 16, 24], [3, 'Landing', 'hall', 'U', 0, 0, 8, 24], [4, 'Bed', 'bedroom', 'U', 8, 0, 16, 24],
+    [5, 'Rec', 'rec', 'B', 0, 0, 24, 24]], [{ id: 6, level: 'M', cx: 4, cz: 12, W: 3.5, L: 12 }, { id: 7, level: 'B', cx: 4, cz: 4, W: 3.5, L: 12 }]);
+  assert.match(agentIssues(plan).join(' '), /Stairs 6 and 7 run into each other/);
+  const notes = agentFixStairs(plan).map(n => n.text).join(' ');
+  assert.match(notes, /Moved stair 7 under stair 6, as one stairwell/);
+  assert.deepEqual([plan.stairs[1].cx, plan.stairs[1].cz], [4, 12]);
+  assert.equal(agentIssues(plan).some(i => /run into each other/.test(i)), false);
+  const fresh = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 8, 24], [5, 'Rec', 'rec', 'B', 0, 0, 24, 24]], [{ id: 6, level: 'M', cx: 4, cz: 12, W: 3.5, L: 12 }]);
+  assert.match(applyAgentLine(fresh, '@@stair {"level":"B","cx":20,"cz":20}').text, /under stair 6, as one stairwell/);
+});

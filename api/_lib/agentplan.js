@@ -210,6 +210,12 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
   const lows = inside.filter(r => r.level === level && AGENT_LANDING.has(r.type));
   const highs = up && inside.some(r => r.level === up) ? inside.filter(r => r.level === up && AGENT_LANDING.has(r.type)) : null;
   const others = (plan.stairs || []).filter(o => o !== skip && o.level === level);
+  // a basement flight goes straight under the main stair when the room below has space for it (one stairwell, as in real houses)
+  if (level === 'B') for (const m of (plan.stairs || []).filter(o => o !== skip && o.level === 'M')) {
+    const [mx, mz] = stairXY(m), low = agentAt(inside, 'B', mx, mz);
+    if (low && AGENT_LANDING.has(low.type) && (low.w >= L + 2 && low.d >= W || low.d >= L + 2 && low.w >= W) && !stairClash(plan, { level, cx: mx, cz: mz, W, L }, skip))
+      return { cx: mx, cz: mz, dist: 0, low, high: agentAt(inside, 'M', mx, mz) || null, stacked: m };
+  }
   let best = null;
   for (const low of lows) for (const high of highs || [low]) {
     const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
@@ -218,12 +224,23 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
     if (!alongX && !alongZ) continue;
     const cx = +((x0 + x1) / 2).toFixed(2), cz = +((z0 + z1) / 2).toFixed(2);
     if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) continue;
+    if (stairClash(plan, { level, cx, cz, W, L }, skip)) continue;
     const dist = Math.hypot(cx - nx, cz - nz);
     if (!best || dist < best.dist) best = { cx, cz, dist, low, high: highs ? high : null };
   }
   return best;
 }
-const spotWords = (spot, level) => spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
+// Two flights on neighbouring floors share a floor: the lower one's opening is cut into it, and the upper one stands on it.
+// They may stack (centres within 3 ft: the builder runs them as one stairwell), but must not otherwise overlap there.
+// Which way a flight runs is the builder's choice, so each counts as an L × L square around its centre.
+function stairClash(plan, s, skip) {
+  const [cx, cz] = stairXY(s), L = s.L ?? 12;
+  return (plan.stairs || []).filter(o => o !== skip && o !== s && (agentUp(o.level) === s.level || agentUp(s.level) === o.level)).find(o => {
+    const [ox, oz] = stairXY(o), reach = (L + (o.L ?? 12)) / 2 + 1;
+    return Math.hypot(ox - cx, oz - cz) >= 3 && Math.abs(ox - cx) < reach && Math.abs(oz - cz) < reach;
+  }) || null;
+}
+const spotWords = (spot, level) => spot.stacked ? `under stair ${spot.stacked.id}, as one stairwell` : spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
 // After a pass: a stair stacked on another goes, and a stair that would come up through the roof or into a bedroom moves
 // to the nearest place that works. Returns what changed, as results the chat can show.
 export function agentFixStairs(plan) {
@@ -233,8 +250,8 @@ export function agentFixStairs(plan) {
     const twin = stairs.find(o => o !== s && o.level === s.level && (+o.id || 0) < (+s.id || 0) && Math.hypot(stairXY(o)[0] - cx, stairXY(o)[1] - cz) < 4);
     if (twin) { plan.stairs = plan.stairs.filter(o => o !== s); out.push({ kind: 'act', text: `Removed stair ${s.id}: stair ${twin.id} is already there.`, edit: true }); }
   }
-  for (const s of plan.stairs || []) {
-    if (agentStairOk(plan, s)) continue;
+  for (const s of [...(plan.stairs || [])].sort((a, b) => (a.level === 'B' ? 0 : 1) - (b.level === 'B' ? 0 : 1))) { // the basement flight gives way to the main one
+    if (agentStairOk(plan, s) && !stairClash(plan, s)) continue;
     const [cx, cz] = stairXY(s), spot = agentStairSpot(plan, s.level, s.W ?? 3.5, s.L ?? 12, cx, cz, s);
     if (!spot) continue; // nowhere better: the issue list says what is wrong
     s.cx = spot.cx; s.cz = spot.cz; delete s.x; delete s.z;
@@ -309,6 +326,8 @@ function agentLayout(rooms, stairs) {
     const here = agentAt(inside, s.level, cx, cz);
     if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
     else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    const clash = stairClash({ stairs }, s);
+    if (clash && (+clash.id || 0) > (+s.id || 0)) out.push(`Stairs ${s.id} and ${clash.id} run into each other: one comes up through the floor where the other stands. Stack the lower flight under the upper one, or move one.`);
     if (!up || !inside.some(r => r.level === up)) continue;
     const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
     if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
@@ -486,7 +505,7 @@ export function applyAgentLine(plan, line, types) {
     if (cx == null || cz == null || W == null || L == null) return say('err', 'A stair needs a center cx, cz.');
     plan.stairs = plan.stairs || [];
     const stair = { id: agentNextId(plan), level, cx, cz, W, L };
-    if (agentStairOk(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
+    if (agentStairOk(plan, stair) && !stairClash(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
     const spot = agentStairSpot(plan, level, W, L, cx, cz); // the spot asked for does not work: use the nearest one that does
     if (!spot) {
       const up = AGENT_LV[agentUp(level)] || 'floor above';

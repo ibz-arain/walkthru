@@ -3193,6 +3193,9 @@ function stairStatus(S) {
   if (!roomAt3(up, ...e.top)) return { msg: `The top lands outside: put a ${LV_NAME[up]} room where it arrives`, dir };
   if (!roomAt3(S.level, ...e.start)) return { msg: 'The bottom step faces a wall or outside: move it or ↻ rotate it', dir };
   if (stairFits(S, dir) < 2) return { msg: 'These stairs cross a wall: move them inside one room or ↻ rotate them', dir };
+  // a flight on the next floor up or down shares a floor with this one: stacked is one stairwell, anything else collides
+  const mine = stairRect(S, dir), clash = (BM.stairs || []).find(o => o !== S && (stairUp(o) === S.level || o.level === up) && Math.hypot(o.cx - S.cx, o.cz - S.cz) >= 3 && ovl(stairRect(o, stairDirOf(o)), mine));
+  if (clash) return { msg: `Runs into the ${clash.level === up ? 'stair above' : 'stair from below'}: stack them or move one`, dir };
   return { ok: true, dir, up };
 }
 // Old plans used a "Stairs" room: turn each into a hall plus a staircase object in the same spot.
@@ -3261,8 +3264,10 @@ function clearZones(lv) {
   const rs = BM.rooms.filter(r => r.level === lv);
   for (const A of rs) for (const Bq of rs) { if (A.id >= Bq.id || wallMode(A, Bq) !== 'open') continue; // doorway-sized openings stay clear
     for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (!f || Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
-  for (const S of stairsOn(lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
-  for (const S of (BM.stairs || []).filter(t => stairUp(t) === lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
+  // stairs and the openings of flights coming up from below: steered around like a door, and also a hard zone (`hard`):
+  // a piece that still lands on the flight or in the hole is taken out (see furnish)
+  for (const S of stairsOn(lv).concat((BM.stairs || []).filter(t => stairUp(t) === lv))) { const r = stairRect(S, stairDirOf(S));
+    Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99, hard: { x0: r.x - .5, x1: r.x + r.w + .5, z0: r.z - .5, z1: r.z + r.d + .5 } }); }
   return Z;
 }
 // Guard rail round a floor opening, only along the stretches where you could actually walk up to the edge:
@@ -3767,7 +3772,22 @@ function furnish(F, r, y, zones = []) {
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
+  const hard = near.filter(z => z.hard).map(z => z.hard);
+  if (hard.length && best.sc) clearHard(best.g, hard, y);
   best.g.userData.room = r.id; F.add(best.g); walkables.push(...best.g.userData.walk); // tagged so a right-click in 3D finds its room
+}
+// Nothing stands on a stair or in a stairwell opening, however tight the room: take out every piece that reaches into one.
+// A piece is all the meshes touching each other (a table's top and legs, a sofa's parts), so it goes whole.
+const _fa = new THREE.Box3();
+function clearHard(g, zones, y) {
+  g.updateMatrixWorld(true);
+  const parts = []; g.traverse(o => { if (o.isMesh && o.visible) { const b = new THREE.Box3().setFromObject(o); if (b.max.y - y >= .3) parts.push({ o, b }); } }); // rugs stay
+  const hit = b => zones.some(z => b.max.x > z.x0 && b.min.x < z.x1 && b.max.z > z.z0 && b.min.z < z.z1);
+  const gone = new Set(parts.filter(p => hit(p.b)));
+  for (let grew = true; grew;) { grew = false;
+    for (const p of parts) if (!gone.has(p)) for (const q of gone) if (_fa.copy(q.b).expandByScalar(.05).intersectsBox(p.b)) { gone.add(p); grew = true; break; } }
+  for (const { o } of gone) { o.parent?.remove(o); o.geometry?.dispose(); }
+  const removed = new Set([...gone].map(p => p.o)); g.userData.walk = (g.userData.walk || []).filter(m => !removed.has(m));
 }
 function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); }
 
@@ -6618,6 +6638,12 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
   const lows = inside.filter(r => r.level === level && AGENT_LANDING.has(r.type));
   const highs = up && inside.some(r => r.level === up) ? inside.filter(r => r.level === up && AGENT_LANDING.has(r.type)) : null;
   const others = (plan.stairs || []).filter(o => o !== skip && o.level === level);
+  // a basement flight goes straight under the main stair when the room below has space for it (one stairwell, as in real houses)
+  if (level === 'B') for (const m of (plan.stairs || []).filter(o => o !== skip && o.level === 'M')) {
+    const [mx, mz] = stairXY(m), low = agentAt(inside, 'B', mx, mz);
+    if (low && AGENT_LANDING.has(low.type) && (low.w >= L + 2 && low.d >= W || low.d >= L + 2 && low.w >= W) && !stairClash(plan, { level, cx: mx, cz: mz, W, L }, skip))
+      return { cx: mx, cz: mz, dist: 0, low, high: agentAt(inside, 'M', mx, mz) || null, stacked: m };
+  }
   let best = null;
   for (const low of lows) for (const high of highs || [low]) {
     const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
@@ -6626,12 +6652,23 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
     if (!alongX && !alongZ) continue;
     const cx = +((x0 + x1) / 2).toFixed(2), cz = +((z0 + z1) / 2).toFixed(2);
     if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) continue;
+    if (stairClash(plan, { level, cx, cz, W, L }, skip)) continue;
     const dist = Math.hypot(cx - nx, cz - nz);
     if (!best || dist < best.dist) best = { cx, cz, dist, low, high: highs ? high : null };
   }
   return best;
 }
-const spotWords = (spot, level) => spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
+// Two flights on neighbouring floors share a floor: the lower one's opening is cut into it, and the upper one stands on it.
+// They may stack (centres within 3 ft: the builder runs them as one stairwell), but must not otherwise overlap there.
+// Which way a flight runs is the builder's choice, so each counts as an L × L square around its centre.
+function stairClash(plan, s, skip) {
+  const [cx, cz] = stairXY(s), L = s.L ?? 12;
+  return (plan.stairs || []).filter(o => o !== skip && o !== s && (agentUp(o.level) === s.level || agentUp(s.level) === o.level)).find(o => {
+    const [ox, oz] = stairXY(o), reach = (L + (o.L ?? 12)) / 2 + 1;
+    return Math.hypot(ox - cx, oz - cz) >= 3 && Math.abs(ox - cx) < reach && Math.abs(oz - cz) < reach;
+  }) || null;
+}
+const spotWords = (spot, level) => spot.stacked ? `under stair ${spot.stacked.id}, as one stairwell` : spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
 // After a pass: a stair stacked on another goes, and a stair that would come up through the roof or into a bedroom moves
 // to the nearest place that works. Returns what changed, as results the chat can show.
 export function agentFixStairs(plan) {
@@ -6641,8 +6678,8 @@ export function agentFixStairs(plan) {
     const twin = stairs.find(o => o !== s && o.level === s.level && (+o.id || 0) < (+s.id || 0) && Math.hypot(stairXY(o)[0] - cx, stairXY(o)[1] - cz) < 4);
     if (twin) { plan.stairs = plan.stairs.filter(o => o !== s); out.push({ kind: 'act', text: `Removed stair ${s.id}: stair ${twin.id} is already there.`, edit: true }); }
   }
-  for (const s of plan.stairs || []) {
-    if (agentStairOk(plan, s)) continue;
+  for (const s of [...(plan.stairs || [])].sort((a, b) => (a.level === 'B' ? 0 : 1) - (b.level === 'B' ? 0 : 1))) { // the basement flight gives way to the main one
+    if (agentStairOk(plan, s) && !stairClash(plan, s)) continue;
     const [cx, cz] = stairXY(s), spot = agentStairSpot(plan, s.level, s.W ?? 3.5, s.L ?? 12, cx, cz, s);
     if (!spot) continue; // nowhere better: the issue list says what is wrong
     s.cx = spot.cx; s.cz = spot.cz; delete s.x; delete s.z;
@@ -6717,6 +6754,8 @@ function agentLayout(rooms, stairs) {
     const here = agentAt(inside, s.level, cx, cz);
     if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
     else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    const clash = stairClash({ stairs }, s);
+    if (clash && (+clash.id || 0) > (+s.id || 0)) out.push(`Stairs ${s.id} and ${clash.id} run into each other: one comes up through the floor where the other stands. Stack the lower flight under the upper one, or move one.`);
     if (!up || !inside.some(r => r.level === up)) continue;
     const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
     if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
@@ -6894,7 +6933,7 @@ export function applyAgentLine(plan, line, types) {
     if (cx == null || cz == null || W == null || L == null) return say('err', 'A stair needs a center cx, cz.');
     plan.stairs = plan.stairs || [];
     const stair = { id: agentNextId(plan), level, cx, cz, W, L };
-    if (agentStairOk(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
+    if (agentStairOk(plan, stair) && !stairClash(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
     const spot = agentStairSpot(plan, level, W, L, cx, cz); // the spot asked for does not work: use the nearest one that does
     if (!spot) {
       const up = AGENT_LV[agentUp(level)] || 'floor above';

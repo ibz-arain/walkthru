@@ -160,6 +160,21 @@ function furnish(F, r, y, zones = []) {
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
+  const hard = near.filter(z => z.hard).map(z => z.hard);
+  if (hard.length && best.sc) clearHard(best.g, hard, y);
   best.g.userData.room = r.id; F.add(best.g); walkables.push(...best.g.userData.walk); // tagged so a right-click in 3D finds its room
+}
+// Nothing stands on a stair or in a stairwell opening, however tight the room: take out every piece that reaches into one.
+// A piece is all the meshes touching each other (a table's top and legs, a sofa's parts), so it goes whole.
+const _fa = new THREE.Box3();
+function clearHard(g, zones, y) {
+  g.updateMatrixWorld(true);
+  const parts = []; g.traverse(o => { if (o.isMesh && o.visible) { const b = new THREE.Box3().setFromObject(o); if (b.max.y - y >= .3) parts.push({ o, b }); } }); // rugs stay
+  const hit = b => zones.some(z => b.max.x > z.x0 && b.min.x < z.x1 && b.max.z > z.z0 && b.min.z < z.z1);
+  const gone = new Set(parts.filter(p => hit(p.b)));
+  for (let grew = true; grew;) { grew = false;
+    for (const p of parts) if (!gone.has(p)) for (const q of gone) if (_fa.copy(q.b).expandByScalar(.05).intersectsBox(p.b)) { gone.add(p); grew = true; break; } }
+  for (const { o } of gone) { o.parent?.remove(o); o.geometry?.dispose(); }
+  const removed = new Set([...gone].map(p => p.o)); g.userData.walk = (g.userData.walk || []).filter(m => !removed.has(m));
 }
 function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); }
