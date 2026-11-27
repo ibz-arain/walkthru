@@ -230,7 +230,8 @@ async function sendChat(text, files) {
   chatMsgs.push({ role: 'user', text, files });
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
-  const problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(problems());
+  const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
+  const startSnap = agentUndoSnap, startCount = agentBadness(BM);
   const build = agentWantsEdit(text, files);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
@@ -246,6 +247,11 @@ async function sendChat(text, files) {
       if (next.review) review = true;
       if (next.rechecked) rechecked = true;
       extra = next.extra;
+    }
+    if (agentRepairFailed(fixing, !!reply.steps?.some(s => s.k === 'act'), startCount, BM) && startSnap) { // the repair made things worse: put the house back
+      BM = JSON.parse(startSnap); if (PE.hist.at(-1) === startSnap) PE.hist.pop();
+      resetBID(); planChanged(); agentSettle();
+      agentNote(reply, { kind: 'say', text: AGENT_REVERTED });
     }
     const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
     if (left.length) agentNote(reply, { kind: 'say', text: agentLeftNote(left) });

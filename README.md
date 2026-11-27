@@ -43,7 +43,7 @@ npm test           # API tests against a throwaway database
 npm run eval:agent # design agent eval: real model, fixed requests, scored (uses your model quota)
 ```
 
-The agent eval sends 8 fixed requests (two new houses, resizes, a removal, an addition, a question, an ambiguous request) to the
+The agent eval sends 9 fixed requests (two new houses, resizes, a removal, an addition, a question, an ambiguous request, a repair) to the
 model in `.env`, runs them through the chat's own pass loop, and checks each result: the request was done, and no overlaps, gaps,
 or other plan issues were added. Options: `--only full2,narrow`, `--runs 3` (the model varies, so repeat to compare),
 `--model NAME`, `--backup NAME|none`, `--drawing plan.png` (adds a build-from-drawing case). Results are saved to

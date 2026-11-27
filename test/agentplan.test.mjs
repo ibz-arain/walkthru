@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAgentLine, agentIssues, agentBrief, feedAgentLine } from '../src/agentplan.js';
+import { applyAgentLine, agentIssues, agentBrief, feedAgentLine, agentRepairFailed, agentWantsFix, agentBadness } from '../src/agentplan.js';
 
 test('agent commands build a floor, then a bad command is refused', () => {
   const plan = { roof: 'hip', rooms: [], stairs: [], walls: {} };
@@ -27,6 +27,7 @@ test('agent commands build a floor, then a bad command is refused', () => {
   assert.equal(plan.rooms.some(r => r.name === 'Dining'), false);
   assert.match(agentBrief(plan), /Kitchen/);
   assert.equal(applyAgentLine(plan, 'The kitchen is on the main floor.').kind, 'say');
+  assert.equal(applyAgentLine(plan, '{"id":8}').kind, 'err', 'bare JSON is a broken command, not speech');
 
   const buf = { plan, hold: '' };
   assert.equal(feedAgentLine(buf, '@@add {"type":"hall","level":"M","name":"Hall","x":0,').length, 0);
@@ -206,7 +207,7 @@ test('layout checks: upper rooms past the main floor, long strips, loose rooms',
     { id: 22, type: 'porch', level: 'M', name: 'Porch', x: 0, z: -6, w: 12, d: 6 },
   ], stairs: [{ id: 30, level: 'M', cx: 6, cz: 7 }] };
   const issues = agentIssues(plan);
-  assert.ok(issues.some(i => /Loft .*hangs past/.test(i)));
+  assert.ok(issues.some(i => /Loft .*144 sq ft over nothing/.test(i)));
   assert.ok(issues.some(i => /main floor is a 96 × 30 ft strip/.test(i)), issues.join('\n'));
   assert.ok(issues.some(i => /Office .*touches no other room/.test(i)));
   assert.equal(issues.some(i => /Porch/.test(i)), false, 'outdoor spaces are left out');
@@ -214,7 +215,8 @@ test('layout checks: upper rooms past the main floor, long strips, loose rooms',
   const tidy = { rooms: [
     { id: 1, type: 'living', level: 'M', name: 'Living', x: 0, z: 0, w: 20, d: 16 },
     { id: 2, type: 'kitchen', level: 'M', name: 'Kitchen', x: 20, z: 0, w: 16, d: 16 },
-    { id: 3, type: 'primary', level: 'U', name: 'Primary', x: 0, z: 0, w: 20, d: 16 },
+    { id: 3, type: 'primary', level: 'U', name: 'Primary', x: 0, z: 0, w: 16, d: 16 },
+    { id: 7, type: 'hall', level: 'U', name: 'Landing', x: 16, z: 0, w: 4, d: 16 },
     { id: 4, type: 'bedroom', level: 'U', name: 'Bed 2', x: 20, z: 0, w: 16, d: 16 },
   ], stairs: [{ id: 5, level: 'M', cx: 18, cz: 8 }] };
   assert.deepEqual(agentIssues(tidy), []);
@@ -253,4 +255,42 @@ test('rooms on either side of a hall are not a gap', () => {
   assert.equal(agentIssues(plan).some(i => /gap/.test(i)), false);
   plan.rooms.splice(1, 1);
   assert.ok(agentIssues(plan).some(i => /Bed 1 and Bed 2 have a 4.0 ft gap/.test(i)), 'without the hall it is a gap');
+});
+
+test('the plan from a bug report: notches, gaps, an overhang, and a stair arriving in a bedroom', () => {
+  const R = [[1, 'Living', 'living', 'M', 0, 0, 12, 16], [2, 'Kitchen', 'kitchen', 'M', 12, 12, 16, 8], [3, 'Foyer', 'foyer', 'M', 12, 4, 8, 8], [4, 'Dining', 'dining', 'M', 20, 0, 16, 12],
+    [5, 'Hall', 'hall', 'M', 0, 20, 32, 4], [6, 'Powder', 'powder', 'M', 28, 12, 8, 8], [7, 'Garage', 'garage', 'M', 32, 20, 16, 20], [8, 'Primary', 'primary', 'U', 0, 0, 16, 14],
+    [9, 'Bed2', 'bedroom', 'U', 16, 0, 16, 14], [10, 'UpperHall', 'hall', 'U', 0, 14, 28, 6], [11, 'Bed3', 'bedroom', 'U', 0, 20, 16, 14], [12, 'Bed4', 'bedroom', 'U', 16, 20, 16, 14]];
+  const plan = { rooms: R.map(([id, name, type, level, x, z, w, d]) => ({ id, name, type, level, x, z, w, d })), stairs: [{ id: 15, level: 'M', cx: 2, cz: 22 }] };
+  const issues = agentIssues(plan).join('\n');
+  assert.match(issues, /main floor outline has a 8 × 4 ft notch \(x 12–20, z 0–4\)/);
+  assert.match(issues, /Living and Hall have a 4.0 ft gap on the main floor/);
+  assert.match(issues, /Bed2 and Bed4 have a 6.0 ft gap on the second floor/);
+  assert.match(issues, /Bed3 on the second floor has 160 sq ft over nothing/);
+  assert.match(issues, /Stair 15 comes up inside Bed3/);
+});
+
+test('a hole inside a floor, a stair outside any room, and a normal corner step', () => {
+  const ring = { rooms: [
+    { id: 1, type: 'living', level: 'M', name: 'A', x: 0, z: 0, w: 30, d: 8 }, { id: 2, type: 'dining', level: 'M', name: 'B', x: 0, z: 18, w: 30, d: 8 },
+    { id: 3, type: 'hall', level: 'M', name: 'C', x: 0, z: 8, w: 10, d: 10 }, { id: 4, type: 'office', level: 'M', name: 'D', x: 20, z: 8, w: 10, d: 10 },
+  ], stairs: [{ id: 5, level: 'M', cx: 40, cz: 5 }] };
+  const issues = agentIssues(ring).join('\n');
+  assert.match(issues, /empty 10 × 10 ft space inside the main floor/);
+  assert.match(issues, /Stair 5 on the main floor is not inside a room/);
+  const step = { rooms: [{ id: 1, type: 'living', level: 'M', name: 'Living', x: 0, z: 0, w: 16, d: 18 }, { id: 2, type: 'kitchen', level: 'M', name: 'Kitchen', x: 16, z: 0, w: 14, d: 14 }], stairs: [] };
+  assert.deepEqual(agentIssues(step), [], 'a 4 ft step at a corner is just the outline');
+});
+
+test('a repair that does not reduce the problems is undone', () => {
+  const plan = { rooms: [{ id: 1, type: 'living', level: 'M', name: 'Living', x: 0, z: 0, w: 10, d: 10 }, { id: 2, type: 'kitchen', level: 'M', name: 'Kitchen', x: 12, z: 0, w: 10, d: 10 }], stairs: [] };
+  const before = agentBadness(plan);
+  assert.equal(before, 3, 'the gap, and each room touches nothing');
+  assert.ok(agentWantsFix('fix the alignment of the top floor')); assert.equal(agentWantsFix('add a bedroom'), false);
+  applyAgentLine(plan, '@@set {"id":2,"x":5}');
+  assert.equal(agentIssues(plan, Infinity).length, 1, 'one problem left, but it is an overlap');
+  assert.equal(agentRepairFailed(true, true, before, plan), true, 'an overlap is worse than a gap: put it back');
+  applyAgentLine(plan, '@@set {"id":2,"x":10,"z":0}');
+  assert.equal(agentRepairFailed(true, true, before, plan), false, 'fixed: keep it');
+  assert.equal(agentRepairFailed(false, true, 0, plan), false, 'only repairs are judged this way');
 });

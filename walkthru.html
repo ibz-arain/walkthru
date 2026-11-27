@@ -6493,50 +6493,98 @@ function agentFit(plan, room, before) {
 // How a floor reads as a house: upper rooms need a floor under them, a floor should not be one long strip, and every room
 // should touch another. Porches, decks and balconies sit outside the walls, so they are left out.
 const AGENT_OUTSIDE = new Set(['porch', 'deck', 'balcony', 'bridge']);
-function agentLayout(rooms) {
-  const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
-  for (const r of inside) {
-    if (r.level === 'M' || !main.length || r.level !== 'U') continue;
-    const under = main.reduce((a, m) => a + agentArea(r, m), 0);
-    if (under < .6 * r.w * r.d) out.push(`${agentLabel(r)} on the second floor hangs past the main floor. Keep upper rooms over main-floor rooms.`);
+const AGENT_LANDING = new Set(['hall', 'foyer', 'open', 'great', 'living', 'rec', 'mud']); // where a stair may start and arrive
+const ft = n => String(+n.toFixed(1));
+const agentAt = (rooms, lv, x, z) => rooms.find(r => r.level === lv && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
+const agentUp = lv => ({ B: 'M', M: 'U' })[lv];
+
+// Empty space on one floor, found on a half-foot grid: a slot between two rooms is a gap, an enclosed space is a hole,
+// and a small bite out of the outline is a notch. A long step in the outline (beside a garage, say) is left alone.
+function agentEmpty(on, where) {
+  const S = 2, out = [];
+  const x0 = Math.floor(Math.min(...on.map(r => r.x))), x1 = Math.ceil(Math.max(...on.map(r => r.x + r.w)));
+  const z0 = Math.floor(Math.min(...on.map(r => r.z))), z1 = Math.ceil(Math.max(...on.map(r => r.z + r.d)));
+  const W = (x1 - x0) * S, D = (z1 - z0) * S;
+  if (!(W > 0 && D > 0) || W * D > 250_000) return out;
+  const full = new Uint8Array(W * D);
+  for (const r of on) {
+    const i0 = Math.max(0, Math.round((r.x - x0) * S)), i1 = Math.min(W, Math.round((r.x + r.w - x0) * S));
+    const j0 = Math.max(0, Math.round((r.z - z0) * S)), j1 = Math.min(D, Math.round((r.z + r.d - z0) * S));
+    for (let j = j0; j < j1; j++) full.fill(1, j * W + i0, j * W + i1);
   }
-  for (const lv of new Set(inside.map(r => r.level))) {
-    const on = inside.filter(r => r.level === lv); if (on.length < 2) continue;
-    const body = on.filter(r => r.type !== 'garage'); if (!body.length) continue; // an attached garage makes a long house, not a strip
-    const x0 = Math.min(...body.map(r => r.x)), x1 = Math.max(...body.map(r => r.x + r.w)), z0 = Math.min(...body.map(r => r.z)), z1 = Math.max(...body.map(r => r.z + r.d));
-    const long = Math.max(x1 - x0, z1 - z0), short = Math.min(x1 - x0, z1 - z0);
-    if (long > 60 && long > 2.5 * short) out.push(`The ${AGENT_LV[lv] || lv} is a ${Math.round(x1 - x0)} × ${Math.round(z1 - z0)} ft strip. Arrange its rooms in two or three rows instead.`);
-    for (const r of on) if (!on.some(o => agentTouch(r, o)) && !on.some(o => o !== r && agentOverlap(r, o))) out.push(`${agentLabel(r)} on the ${AGENT_LV[lv] || lv} touches no other room.`);
+  const span = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
+  for (let start = 0; start < full.length; start++) {
+    if (full[start]) continue;
+    let n = 0, edge = false, ci0 = W, ci1 = 0, cj0 = D, cj1 = 0;
+    const stack = [start]; full[start] = 2;
+    while (stack.length) {
+      const c = stack.pop(), i = c % W, j = (c - i) / W; n++;
+      if (i < ci0) ci0 = i; if (i > ci1) ci1 = i; if (j < cj0) cj0 = j; if (j > cj1) cj1 = j;
+      if (i === 0 || j === 0 || i === W - 1 || j === D - 1) edge = true;
+      for (const k of [i > 0 && c - 1, i < W - 1 && c + 1, j > 0 && c - W, j < D - 1 && c + W]) if (k !== false && !full[k]) { full[k] = 2; stack.push(k); }
+    }
+    const area = n / (S * S); if (area < 1) continue;
+    const rx0 = x0 + ci0 / S, rx1 = x0 + (ci1 + 1) / S, rz0 = z0 + cj0 / S, rz1 = z0 + (cj1 + 1) / S, w = rx1 - rx0, d = rz1 - rz0;
+    const at = `(x ${ft(rx0)}–${ft(rx1)}, z ${ft(rz0)}–${ft(rz1)})`;
+    const left = on.find(r => Math.abs(r.x + r.w - rx0) < .3 && span(r.z, r.z + r.d, rz0, rz1) > .4), right = on.find(r => Math.abs(r.x - rx1) < .3 && span(r.z, r.z + r.d, rz0, rz1) > .4);
+    const front = on.find(r => Math.abs(r.z + r.d - rz0) < .3 && span(r.x, r.x + r.w, rx0, rx1) > .4), back = on.find(r => Math.abs(r.z - rz1) < .3 && span(r.x, r.x + r.w, rx0, rx1) > .4);
+    if (w <= 6 && left && right) out.push(`${agentLabel(left)} and ${agentLabel(right)} have a ${w.toFixed(1)} ft gap on the ${where} ${at}. Make their edges meet.`);
+    else if (d <= 6 && front && back) out.push(`${agentLabel(front)} and ${agentLabel(back)} have a ${d.toFixed(1)} ft gap on the ${where} ${at}. Make their edges meet.`);
+    else if (!edge) out.push(`There is an empty ${ft(w)} × ${ft(d)} ft space inside the ${where} ${at}. Grow a neighbour into it, or add a room there.`);
+    else if (area <= 72 && ((left && right) || (front && back) ? Math.min(w, d) <= 8 : Math.min(w, d) <= 3)) { // a recess between rooms, or a thin sliver at a corner (a wider corner step is just the outline)
+      const by = [...new Set([left, right, front, back].filter(Boolean).map(agentLabel))].slice(0, 2);
+      out.push(`The ${where} outline has a ${ft(w)} × ${ft(d)} ft notch ${at}${by.length ? ` next to ${by.join(' and ')}` : ''}. Grow a neighbour into it so the outside walls run straight.`);
+    }
   }
   return out;
 }
 
-export function agentIssues(plan) {
+// How each floor reads as a house: no empty space, upper rooms over the floor below, no long strips, no loose rooms,
+// and stairs that start and arrive in a hall or open room.
+function agentLayout(rooms, stairs) {
+  const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
+  for (const lv of new Set(inside.map(r => r.level))) {
+    const on = inside.filter(r => r.level === lv), where = AGENT_LV[lv] || lv;
+    if (on.length >= 2) out.push(...agentEmpty(rooms.filter(r => r.level === lv), where)); // a porch or deck may fill a notch
+    const body = on.filter(r => r.type !== 'garage'); // an attached garage makes a long house, not a strip
+    if (body.length >= 2) {
+      const x0 = Math.min(...body.map(r => r.x)), x1 = Math.max(...body.map(r => r.x + r.w)), z0 = Math.min(...body.map(r => r.z)), z1 = Math.max(...body.map(r => r.z + r.d));
+      const long = Math.max(x1 - x0, z1 - z0), short = Math.min(x1 - x0, z1 - z0);
+      if (long > 60 && long > 2.5 * short) out.push(`The ${where} is a ${Math.round(x1 - x0)} × ${Math.round(z1 - z0)} ft strip. Arrange its rooms in two or three rows instead.`);
+    }
+    if (on.length >= 2) for (const r of on) if (!on.some(o => agentTouch(r, o)) && !on.some(o => o !== r && agentOverlap(r, o))) out.push(`${agentLabel(r)} on the ${where} touches no other room.`);
+  }
+  if (main.length) for (const r of inside.filter(q => q.level === 'U')) { // the second floor stands on the main floor (a garage counts)
+    const loose = r.w * r.d - main.reduce((a, m) => a + agentArea(r, m), 0);
+    if (loose > Math.max(4, .05 * r.w * r.d)) out.push(`${agentLabel(r)} on the second floor has ${Math.round(loose)} sq ft over nothing. Keep it over main-floor rooms, or grow the main floor under it.`);
+  }
+  for (const s of stairs) {
+    const cx = +(s.cx ?? s.x), cz = +(s.cz ?? s.z), where = AGENT_LV[s.level] || s.level, up = agentUp(s.level);
+    if (!Number.isFinite(cx) || !Number.isFinite(cz)) continue;
+    const here = agentAt(inside, s.level, cx, cz);
+    if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
+    else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    if (!up || !inside.some(r => r.level === up)) continue;
+    const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
+    if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
+    else if (!AGENT_LANDING.has(above.type)) out.push(`Stair ${s.id} comes up inside ${agentLabel(above)} on the ${there}. Put a hall over it.`);
+  }
+  return out;
+}
+
+// The first `limit` problems in the plan (Infinity to count them all).
+export function agentIssues(plan, limit = 10) {
   const rooms = Array.isArray(plan?.rooms) ? plan.rooms : [], stairs = Array.isArray(plan?.stairs) ? plan.stairs : [], out = [];
   const levels = new Set(rooms.map(r => r.level));
-  for (let i = 0; i < rooms.length; i++) for (let j = i + 1; j < rooms.length; j++) {
+  const most = limit === Infinity ? Infinity : Math.min(5, limit);
+  for (let i = 0; i < rooms.length && out.length < most; i++) for (let j = i + 1; j < rooms.length && out.length < most; j++) {
     const a = rooms[i], b = rooms[j];
-    if (a.level !== b.level) continue;
-    const overlap = a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05;
-    if (overlap) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
-    if (out.length >= 8) return out;
-    const zo = Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z), xo = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    let gap = 0, strip = null; // the empty space between them, if nothing else fills it
-    if (zo > 1) {
-      gap = a.x + a.w <= b.x ? b.x - (a.x + a.w) : b.x + b.w <= a.x ? a.x - (b.x + b.w) : 0;
-      if (gap) strip = { x: Math.min(a.x + a.w, b.x + b.w), w: gap, z: Math.max(a.z, b.z), d: zo };
-    } else if (xo > 1) {
-      gap = a.z + a.d <= b.z ? b.z - (a.z + a.d) : b.z + b.d <= a.z ? a.z - (b.z + b.d) : 0;
-      if (gap) strip = { z: Math.min(a.z + a.d, b.z + b.d), d: gap, x: Math.max(a.x, b.x), w: xo };
-    }
-    if (strip && rooms.some(o => o !== a && o !== b && o.level === a.level && agentOverlap(o, strip))) gap = 0; // a hall or room sits between them
-    if (gap > .2 && gap < 6) out.push(`${agentLabel(a)} and ${agentLabel(b)} have a ${gap.toFixed(1)} ft gap. Make their edges meet.`);
-    if (out.length >= 8) return out;
+    if (a.level === b.level && agentOverlap(a, b)) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
   }
-  out.push(...agentLayout(rooms));
+  out.push(...agentLayout(rooms, stairs));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
-  return out.slice(0, 8);
+  return out.slice(0, limit);
 }
 
 // `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
@@ -6571,6 +6619,7 @@ export function applyAgentLine(plan, line, types) {
   if (!plan.stairs) plan.stairs = [];
   const raw = String(line ?? '').trim();
   if (!raw) return { kind: 'say', text: '' };
+  if (/^\{.*\}$/.test(raw)) return { kind: 'err', text: 'That line was a command without its @@ name.' }; // bare JSON is never meant for the user
   if (!raw.startsWith('@@')) return { kind: 'say', text: raw };
   const sp = raw.indexOf(' ');
   const cmd = (sp < 0 ? raw.slice(2) : raw.slice(2, sp)).toLowerCase();
@@ -6745,6 +6794,8 @@ function keepAgent(res) {
 
 // ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
 export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
+// A request to repair the plan: then every problem counts, not only the ones this message made.
+export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
 export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
 // Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
 // or after AGENT_PASS_EDITS changes, so the next pass reads the plan and its issues. Each call returns the results to show.
@@ -6790,6 +6841,11 @@ export function agentApplied(steps) {
   const acts = (steps || []).filter(s => s.k === 'act').map(s => '- ' + s.t).slice(-30);
   return acts.length ? `Already done for this message (do not repeat these; each size change is applied and final):\n${acts.join('\n')}\n\n` : '';
 }
+// A repair that left the plan with as many problems as before (or more) is undone: a failed fix must not make things worse.
+// How bad a plan is: overlaps weigh most, then rooms over nothing and stair problems, then gaps, notches, and loose rooms.
+export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair/.test(i) ? 2 : 1), 0);
+export const agentRepairFailed = (fixing, acted, before, plan) => fixing && acted && agentBadness(plan) >= before;
+export const AGENT_REVERTED = 'I couldn’t improve the plan this time, so I put it back the way it was. Try one fix at a time, like “close the gap between Living and Hall”.';
 export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;
 
 // =====================================================================
@@ -7024,7 +7080,8 @@ async function sendChat(text, files) {
   chatMsgs.push({ role: 'user', text, files });
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
-  const problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(problems());
+  const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
+  const startSnap = agentUndoSnap, startCount = agentBadness(BM);
   const build = agentWantsEdit(text, files);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
@@ -7040,6 +7097,11 @@ async function sendChat(text, files) {
       if (next.review) review = true;
       if (next.rechecked) rechecked = true;
       extra = next.extra;
+    }
+    if (agentRepairFailed(fixing, !!reply.steps?.some(s => s.k === 'act'), startCount, BM) && startSnap) { // the repair made things worse: put the house back
+      BM = JSON.parse(startSnap); if (PE.hist.at(-1) === startSnap) PE.hist.pop();
+      resetBID(); planChanged(); agentSettle();
+      agentNote(reply, { kind: 'say', text: AGENT_REVERTED });
     }
     const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
     if (left.length) agentNote(reply, { kind: 'say', text: agentLeftNote(left) });

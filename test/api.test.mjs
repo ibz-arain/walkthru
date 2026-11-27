@@ -230,7 +230,12 @@ test('the agent talks to Gemini when its key is set, and explains its errors', a
     reply = () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.' } }]), { status: 400 });
     assert.match((await ask()).body.error, /Google rejected the API key/);
     reply = () => new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 });
-    assert.match((await ask()).body.error, /free allowance/);
+    assert.match((await ask()).body.error, /free allowance/, 'every model out of quota');
+    process.env.AGENT_MODEL = 'gemini-quota-model'; const seen = [];
+    globalThis.fetch = async (url, init) => { const b = JSON.parse(init.body); seen.push(b.model); sent = { url, headers: init.headers, body: b };
+      return b.model === 'gemini-quota-model' ? new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 }) : new Response('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n', { status: 200 }); };
+    assert.equal((await ask()).code, 200); assert.deepEqual(seen, ['gemini-quota-model', 'gemini-flash-lite-latest'], 'out of quota goes straight to the backup');
+    globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
 
     delete process.env.GEMINI_API_KEY; delete process.env.AGENT_MODEL;
     reply = () => new Response('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n', { status: 200 });

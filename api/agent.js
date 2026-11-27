@@ -59,7 +59,7 @@ ISSUES
 Every issue in the design block is yours to fix before the next floor and before @@done: overlaps, gaps, rooms touching nothing, upper rooms hanging past the main floor, floors stretched into one long strip, missing stairs.`;
 // Each pass of a reply is one request. A message usually takes 1 to 3 passes, so this is about 50 to 100 messages a day.
 const DAILY_LIMIT = () => Math.max(1, +process.env.AGENT_DAILY_LIMIT || 200);
-const busyUntil = new Map(), BUSY_FOR = 120_000; // a model that was overloaded is skipped for a while (per warm server instance)
+const busyUntil = new Map(), BUSY_FOR = 120_000, QUOTA_FOR = 600_000; // a model that was overloaded is skipped for a while (per warm server instance)
 const START_LIMIT = 15_000; // how long one attempt may take to start answering before the next is tried
 const TIME_LIMIT = 52_000; // Vercel stops the function at 60 s (vercel.json maxDuration): finish the reply well before that
 // Count one request for this person today; false when they are over the limit.
@@ -151,7 +151,13 @@ export default route({
       clearTimeout(slow);
       if (upstream.ok || ![429, 500, 503].includes(upstream.status) || i === tries.length - 1 || Date.now() - started > TIME_LIMIT / 2) break;
       const peek = await upstream.clone().text().catch(() => '');
-      if (/quota|per day|exhausted/i.test(peek)) break; // out of allowance: waiting will not help
+      if (/quota|per day|exhausted/i.test(peek)) { // out of allowance: waiting will not help, but another model has its own quota
+        const other = tries.findIndex((m, k) => k > i && m !== model);
+        if (other < 0) break;
+        busyUntil.set(model, Date.now() + QUOTA_FOR);
+        console.error('agent', ai.name, upstream.status, model, 'out of quota, trying', tries[other]);
+        i = other - 1; continue;
+      }
       busyUntil.set(model, Date.now() + BUSY_FOR);
       console.error('agent', ai.name, upstream.status, model, 'busy, trying again');
       if (tries[i + 1] === model) await new Promise(r => setTimeout(r, 1200));

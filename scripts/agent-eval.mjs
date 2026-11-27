@@ -33,7 +33,7 @@ const { agentProvider } = await import('../api/_lib/ai.js');
 const ai = agentProvider();
 if (!ai) { console.error('No GEMINI_API_KEY or OPENROUTER_API_KEY in .env'); process.exit(1); }
 const agent = (await import('../api/agent.js')).default, auth = (await import('../api/auth.js')).default;
-const { agentPass, agentNext, agentApplied, agentWantsEdit, agentIssues, AGENT_PASSES } = await import('../src/agentplan.js');
+const { agentPass, agentNext, agentApplied, agentWantsEdit, agentWantsFix, agentIssues, agentRepairFailed, agentBadness, AGENT_PASSES } = await import('../src/agentplan.js');
 
 // ---------- a signed-in user, like one browser ----------
 let cookie = '';
@@ -62,7 +62,7 @@ const HOUSE = () => ({
     room(10, 'bedroom', 'U', 'Bed 1', 24, 0, 12, 14), room(11, 'hall', 'U', 'Upper Hall', 0, 14, 36, 4), room(12, 'bedroom', 'U', 'Bed 2', 0, 18, 14, 10),
     room(13, 'bath', 'U', 'Bath', 14, 18, 8, 10), room(14, 'bedroom', 'U', 'Bed 3', 22, 18, 14, 10),
   ],
-  stairs: [{ id: 15, level: 'M', cx: 4, cz: 19, W: 3.5, L: 12 }],
+  stairs: [{ id: 15, level: 'M', cx: 4, cz: 16, W: 3.5, L: 12 }], // in the hall, under the upper hall
 });
 const EMPTY = () => ({ roof: 'hip', rooms: [], stairs: [], walls: {}, items: [] });
 const named = (plan, n) => plan.rooms.find(r => String(r.name).toLowerCase() === n.toLowerCase());
@@ -103,6 +103,15 @@ const CASES = [
   { id: 'ambiguous', start: HOUSE, text: 'Remove the bedroom.',
     check: (p, s, r) => [!r.asked && 'did not ask which bedroom', p.rooms.length !== s.rooms.length && 'removed a room without asking'] },
 ];
+// The house from a real bug report: notches, a gap, a second floor hanging past the main floor, a stair arriving in a bedroom.
+const BROKEN = () => ({ roof: 'hip', walls: {}, items: [], rooms: [
+  room(1, 'living', 'M', 'Living', 0, 0, 12, 16), room(2, 'kitchen', 'M', 'Kitchen', 12, 12, 16, 8), room(3, 'foyer', 'M', 'Foyer', 12, 4, 8, 8),
+  room(4, 'dining', 'M', 'Dining', 20, 0, 16, 12), room(5, 'hall', 'M', 'Hall', 0, 20, 32, 4), room(6, 'powder', 'M', 'Powder', 28, 12, 8, 8),
+  room(7, 'garage', 'M', 'Garage', 32, 20, 16, 20), room(8, 'primary', 'U', 'Primary', 0, 0, 16, 14), room(9, 'bedroom', 'U', 'Bed2', 16, 0, 16, 14),
+  room(10, 'hall', 'U', 'UpperHall', 0, 14, 28, 6), room(11, 'bedroom', 'U', 'Bed3', 0, 20, 16, 14), room(12, 'bedroom', 'U', 'Bed4', 16, 20, 16, 14),
+], stairs: [{ id: 15, level: 'M', cx: 2, cz: 22, W: 3, L: 10 }] });
+CASES.push({ id: 'repair', start: BROKEN, text: 'Fix the layout problems in this house.',
+  check: (p, s) => [beds(p, 'U').length < 4 && `${beds(p, 'U').length} bedrooms upstairs, it had 4`] });
 if (opt.drawing) {
   const file = String(opt.drawing), ext = path.extname(file).slice(1).toLowerCase();
   const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif', pdf: 'application/pdf' }[ext];
@@ -117,7 +126,7 @@ const planFor = p => ({ ...p, rooms: p.rooms.map(r => ({ ...r })), stairs: p.sta
 async function runCase(c) {
   const plan = c.start(), start = JSON.parse(JSON.stringify(plan));
   const user = { role: 'user', text: c.text, files: c.files || [] }, reply = { role: 'assistant', raw: '', steps: [] };
-  const before = new Set(agentIssues(plan)), build = agentWantsEdit(c.text, c.files);
+  const before = new Set(agentWantsFix(c.text) ? [] : agentIssues(plan)), build = agentWantsEdit(c.text, c.files);
   const r = { passes: 0, edits: 0, errors: 0, asked: false, said: '', models: [], failure: '', ms: 0 };
   const t0 = Date.now();
   let extra = null, rechecked = false;
@@ -145,8 +154,11 @@ async function runCase(c) {
     extra = next.extra;
   }
   r.ms = Date.now() - t0;
+  if (agentRepairFailed(agentWantsFix(c.text), reply.steps.some(s => s.k === 'act'), agentBadness(start), plan)) { // as the chat does
+    for (const k of Object.keys(plan)) delete plan[k]; Object.assign(plan, JSON.parse(JSON.stringify(start))); r.reverted = true;
+  }
   r.issues = agentIssues(plan).filter(i => !before.has(i));
-  r.misses = r.failure ? [r.failure] : c.check(plan, start, r).filter(Boolean);
+  r.misses = r.failure ? [r.failure] : [r.reverted && 'the repair made things worse, so it was undone', ...c.check(plan, start, r)].filter(Boolean);
   r.pass = !r.failure && !r.misses.length && !r.issues.length;
   r.plan = plan; r.steps = reply.steps; r.raw = reply.raw;
   return r;
