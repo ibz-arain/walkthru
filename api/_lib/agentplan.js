@@ -214,9 +214,15 @@ export function agentIssues(plan) {
     if (overlap) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
     if (out.length >= 8) return out;
     const zo = Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z), xo = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    let gap = 0;
-    if (zo > 1) gap = a.x + a.w <= b.x ? b.x - (a.x + a.w) : b.x + b.w <= a.x ? a.x - (b.x + b.w) : 0;
-    else if (xo > 1) gap = a.z + a.d <= b.z ? b.z - (a.z + a.d) : b.z + b.d <= a.z ? a.z - (b.z + b.d) : 0;
+    let gap = 0, strip = null; // the empty space between them, if nothing else fills it
+    if (zo > 1) {
+      gap = a.x + a.w <= b.x ? b.x - (a.x + a.w) : b.x + b.w <= a.x ? a.x - (b.x + b.w) : 0;
+      if (gap) strip = { x: Math.min(a.x + a.w, b.x + b.w), w: gap, z: Math.max(a.z, b.z), d: zo };
+    } else if (xo > 1) {
+      gap = a.z + a.d <= b.z ? b.z - (a.z + a.d) : b.z + b.d <= a.z ? a.z - (b.z + b.d) : 0;
+      if (gap) strip = { z: Math.min(a.z + a.d, b.z + b.d), d: gap, x: Math.max(a.x, b.x), w: xo };
+    }
+    if (strip && rooms.some(o => o !== a && o !== b && o.level === a.level && agentOverlap(o, strip))) gap = 0; // a hall or room sits between them
     if (gap > .2 && gap < 6) out.push(`${agentLabel(a)} and ${agentLabel(b)} have a ${gap.toFixed(1)} ft gap. Make their edges meet.`);
     if (out.length >= 8) return out;
   }
@@ -429,3 +435,52 @@ function keepAgent(res) {
   if ((res.kind === 'say' || res.kind === 'think') && !res.text) return [];
   return [res];
 }
+
+// ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
+export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
+export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
+// Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
+// or after AGENT_PASS_EDITS changes, so the next pass reads the plan and its issues. Each call returns the results to show.
+export function agentPass(plan, types) {
+  const buf = { plan, types, hold: '' };
+  const out = { done: false, more: false, ask: false, edited: false, ended: false, edits: 0, errors: [], raw: '' };
+  const take = list => {
+    const shown = [];
+    for (const res of list) {
+      if (out.ended) break;
+      shown.push(res);
+      if (res.kind === 'ask') out.ask = out.done = true;
+      if (res.kind === 'done') out.done = true;
+      if (res.kind === 'more') out.more = true;
+      if (res.kind === 'ask' || res.kind === 'done' || res.kind === 'more') out.ended = true;
+      if (res.kind === 'err') out.errors.push(res.text);
+      if (res.edit) { out.edited = true; out.edits++; }
+      if (out.edits >= AGENT_PASS_EDITS && !out.ended) out.ended = out.more = true;
+    }
+    return shown;
+  };
+  return { out, line: l => { if (out.ended) return []; out.raw += l + '\n'; return take(feedAgentLine(buf, l)); }, end: () => out.ended ? [] : take(flushAgentLine(buf)) };
+}
+// What to do after a pass: { finish }, { stop }, or the hidden note (extra) that starts the next pass.
+// s: { step, build, rechecked, acted (anything changed this message), fresh() (problems this message added) }
+export function agentNext(turn, s) {
+  if (turn.ask) return { finish: true };
+  if (turn.errors.length) return { review: true, extra: `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.` };
+  if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
+    const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
+    if (!fresh.length) return { finish: true };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+  }
+  if (!turn.edited && !turn.more) {
+    if (!s.build || s.step > 1) return { stop: true };
+    return { extra: 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.' };
+  }
+  if (!turn.edited) return { stop: true };
+  return { extra: 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.' };
+}
+// The changes already made this message, put in front of each follow-up note so nothing is done twice.
+export function agentApplied(steps) {
+  const acts = (steps || []).filter(s => s.k === 'act').map(s => '- ' + s.t).slice(-30);
+  return acts.length ? `Already done for this message (do not repeat these; each size change is applied and final):\n${acts.join('\n')}\n\n` : '';
+}
+export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;

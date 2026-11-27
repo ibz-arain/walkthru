@@ -170,6 +170,7 @@ export default route({
     res.statusCode = 200;
     res.setHeader('content-type', 'text/plain; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
+    res.setHeader('x-agent-model', model); // which model answered: the main one or the backup
     let buf = '', wrote = false;
     try {
       const reader = upstream.body.getReader(), dec = new TextDecoder();

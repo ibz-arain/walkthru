@@ -6,7 +6,8 @@
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.mjs",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "eval:agent": "node scripts/agent-eval.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0"

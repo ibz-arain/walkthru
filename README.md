@@ -40,7 +40,14 @@ npm install
 npm run dev        # http://localhost:8787  — uses .data/local.db (SQLite) unless .env.local points at Turso
 npm run seed       # optional: a demo studio account (see scripts/seed.mjs for the login)
 npm test           # API tests against a throwaway database
+npm run eval:agent # design agent eval: real model, fixed requests, scored (uses your model quota)
 ```
+
+The agent eval sends 8 fixed requests (two new houses, resizes, a removal, an addition, a question, an ambiguous request) to the
+model in `.env`, runs them through the chat's own pass loop, and checks each result: the request was done, and no overlaps, gaps,
+or other plan issues were added. Options: `--only full2,narrow`, `--runs 3` (the model varies, so repeat to compare),
+`--model NAME`, `--backup NAME|none`, `--drawing plan.png` (adds a build-from-drawing case). Results are saved to
+`.data/agent-eval/` so a model or prompt change can be compared with the last run.
 
 ## Deploy (Vercel + Turso)
 

@@ -243,3 +243,14 @@ test('the room over a resized room changes with it, so the floor above stays clo
   assert.deepEqual(plan.rooms.map(r => [r.x, r.w]), [[0, 20], [20, 12], [0, 20], [20, 12]]);
   assert.equal(agentIssues(plan).some(i => /overlaps|gap/.test(i)), false);
 });
+
+test('rooms on either side of a hall are not a gap', () => {
+  const plan = { rooms: [
+    { id: 1, type: 'bedroom', level: 'U', name: 'Bed 1', x: 0, z: 0, w: 12, d: 12 },
+    { id: 2, type: 'hall', level: 'U', name: 'Hall', x: 0, z: 12, w: 24, d: 4 },
+    { id: 3, type: 'bedroom', level: 'U', name: 'Bed 2', x: 0, z: 16, w: 12, d: 12 },
+  ], stairs: [{ id: 4, level: 'M', cx: 2, cz: 2 }] };
+  assert.equal(agentIssues(plan).some(i => /gap/.test(i)), false);
+  plan.rooms.splice(1, 1);
+  assert.ok(agentIssues(plan).some(i => /Bed 1 and Bed 2 have a 4.0 ft gap/.test(i)), 'without the hall it is a gap');
+});

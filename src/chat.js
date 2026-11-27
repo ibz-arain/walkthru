@@ -186,7 +186,6 @@ function agentNote(reply, res) {
 }
 // One pass: stream the model's lines, and apply each edit as it arrives.
 let chatCtl = null; // aborts the request in flight (Stop, or New chat)
-const AGENT_PASS_EDITS = 14;
 async function agentTurn(gen, reply, extra) {
   const r = await fetch('/api/agent', {
     method: 'POST', headers: { 'content-type': 'application/json' }, signal: chatCtl?.signal,
@@ -199,39 +198,29 @@ async function agentTurn(gen, reply, extra) {
     agentNote(reply, { kind: 'say', text: msg });
     return { stop: true };
   }
-  const buf = { plan: BM, types: new Set(Object.keys(RT)), hold: '' };
-  const reader = r.body.getReader(), dec = new TextDecoder();
-  let raw = '', pending = '';
-  const out = { done: false, more: false, edited: false, ended: false, errors: [], raw: '' };
-  const take = async list => {
+  const pass = agentPass(BM, new Set(Object.keys(RT)));
+  const show = async list => {
     for (const res of list) {
-      if (gen !== chatGen || out.ask) return;
+      if (gen !== chatGen) return;
       agentNote(reply, res);
-      if (res.kind === 'ask') { out.ask = true; out.done = true; }
-      if (res.kind === 'done') out.done = true;
-      if (res.kind === 'more') out.more = true;
-      if (res.kind === 'ask' || res.kind === 'done' || res.kind === 'more') out.ended = true;
-      if (res.kind === 'err') out.errors.push(res.text);
-      if (res.edit) { out.edited = true; out.edits = (out.edits || 0) + 1; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
-      if (out.edits >= AGENT_PASS_EDITS && !out.ended) { out.ended = out.more = true; return; } // a long pass stops here so the next one reads the plan and its issues
+      if (res.edit) { agentShow(); await new Promise(r => requestAnimationFrame(r)); }
     }
   };
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let pending = '';
   while (true) {
     const { done, value } = await reader.read();
     if (gen !== chatGen) { reader.cancel(); return { stop: true }; }
     if (done) break;
-    const chunk = dec.decode(value, { stream: true });
-    if (!chunk) continue;
-    pending += chunk;
+    pending += dec.decode(value, { stream: true });
     const lines = pending.split('\n'); pending = lines.pop() || '';
-    for (const line of lines) { raw += line + '\n'; await take(feedAgentLine(buf, line)); if (out.ended) break; }
-    if (out.ended) { reader.cancel().catch(() => {}); pending = ''; break; } // the pass ends at its first @@more, @@done or @@ask: anything after is ignored
+    for (const line of lines) { await show(pass.line(line)); if (pass.out.ended) break; }
+    if (pass.out.ended) { reader.cancel().catch(() => {}); pending = ''; break; } // the rest of the reply is ignored
   }
-  if (pending) { raw += pending; await take(feedAgentLine(buf, pending)); }
-  if (!out.ended) await take(flushAgentLine(buf));
-  if (out.edited) agentSettle();
-  out.raw = raw;
-  return out;
+  if (pending) await show(pass.line(pending));
+  await show(pass.end());
+  if (pass.out.edited) agentSettle();
+  return pass.out;
 }
 async function sendChat(text, files) {
   const gen = ++chatGen;
@@ -241,43 +230,27 @@ async function sendChat(text, files) {
   chatMsgs.push({ role: 'user', text, files });
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
-  const applied = () => { const acts = (reply.steps || []).filter(s => s.k === 'act').map(s => '- ' + s.t).slice(-30);
-    return acts.length ? `Already done for this message (do not repeat these; each size change is applied and final):\n${acts.join('\n')}\n\n` : ''; };
   const problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(problems());
-  const build = files.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(text);
+  const build = agentWantsEdit(text, files);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
-    while (step < 5) {
+    while (step < AGENT_PASSES) {
       if (gen !== chatGen) return;
       step++;
-      const turn = await agentTurn(gen, reply, extra && applied() + extra);
+      const turn = await agentTurn(gen, reply, extra && agentApplied(reply.steps) + extra);
       if (gen !== chatGen || turn.stop) return;
       reply.raw = [reply.raw, turn.raw].filter(Boolean).join('\n').slice(-8000);
-      if (turn.ask) { finished = true; break; }
-      if (turn.errors.length) {
-        review = true;
-        extra = `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.`;
-        continue;
-      }
-      if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
-        const fresh = rechecked || step >= 5 || !reply.steps?.some(s => s.k === 'act') ? [] : problems().filter(i => !before.has(i));
-        if (!fresh.length) { finished = true; break; }
-        rechecked = true;
-        extra = `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.`;
-        continue;
-      }
-      if (!turn.edited && !turn.more) {
-        if (!build || step > 1) break;
-        extra = 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.';
-        continue;
-      }
-      if (!turn.edited) break;
-      extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
+      const next = agentNext(turn, { step, build, rechecked, acted: !!reply.steps?.some(s => s.k === 'act'), fresh: () => problems().filter(i => !before.has(i)) });
+      if (next.finish) { finished = true; break; }
+      if (next.stop) break;
+      if (next.review) review = true;
+      if (next.rechecked) rechecked = true;
+      extra = next.extra;
     }
     const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
-    if (left.length) agentNote(reply, { kind: 'say', text: `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.` });
+    if (left.length) agentNote(reply, { kind: 'say', text: agentLeftNote(left) });
     const lastErr = reply.steps?.at(-1)?.k === 'err';
-    if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
+    if (!finished && step >= AGENT_PASSES && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
     else if (!finished && lastErr) agentNote(reply, { kind: 'say', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
     else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'say', text: 'I need you to tell me which room or stair you mean.' });
     if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'say', text: 'The agent returned an empty reply.' });
