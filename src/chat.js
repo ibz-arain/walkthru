@@ -186,6 +186,7 @@ function agentNote(reply, res) {
 }
 // One pass: stream the model's lines, and apply each edit as it arrives.
 let chatCtl = null; // aborts the request in flight (Stop, or New chat)
+const AGENT_PASS_EDITS = 14;
 async function agentTurn(gen, reply, extra) {
   const r = await fetch('/api/agent', {
     method: 'POST', headers: { 'content-type': 'application/json' }, signal: chatCtl?.signal,
@@ -201,7 +202,7 @@ async function agentTurn(gen, reply, extra) {
   const buf = { plan: BM, types: new Set(Object.keys(RT)), hold: '' };
   const reader = r.body.getReader(), dec = new TextDecoder();
   let raw = '', pending = '';
-  const out = { done: false, more: false, edited: false, errors: [], raw: '' };
+  const out = { done: false, more: false, edited: false, ended: false, errors: [], raw: '' };
   const take = async list => {
     for (const res of list) {
       if (gen !== chatGen || out.ask) return;
@@ -209,8 +210,10 @@ async function agentTurn(gen, reply, extra) {
       if (res.kind === 'ask') { out.ask = true; out.done = true; }
       if (res.kind === 'done') out.done = true;
       if (res.kind === 'more') out.more = true;
+      if (res.kind === 'ask' || res.kind === 'done' || res.kind === 'more') out.ended = true;
       if (res.kind === 'err') out.errors.push(res.text);
-      if (res.edit) { out.edited = true; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
+      if (res.edit) { out.edited = true; out.edits = (out.edits || 0) + 1; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
+      if (out.edits >= AGENT_PASS_EDITS && !out.ended) { out.ended = out.more = true; return; } // a long pass stops here so the next one reads the plan and its issues
     }
   };
   while (true) {
@@ -219,12 +222,13 @@ async function agentTurn(gen, reply, extra) {
     if (done) break;
     const chunk = dec.decode(value, { stream: true });
     if (!chunk) continue;
-    raw += chunk; pending += chunk;
+    pending += chunk;
     const lines = pending.split('\n'); pending = lines.pop() || '';
-    for (const line of lines) await take(feedAgentLine(buf, line));
+    for (const line of lines) { raw += line + '\n'; await take(feedAgentLine(buf, line)); if (out.ended) break; }
+    if (out.ended) { reader.cancel().catch(() => {}); pending = ''; break; } // the pass ends at its first @@more, @@done or @@ask: anything after is ignored
   }
-  if (pending) await take(feedAgentLine(buf, pending));
-  await take(flushAgentLine(buf));
+  if (pending) { raw += pending; await take(feedAgentLine(buf, pending)); }
+  if (!out.ended) await take(flushAgentLine(buf));
   if (out.edited) agentSettle();
   out.raw = raw;
   return out;
@@ -270,6 +274,8 @@ async function sendChat(text, files) {
       if (!turn.edited) break;
       extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
     }
+    const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
+    if (left.length) agentNote(reply, { kind: 'say', text: `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.` });
     const lastErr = reply.steps?.at(-1)?.k === 'err';
     if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
     else if (!finished && lastErr) agentNote(reply, { kind: 'say', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });

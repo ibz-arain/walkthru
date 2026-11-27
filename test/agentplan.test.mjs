@@ -162,8 +162,14 @@ test('a plain move does not drag the rooms it leaves', () => {
   plan.rooms.push({ id: 3, type: 'bedroom', level: 'U', name: 'Bed', x: 14, z: 0, w: 8, d: 10 });
   applyAgentLine(plan, '@@set {"id":2,"z":20}');
   assert.equal(plan.rooms[0].x, 0); assert.equal(plan.rooms[0].z, 0);
+  plan.items = [{ level: 'M', x: 5, z: 5 }];
   applyAgentLine(plan, '@@set {"id":1,"x":4}');
   assert.equal(plan.rooms[2].x, 14, 'moving a room leaves the other floors alone');
+  assert.equal(plan.items[0].x, 9, 'its furniture goes with it');
+  const push = { rooms: [{ id: 1, type: 'hall', level: 'M', name: 'Hall', x: 0, z: 0, w: 6, d: 20 }, { id: 2, type: 'den', level: 'M', name: 'Den', x: 6, z: 0, w: 10, d: 10 }], stairs: [] };
+  applyAgentLine(push, '@@set {"id":1,"x":4}');
+  assert.equal(push.rooms[1].x, 6, 'a move never shoves a neighbour; the overlap is listed instead');
+  assert.ok(agentIssues(push).some(i => /overlaps/.test(i)));
 });
 
 test('a resize keeps the floor above lined up', () => {
@@ -190,4 +196,34 @@ test('a drawn outline scales with its room, and the editor warnings reach the br
   assert.deepEqual(plan.rooms[0].pts, [[0, 0], [20, 0], [0, 10]]);
   const brief = agentBrief(plan, ['Stair 4 on the main floor: The top lands outside.', '<b>x']);
   assert.match(brief, /drawn outline/); assert.match(brief, /Stair 4/); assert.doesNotMatch(brief, /<b>/);
+});
+
+test('layout checks: upper rooms past the main floor, long strips, loose rooms', () => {
+  const row = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, type: 'bedroom', level: 'M', name: `Bed ${i + 1}`, x: i * 12, z: 0, w: 12, d: 14 }));
+  const plan = { rooms: [...row,
+    { id: 20, type: 'bedroom', level: 'U', name: 'Loft', x: 120, z: 0, w: 12, d: 12 },
+    { id: 21, type: 'office', level: 'M', name: 'Office', x: 0, z: 20, w: 10, d: 10 },
+    { id: 22, type: 'porch', level: 'M', name: 'Porch', x: 0, z: -6, w: 12, d: 6 },
+  ], stairs: [{ id: 30, level: 'M', cx: 6, cz: 7 }] };
+  const issues = agentIssues(plan);
+  assert.ok(issues.some(i => /Loft .*hangs past/.test(i)));
+  assert.ok(issues.some(i => /main floor is a 96 × 30 ft strip/.test(i)), issues.join('\n'));
+  assert.ok(issues.some(i => /Office .*touches no other room/.test(i)));
+  assert.equal(issues.some(i => /Porch/.test(i)), false, 'outdoor spaces are left out');
+
+  const tidy = { rooms: [
+    { id: 1, type: 'living', level: 'M', name: 'Living', x: 0, z: 0, w: 20, d: 16 },
+    { id: 2, type: 'kitchen', level: 'M', name: 'Kitchen', x: 20, z: 0, w: 16, d: 16 },
+    { id: 3, type: 'primary', level: 'U', name: 'Primary', x: 0, z: 0, w: 20, d: 16 },
+    { id: 4, type: 'bedroom', level: 'U', name: 'Bed 2', x: 20, z: 0, w: 16, d: 16 },
+  ], stairs: [{ id: 5, level: 'M', cx: 18, cz: 8 }] };
+  assert.deepEqual(agentIssues(tidy), []);
+});
+
+test('a stair moves with @@set and its id', () => {
+  const plan = { rooms: [{ id: 1, type: 'hall', level: 'M', name: 'Hall', x: 0, z: 0, w: 8, d: 20 }], stairs: [{ id: 2, level: 'M', cx: 4, cz: 6, W: 3.5, L: 12 }] };
+  assert.equal(applyAgentLine(plan, '@@set {"id":2,"cz":12,"l":14}').kind, 'act');
+  assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz, plan.stairs[0].L], [4, 12, 14]);
+  assert.equal(plan.rooms[0].z, 0);
+  assert.equal(applyAgentLine(plan, '@@set {"id":2}').kind, 'err');
 });

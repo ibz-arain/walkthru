@@ -6415,7 +6415,7 @@ function agentEdges(before, after) {
 const EDGE_SIDE = { x1: 'east', 'x-1': 'west', z1: 'south', 'z-1': 'north' };
 // A resized room keeps the plan whole. Growing pushes the rooms on that side out; shrinking pulls them in when they can
 // follow without hitting anything. Rooms above and below the ones that moved shift or stretch the same way, so floors stay lined up.
-function agentFit(plan, room, before, sized) {
+function agentFit(plan, room, before) {
   const after = { x: room.x, z: room.z, w: room.w, d: room.d };
   const rooms = plan.rooms || [];
   const shifts = new Map(), lined = new Map(), gaps = [];
@@ -6425,7 +6425,6 @@ function agentFit(plan, room, before, sized) {
     shifts.set(r.id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
   };
   for (const m of agentEdges(before, after)) {
-    if (m.delta < 0 && !sized) continue; // a plain move never drags along the rooms it leaves
     const amount = m.sign * m.delta, dx = m.axis === 'x' ? amount : 0, dz = m.axis === 'z' ? amount : 0, side = EDGE_SIDE[m.axis + m.sign];
     const same = rooms.filter(r => r.level === room.level && r.id !== room.id);
     const group = new Set(), olds = new Map();
@@ -6456,7 +6455,7 @@ function agentFit(plan, room, before, sized) {
       const prev = shifts.get(id) || { dx: 0, dz: 0, name: agentLabel(r), level: r.level, old: { level: r.level, ...o } };
       shifts.set(id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
     }
-    if (!group.size || !sized) continue; // only a resize reaches other floors: a moved room is a local fix
+    if (!group.size) continue;
     // Other floors: rooms over (or under) the ones that moved follow the edge.
     const moved = [...group].map(id => olds.get(id));
     const perp = (a, b) => m.axis === 'x' ? agentSpan(a.z, a.z + a.d, b.z, b.z + b.d) : agentSpan(a.x, a.x + a.w, b.x, b.x + b.w);
@@ -6491,6 +6490,26 @@ function agentFit(plan, room, before, sized) {
   return { rooms: here, lined: [...lined.values()], gaps: [...new Set(gaps)], furn };
 }
 
+// How a floor reads as a house: upper rooms need a floor under them, a floor should not be one long strip, and every room
+// should touch another. Porches, decks and balconies sit outside the walls, so they are left out.
+const AGENT_OUTSIDE = new Set(['porch', 'deck', 'balcony', 'bridge']);
+function agentLayout(rooms) {
+  const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
+  for (const r of inside) {
+    if (r.level === 'M' || !main.length || r.level !== 'U') continue;
+    const under = main.reduce((a, m) => a + agentArea(r, m), 0);
+    if (under < .6 * r.w * r.d) out.push(`${agentLabel(r)} on the second floor hangs past the main floor. Keep upper rooms over main-floor rooms.`);
+  }
+  for (const lv of new Set(inside.map(r => r.level))) {
+    const on = inside.filter(r => r.level === lv); if (on.length < 2) continue;
+    const x0 = Math.min(...on.map(r => r.x)), x1 = Math.max(...on.map(r => r.x + r.w)), z0 = Math.min(...on.map(r => r.z)), z1 = Math.max(...on.map(r => r.z + r.d));
+    const long = Math.max(x1 - x0, z1 - z0), short = Math.min(x1 - x0, z1 - z0);
+    if (long > 60 && long > 2.5 * short) out.push(`The ${AGENT_LV[lv] || lv} is a ${Math.round(x1 - x0)} × ${Math.round(z1 - z0)} ft strip. Arrange its rooms in two or three rows instead.`);
+    for (const r of on) if (!on.some(o => agentTouch(r, o)) && !on.some(o => o !== r && agentOverlap(r, o))) out.push(`${agentLabel(r)} on the ${AGENT_LV[lv] || lv} touches no other room.`);
+  }
+  return out;
+}
+
 export function agentIssues(plan) {
   const rooms = Array.isArray(plan?.rooms) ? plan.rooms : [], stairs = Array.isArray(plan?.stairs) ? plan.stairs : [], out = [];
   const levels = new Set(rooms.map(r => r.level));
@@ -6504,9 +6523,10 @@ export function agentIssues(plan) {
     let gap = 0;
     if (zo > 1) gap = a.x + a.w <= b.x ? b.x - (a.x + a.w) : b.x + b.w <= a.x ? a.x - (b.x + b.w) : 0;
     else if (xo > 1) gap = a.z + a.d <= b.z ? b.z - (a.z + a.d) : b.z + b.d <= a.z ? a.z - (b.z + b.d) : 0;
-    if (gap > .2 && gap < 3) out.push(`${agentLabel(a)} and ${agentLabel(b)} have a ${gap.toFixed(1)} ft gap. Make their edges meet.`);
+    if (gap > .2 && gap < 6) out.push(`${agentLabel(a)} and ${agentLabel(b)} have a ${gap.toFixed(1)} ft gap. Make their edges meet.`);
     if (out.length >= 8) return out;
   }
+  out.push(...agentLayout(rooms));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
   return out.slice(0, 8);
@@ -6597,6 +6617,8 @@ export function applyAgentLine(plan, line, types) {
   }
   if ((cmd === 'set' || cmd === 'wall') && !body) return say('err', 'Could not read that command.');
   if (cmd === 'set') {
+    const stair = body.id != null && !body.name ? (plan.stairs || []).find(q => String(q.id) === String(body.id)) : null;
+    if (stair) return setStair(plan, stair, body);
     const found = agentRoom(plan, body.id ?? body.name);
     const setMiss = roomMiss(found); if (setMiss) return setMiss;
     const r = found.room;
@@ -6616,7 +6638,12 @@ export function applyAgentLine(plan, line, types) {
     agentResize(r, w, d);
     const geom = before.x !== r.x || before.z !== r.z || before.w !== r.w || before.d !== r.d;
     const sized = before.w !== r.w || before.d !== r.d;
-    const fit = geom ? agentFit(plan, r, before, sized) : { rooms: [], lined: [], gaps: [], furn: 0 };
+    const fit = sized ? agentFit(plan, r, before) : { rooms: [], lined: [], gaps: [], furn: 0 }; // a move places only that room; a resize keeps the plan together
+    if (geom && !sized) { // its furniture and stairs go with it
+      const dx = r.x - before.x, dz = r.z - before.z;
+      for (const [p, xk, zk] of [...(plan.items || []).map(it => [it, 'x', 'z']), ...(plan.stairs || []).map(st => [st, 'cx', 'cz'])])
+        if (agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) { p[xk] = +(p[xk] + dx).toFixed(2); p[zk] = +(p[zk] + dz).toFixed(2); fit.furn++; }
+    }
     const names = [...new Set(fit.rooms.map(s => s.name))];
     const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` and ${names.length - 3} more` : '');
     let text = sized ? `Resized ${agentLabel(r)} to ${r.w} × ${r.d} ft.` : geom ? `Moved ${agentLabel(r)}.` : `Updated ${agentLabel(r)}.`;
@@ -6663,6 +6690,14 @@ export function applyAgentLine(plan, line, types) {
   return say('err', `Unknown command @@${cmd}.`);
 }
 
+function setStair(plan, stair, body) {
+  const num = (k, lo, hi) => body[k] == null ? undefined : agentNum(body[k], lo, hi);
+  const cx = num('cx', -40, 300) ?? num('x', -40, 300), cz = num('cz', -40, 300) ?? num('z', -40, 300), W = num('w', 3, 8), L = num('l', 6, 24);
+  if ([cx, cz, W, L].some(v => v === null)) return { kind: 'err', text: 'A stair takes cx, cz, w, and l in feet.' };
+  if (cx === undefined && cz === undefined && W === undefined && L === undefined) return { kind: 'err', text: 'Give the stair a new cx, cz, w, or l.' };
+  if (cx !== undefined) stair.cx = cx; if (cz !== undefined) stair.cz = cz; if (W !== undefined) stair.W = W; if (L !== undefined) stair.L = L;
+  return { kind: 'act', text: `Moved the stair on the ${AGENT_LV[stair.level] || stair.level}.`, edit: true };
+}
 function removeStair(plan, stair) {
   plan.stairs = (plan.stairs || []).filter(s => s !== stair);
   return { kind: 'act', text: `Removed the stair on the ${AGENT_LV[stair.level] || stair.level}.`, edit: true };
@@ -6889,6 +6924,7 @@ function agentNote(reply, res) {
 }
 // One pass: stream the model's lines, and apply each edit as it arrives.
 let chatCtl = null; // aborts the request in flight (Stop, or New chat)
+const AGENT_PASS_EDITS = 14;
 async function agentTurn(gen, reply, extra) {
   const r = await fetch('/api/agent', {
     method: 'POST', headers: { 'content-type': 'application/json' }, signal: chatCtl?.signal,
@@ -6904,7 +6940,7 @@ async function agentTurn(gen, reply, extra) {
   const buf = { plan: BM, types: new Set(Object.keys(RT)), hold: '' };
   const reader = r.body.getReader(), dec = new TextDecoder();
   let raw = '', pending = '';
-  const out = { done: false, more: false, edited: false, errors: [], raw: '' };
+  const out = { done: false, more: false, edited: false, ended: false, errors: [], raw: '' };
   const take = async list => {
     for (const res of list) {
       if (gen !== chatGen || out.ask) return;
@@ -6912,8 +6948,10 @@ async function agentTurn(gen, reply, extra) {
       if (res.kind === 'ask') { out.ask = true; out.done = true; }
       if (res.kind === 'done') out.done = true;
       if (res.kind === 'more') out.more = true;
+      if (res.kind === 'ask' || res.kind === 'done' || res.kind === 'more') out.ended = true;
       if (res.kind === 'err') out.errors.push(res.text);
-      if (res.edit) { out.edited = true; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
+      if (res.edit) { out.edited = true; out.edits = (out.edits || 0) + 1; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
+      if (out.edits >= AGENT_PASS_EDITS && !out.ended) { out.ended = out.more = true; return; } // a long pass stops here so the next one reads the plan and its issues
     }
   };
   while (true) {
@@ -6922,12 +6960,13 @@ async function agentTurn(gen, reply, extra) {
     if (done) break;
     const chunk = dec.decode(value, { stream: true });
     if (!chunk) continue;
-    raw += chunk; pending += chunk;
+    pending += chunk;
     const lines = pending.split('\n'); pending = lines.pop() || '';
-    for (const line of lines) await take(feedAgentLine(buf, line));
+    for (const line of lines) { raw += line + '\n'; await take(feedAgentLine(buf, line)); if (out.ended) break; }
+    if (out.ended) { reader.cancel().catch(() => {}); pending = ''; break; } // the pass ends at its first @@more, @@done or @@ask: anything after is ignored
   }
-  if (pending) await take(feedAgentLine(buf, pending));
-  await take(flushAgentLine(buf));
+  if (pending) { raw += pending; await take(feedAgentLine(buf, pending)); }
+  if (!out.ended) await take(flushAgentLine(buf));
   if (out.edited) agentSettle();
   out.raw = raw;
   return out;
@@ -6973,6 +7012,8 @@ async function sendChat(text, files) {
       if (!turn.edited) break;
       extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
     }
+    const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
+    if (left.length) agentNote(reply, { kind: 'say', text: `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.` });
     const lastErr = reply.steps?.at(-1)?.k === 'err';
     if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
     else if (!finished && lastErr) agentNote(reply, { kind: 'say', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
