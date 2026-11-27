@@ -62,6 +62,8 @@ test('invites and roles', async () => {
 });
 
 test('customer links: expiry, password, comments', async () => {
+  process.env.EMAIL_ON = 'true'; process.env.COMMENTS_ON = 'true'; // this test covers them switched on
+  try {
   const b = client(), cust = client();
   await b('auth', 'POST', { action: 'signup' }, { email: 'b@example.com', password: 'longpassword' });
   const pid = (await b('projects', 'POST', {}, { name: 'House', bm })).body.id;
@@ -78,6 +80,7 @@ test('customer links: expiry, password, comments', async () => {
   const mails = (await c.execute("SELECT to_addr, subject FROM outbox WHERE to_addr IN ('jane@example.com','b@example.com')")).rows;
   assert.ok(mails.some(m => m.to_addr === 'jane@example.com'), 'customer got the link email');
   assert.ok(mails.some(m => m.to_addr === 'b@example.com' && /comment/i.test(m.subject)), 'team got the comment email');
+  } finally { delete process.env.EMAIL_ON; delete process.env.COMMENTS_ON; }
 });
 
 test('saved designs belong to their owner', async () => {
@@ -135,7 +138,9 @@ test('sign-in lockout, invite expiry, admin password reset', async () => {
   await mate('auth', 'POST', { action: 'signup' }, { email: 'mate@example.com', password: 'longpassword', invite: inv2 });
   const mateId = (await own('team')).body.members.find(m => m.email === 'mate@example.com').id;
   const r = await own('team', 'POST', { action: 'reset' }, { userId: mateId }); assert.equal(r.code, 201);
-  const tok = r.body.url.split('#reset/')[1];
+  assert.equal(r.body.url, undefined, 'the admin never sees the reset link');
+  const mail = (await (await db()).execute({ sql: "SELECT body FROM outbox WHERE to_addr = ? AND subject = 'Set a new password' ORDER BY id DESC LIMIT 1", args: ['mate@example.com'] })).rows[0];
+  const tok = String(mail.body).split('#reset/')[1].split(/\s/)[0];
   assert.equal((await client()('auth', 'POST', { action: 'reset' }, { token: tok, password: 'brandnewpass' })).code, 200);
   assert.equal((await client()('auth', 'POST', { action: 'login' }, { email: 'mate@example.com', password: 'brandnewpass' })).code, 200);
   assert.equal((await mate('auth')).body.user, null, 'old sessions end after a reset');
@@ -159,6 +164,59 @@ test('price list: owners edit, buyers read, project base price wins', async () =
   assert.equal((await buyer('share', 'PUT', { token: tok }, { bm: { ...bm, rooms: [], finishes: { counter: 1 }, addons: [r.body.catalog.addons[0].id] } })).code, 200);
   const saved = (await buyer('share', 'GET', { token: tok })).body.bm;
   assert.equal(saved.rooms.length, 1, 'finishes-only links keep the builder layout'); assert.deepEqual(saved.addons, [r.body.catalog.addons[0].id]);
+});
+
+test('autosave never overwrites a newer save, and saved names lose markup', async () => {
+  const a = client();
+  await a('auth', 'POST', { action: 'signup' }, { email: 'rev@example.com', password: 'longpassword', workspace: 'Rev' });
+  const id = (await a('projects', 'POST', {}, { name: 'Two tabs', bm })).body.id;
+  const open = (await a('project', 'GET', { id })).body.project, start = { rev: open.design_rev, version: open.version };
+  const named = { ...bm, rooms: [{ ...bm.rooms[0], name: 'Den<img src=x onerror=alert(1)>' }] };
+  const tab1 = await a('project', 'PUT', { id }, { bm: named, ...start });
+  assert.equal(tab1.code, 200); assert.equal(tab1.body.rev, start.rev + 1);
+  assert.equal((await a('project', 'GET', { id })).body.bm.rooms[0].name, 'Denimg src=x onerror=alert(1)', 'no < or > survive a save');
+  const tab2 = await a('project', 'PUT', { id }, { bm: { ...bm, rooms: [] }, ...start });
+  assert.equal(tab2.code, 409, 'a tab that loaded the old revision is refused');
+  assert.equal((await a('project', 'GET', { id })).body.bm.rooms.length, 1, 'the newer save is still there');
+  assert.equal((await a('project', 'PUT', { id }, { bm, rev: tab1.body.rev, version: start.version })).code, 200, 'saving on top of the latest works');
+  assert.equal((await a('project', 'PUT', { id }, { bm: { ...bm, rooms: [] }, ...start, force: true })).code, 200, '"Keep mine" overwrites on purpose');
+  assert.equal((await a('project', 'PUT', { id }, { name: 'Renamed' })).code, 200, 'saves without a design need no revision');
+  assert.equal((await a('projects', 'POST', {}, { name: 'Huge', bm: { rooms: [], pad: 'x'.repeat(2_100_000) } })).code, 400, 'designs over 2 MB are refused');
+});
+
+test('email a Studio account can trigger is capped per day', async () => {
+  const a = client(); process.env.MAIL_DAILY_LIMIT = '2';
+  try {
+    await a('auth', 'POST', { action: 'signup' }, { email: 'mailer@example.com', password: 'longpassword', workspace: 'Mail' });
+    const pid = (await a('projects', 'POST', {}, { name: 'Lot 7', bm })).body.id;
+    const share = n => a('share', 'POST', {}, { projectId: pid, customer: `Buyer ${n}`, email: `buyer${n}@example.com`, access: 'view' });
+    assert.notEqual((await share(1)).body.mailed, 'limit'); assert.notEqual((await share(2)).body.mailed, 'limit');
+    const third = await share(3);
+    assert.equal(third.code, 201, 'the link is still made'); assert.equal(third.body.mailed, 'limit', 'but no email goes out');
+    const inv = await a('team', 'POST', {}, { email: 'friend@example.com', role: 'editor' });
+    assert.equal(inv.body.mailed, false); assert.ok(inv.body.token, 'the invite exists for the Studio to copy');
+  } finally { delete process.env.MAIL_DAILY_LIMIT; }
+  const { db } = await import('../api/_lib/db.js'), c = await db();
+  const forgot = () => client()('auth', 'POST', { action: 'forgot' }, { email: 'mailer@example.com' });
+  for (let i = 0; i < 7; i++) assert.equal((await forgot()).code, 200, 'the answer never changes');
+  const sent = (await c.execute({ sql: "SELECT COUNT(*) AS n FROM outbox WHERE to_addr = ? AND subject LIKE 'Reset%'", args: ['mailer@example.com'] })).rows[0].n;
+  assert.equal(Number(sent), 5, 'but only 5 reset emails a day reach the inbox');
+});
+
+test('email and comments stay off unless switched on', async () => {
+  const a = client();
+  await a('auth', 'POST', { action: 'signup' }, { email: 'quiet@example.com', password: 'longpassword', workspace: 'Quiet' });
+  const pid = (await a('projects', 'POST', {}, { name: 'Lot 9', bm })).body.id;
+  const r = await a('share', 'POST', {}, { projectId: pid, customer: 'Buyer', email: 'buyer9@example.com', access: 'view' });
+  assert.equal(r.body.mailed, 'off', 'nothing is sent while email is off');
+  const buyer = client();
+  assert.equal((await buyer('comments', 'POST', { token: r.body.token }, { body: 'Love it' })).code, 404, 'customers cannot comment');
+  assert.equal((await buyer('comments', 'GET', { token: r.body.token })).code, 404);
+  assert.equal((await a('comments', 'POST', {}, { projectId: pid, body: 'Note' })).code, 404, 'nor can the Studio');
+  assert.deepEqual((await buyer('share', 'GET', { token: r.body.token })).body.comments, [], 'links carry no comments');
+  const H = (await import('../api/health.js')).default, out = {};
+  await H({ method: 'GET', query: {}, headers: {} }, { setHeader() { }, getHeader() { }, status(c) { return this; }, json(b) { out.b = b; } });
+  assert.equal(out.b.mail, false); assert.equal(out.b.comments, false);
 });
 
 test('agent chat requires a signed-in user and a real drawing', async () => {

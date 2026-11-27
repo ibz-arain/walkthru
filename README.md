@@ -61,7 +61,7 @@ or other plan issues were added. Options: `--only full2,narrow`, `--runs 3` (the
 - **Turso (metadata)** — `projects`, `versions`, `shares` (customer links), `comments` (with 3D pins), `events` (activity feed).
 - **Object storage (design JSON)** — `api/_lib/blob.js`. Keys: `projects/<id>/v<n>.json` for each version, `shares/<token>.json` for a customer's working copy.
   The default `db` driver keeps them in a Turso `blobs` table. To switch to S3 / R2 / GCS / Vercel Blob, add a driver with `put`, `get`, `del` and set `BLOB_DRIVER`. Nothing else changes.
-- **API** — `api/health`, `api/projects`, `api/project`, `api/share`, `api/comments` (5 functions, inside Vercel's free-tier limit).
+- **API** — `api/agent`, `auth`, `catalog`, `comments`, `designs`, `health`, `log`, `project`, `projects`, `share`, `team` (11 functions; Vercel's Hobby plan allows 12).
 
 ## Not built yet
 

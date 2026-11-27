@@ -1291,6 +1291,9 @@ function worldUV(g, cx, cy, cz) {
   }
   uv.needsUpdate = true;
 }
+// Text for innerHTML: room, floor, and design names come from people (and from customer links), never trusted as markup.
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 function box(parent, x0, x1, y0, y1, z0, z1, mat, o = {}) {
   if (x1 < x0) [x0, x1] = [x1, x0]; if (y1 < y0) [y0, y1] = [y1, y0]; if (z1 < z0) [z0, z1] = [z1, z0];
   const w = x1 - x0, h = y1 - y0, d = z1 - z0; if (w < .005 || h < .005 || d < .005) return null;
@@ -4418,7 +4421,6 @@ pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click open
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 // ---------- Floors: level buttons and the Floors popover ----------
-const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 let lvSegKey = '';
 function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
   const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));
@@ -5024,7 +5026,7 @@ const labelObjs = [];
 const LEVEL_Y2 = { M: MF2, U: UF2 };
 for (const [house, list, LY] of [[1, ROOMS, LEVEL_Y], [2, ROOMS2, LEVEL_Y2]]) for (const [name, lv, rs] of list) {
   const r = rs[0], el = document.createElement('div'); el.className = 'lbl';
-  el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
   const o = new CSS2DObject(el); o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
   o.userData.lv = lv; o.userData.house = house; scene.add(o); labelObjs.push(o);
 }
@@ -5473,7 +5475,7 @@ document.querySelectorAll('#views button').forEach(b => b.addEventListener('clic
 const sel = document.getElementById('goto');
 function fillGoto() {
   const RM = roomsOf(curHouse), lvls = curHouse === 2 ? ['M', 'U'] : ['M', 'U', 'B'].filter(l => RM.some(r => r[1] === l));
-  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${r[0]}</option>` : '').join('') + '</optgroup>').join('')
+  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${escH(r[0])}</option>` : '').join('') + '</optgroup>').join('')
     + '<optgroup label="Outside"><option value="yard">Backyard &amp; pool</option><option value="drive">Driveway</option></optgroup>';
   uiSync();
 }
@@ -5575,7 +5577,7 @@ function rebuildHouse3() {
   syncDoorColliders();
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
-  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
     const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, (LV_Y[lv] ?? 0) + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
   updateViews3(); renderLevelSegs();
   if (curHouse === 3) { if (!lvOf(curView) && !HOUSES[3].views[curView] && /^[A-Z]/.test(curView)) curView = 'M'; applyVisibility(); fillGoto(); }
@@ -5962,12 +5964,23 @@ async function saveThumb() {
   if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
   const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
 }
-function projectSave() {
-  if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
+// Autosave names the revision this tab started from. If the project moved on elsewhere (another tab, a teammate,
+// accepting a customer's changes), the server refuses rather than overwrite, and we ask which copy to keep.
+function projectSave(force) {
+  if (CL.view !== 'base' || CL.conflict && !force) return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave('Saved'); }
-    catch (e) { setSave(`Not saved: ${e.message}`); }
-  }, 800);
+    const P = CL.project.project;
+    try {
+      const j = await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, rev: P.design_rev || 0, version: P.version, force: force === true || undefined, summary: summarize(BM), preview: previewOf(BM) });
+      P.design_rev = j.rev; P.version = j.version; CL.dirty = false; CL.conflict = false; banner(''); setTimeout(saveThumb, 1500); setSave('Saved');
+    } catch (e) {
+      if (e.status !== 409) return setSave(`Not saved: ${e.message}`);
+      CL.conflict = true; setSave('Not saved');
+      banner(`This project was changed somewhere else (another tab or a teammate) since you opened it. Your latest edits here are not saved. <button class="btn" type="button" id="clReload">Load the latest</button> <button class="btn" type="button" id="clKeep">Keep mine</button>`);
+      $c('clReload').onclick = () => { CL.conflict = false; CL.dirty = false; openProject(CL.route.id, true); };
+      $c('clKeep').onclick = () => { if (confirm('Replace the saved version with what you see here?')) projectSave(true); };
+    }
+  }, force ? 0 : 800);
 }
 $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
@@ -6019,6 +6032,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
   CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked; document.body.classList.toggle('agent-on', !!h.agent);
+  if (!h.comments) ACCESS_NAME.view = 'View only'; // comments are switched off on the server (COMMENTS_ON)
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
 
@@ -6062,7 +6076,7 @@ document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => set
 function setUnits(u) {
   METRIC = u === 'metric'; ST.set('walkthru-units', u); press('[data-units]', 'units', u);
   document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
-  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${n}<small>${ftin(w)} × ${ftin(d)}</small>`; }
+  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${escH(n)}<small>${ftin(w)} × ${ftin(d)}</small>`; }
   if (PE.open) { peInspector(); peDraw(); } if (popOpen === 'pePlanPop') syncPlanPop(); uiSync(); renderInfo();
 }
 document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnits(b.dataset.units));
@@ -6141,7 +6155,7 @@ $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 let navKey = '';
 function renderNav() {
   const sel = $u('goto'), key = curHouse + ':' + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
-  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${g.label}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}</button>`).join('') + '</div>').join('');
+  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${escH(g.label)}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${escH(o.value)}">${escH(o.textContent)}</button>`).join('') + '</div>').join('');
   $u('navList').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sel.value = b.dataset.go; sel.dispatchEvent(new Event('change')); });
 }
 
@@ -6162,7 +6176,7 @@ function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   const LN = curHouse === 3 ? LV_NAME : { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
+  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${escH(LN[l])}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${escH(n)}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
 
 // ---------- display: render style, layers, sun, camera ----------
@@ -7506,26 +7520,4 @@ function captureThumb(W = 480, H = 300) {
   G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
   return cv.toDataURL('image/jpeg', .72);
 }
-
-// TEMP-CAPTURE (removed after use)
-window.__cap = async (name, W, H, kind = '3d', q = .9) => {
-  let url;
-  if (kind === 'plan') {
-    const st = pc.getAttribute('style') || ''; pc.setAttribute('style', `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:9999`);
-    peSize(); peFit(); peDraw(); await new Promise(r => setTimeout(r, 50)); peDraw();
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.imageSmoothingQuality = 'high'; g.drawImage(pc, 0, 0, W, H); url = c.toDataURL('image/jpeg', q);
-    pc.setAttribute('style', st); peSize(); peFit(); peDraw();
-  } else {
-    const tv = G3.trees.visible; if (window.__noTrees) G3.trees.visible = false;
-    const pr = renderer.getPixelRatio(), asp = camera.aspect; renderer.setPixelRatio(1); renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
-    camera.clearViewOffset?.(); renderer.render(scene, camera); url = renderer.domElement.toDataURL('image/jpeg', q);
-    renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); camera.aspect = asp; camera.updateProjectionMatrix(); updateViewOffset?.(); G3.trees.visible = tv;
-  }
-  const r = await fetch(`/api/devshot?name=${name}`, { method: 'POST', body: url, headers: { 'content-type': 'text/plain' } }); return r.status;
-};
-window.__view = (pos, tgt, fov) => { if (fov) { camera.fov = fov; camera.updateProjectionMatrix(); } camera.position.set(...pos); controls.target.set(...tgt); controls.update(); }; // TEMP-CAPTURE
-// TEMP-CAPTURE: recolour the sky gradient and lawn for landing-page renders
-window.__skin = (o = {}) => { const p = skyGeo.attributes.position, top = new THREE.Color(o.top || '#3f7fd0'), hor = new THREE.Color(o.hor || '#bfd8ef'), c = new THREE.Color(), col = [];
-  for (let i = 0; i < p.count; i++) { const t = Math.max(0, p.getY(i) / 1400); c.copy(hor).lerp(top, Math.pow(t, o.k || .35)); col.push(c.r, c.g, c.b); }
-  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); if (o.grass) M.grass.color.set(o.grass); renderer.shadowMap.needsUpdate = true; };
 </script>

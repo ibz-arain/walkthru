@@ -1,5 +1,6 @@
 // GET    /api/project?id=            → project, current design, share links, comments, activity, versions
-// PUT    /api/project?id=  {bm?, name?, client?, address?, status?, summary?, preview?}  → autosave
+// PUT    /api/project?id=  {bm?, rev?, version?, force?, name?, client?, address?, status?, summary?, preview?}  → autosave
+//        a design save names the revision it started from (rev, version); a newer one on the server answers 409, never overwritten
 // POST   /api/project?id=&action=accept&token=  → adopt a customer's version as a new version
 // POST   /api/project?id=&action=restore&version=  → roll back to an earlier version (as a new version)
 // DELETE /api/project?id=
@@ -7,6 +8,7 @@ import { route, send, fail, body } from './_lib/http.js';
 import { who, canEdit, canManage, ownsProject } from './_lib/auth.js';
 import { db, now, logEvent } from './_lib/db.js';
 import { putJSON, getJSON, delBlob, keys } from './_lib/blob.js';
+import { planProblem, cleanPlan } from './_lib/plan.js';
 
 async function load(c, id) { return (await c.execute({ sql: 'SELECT * FROM projects WHERE id = ?', args: [id] })).rows[0]; }
 // Load the project if the caller's workspace owns it and their role allows the action; otherwise answer for them.
@@ -43,7 +45,18 @@ export default route({
   async PUT(req, res) {
     const g = await gate(req, res, 'edit'); if (!g) return; const { c, p } = g;
     const b = body(req);
-    if (b.bm) { if (!Array.isArray(b.bm.rooms)) return fail(res, 400, 'Bad design'); await putJSON(keys.version(p.id, p.version), b.bm); }
+    let rev = p.design_rev || 0;
+    if (b.bm) {
+      const bad = planProblem(b.bm); if (bad) return fail(res, 400, bad);
+      // someone saved after this tab loaded (another tab, a teammate, accepting a customer's changes): don't overwrite them
+      if (!b.force && (+b.rev !== rev || +b.version !== p.version)) return send(res, 409, { error: 'This project changed somewhere else since you opened it', rev, version: p.version, conflict: true });
+      // claim the next revision first (only one of two racing saves can), then write the design
+      const won = b.force ? await c.execute({ sql: 'UPDATE projects SET design_rev = design_rev + 1 WHERE id = ? AND version = ? RETURNING design_rev', args: [p.id, p.version] })
+        : await c.execute({ sql: 'UPDATE projects SET design_rev = design_rev + 1 WHERE id = ? AND design_rev = ? AND version = ? RETURNING design_rev', args: [p.id, rev, p.version] });
+      if (!won.rows.length) return send(res, 409, { error: 'This project changed somewhere else since you opened it', conflict: true });
+      rev = won.rows[0].design_rev;
+      await putJSON(keys.version(p.id, p.version), cleanPlan(b.bm));
+    }
     const sets = [], args = [];
     for (const k of ['name', 'client', 'address', 'status']) if (typeof b[k] === 'string') { sets.push(`${k} = ?`); args.push(b[k].slice(0, 120)); }
     for (const k of ['summary', 'preview']) if (b[k] !== undefined) { sets.push(`${k} = ?`); args.push(JSON.stringify(b[k])); }
@@ -51,7 +64,7 @@ export default route({
     if (b.base_price !== undefined) { sets.push('base_price = ?'); args.push(b.base_price === null || b.base_price === '' ? null : Math.max(0, Math.round(+b.base_price || 0))); }
     sets.push('updated_at = ?'); args.push(now());
     await c.execute({ sql: `UPDATE projects SET ${sets.join(', ')} WHERE id = ?`, args: [...args, p.id] });
-    send(res, 200, { ok: true, version: p.version });
+    send(res, 200, { ok: true, version: p.version, rev });
   },
   async POST(req, res) {
     const g = await gate(req, res, 'edit'); if (!g) return; const { c, p } = g;

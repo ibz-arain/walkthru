@@ -171,25 +171,3 @@ function captureThumb(W = 480, H = 300) {
   G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
   return cv.toDataURL('image/jpeg', .72);
 }
-
-// TEMP-CAPTURE (removed after use)
-window.__cap = async (name, W, H, kind = '3d', q = .9) => {
-  let url;
-  if (kind === 'plan') {
-    const st = pc.getAttribute('style') || ''; pc.setAttribute('style', `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:9999`);
-    peSize(); peFit(); peDraw(); await new Promise(r => setTimeout(r, 50)); peDraw();
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.imageSmoothingQuality = 'high'; g.drawImage(pc, 0, 0, W, H); url = c.toDataURL('image/jpeg', q);
-    pc.setAttribute('style', st); peSize(); peFit(); peDraw();
-  } else {
-    const tv = G3.trees.visible; if (window.__noTrees) G3.trees.visible = false;
-    const pr = renderer.getPixelRatio(), asp = camera.aspect; renderer.setPixelRatio(1); renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
-    camera.clearViewOffset?.(); renderer.render(scene, camera); url = renderer.domElement.toDataURL('image/jpeg', q);
-    renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); camera.aspect = asp; camera.updateProjectionMatrix(); updateViewOffset?.(); G3.trees.visible = tv;
-  }
-  const r = await fetch(`/api/devshot?name=${name}`, { method: 'POST', body: url, headers: { 'content-type': 'text/plain' } }); return r.status;
-};
-window.__view = (pos, tgt, fov) => { if (fov) { camera.fov = fov; camera.updateProjectionMatrix(); } camera.position.set(...pos); controls.target.set(...tgt); controls.update(); }; // TEMP-CAPTURE
-// TEMP-CAPTURE: recolour the sky gradient and lawn for landing-page renders
-window.__skin = (o = {}) => { const p = skyGeo.attributes.position, top = new THREE.Color(o.top || '#3f7fd0'), hor = new THREE.Color(o.hor || '#bfd8ef'), c = new THREE.Color(), col = [];
-  for (let i = 0; i < p.count; i++) { const t = Math.max(0, p.getY(i) / 1400); c.copy(hor).lerp(top, Math.pow(t, o.k || .35)); col.push(c.r, c.g, c.b); }
-  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); if (o.grass) M.grass.color.set(o.grass); renderer.shadowMap.needsUpdate = true; };

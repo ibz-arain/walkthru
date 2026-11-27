@@ -38,7 +38,7 @@ document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => set
 function setUnits(u) {
   METRIC = u === 'metric'; ST.set('walkthru-units', u); press('[data-units]', 'units', u);
   document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
-  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${n}<small>${ftin(w)} × ${ftin(d)}</small>`; }
+  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${escH(n)}<small>${ftin(w)} × ${ftin(d)}</small>`; }
   if (PE.open) { peInspector(); peDraw(); } if (popOpen === 'pePlanPop') syncPlanPop(); uiSync(); renderInfo();
 }
 document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnits(b.dataset.units));
@@ -117,7 +117,7 @@ $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 let navKey = '';
 function renderNav() {
   const sel = $u('goto'), key = curHouse + ':' + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
-  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${g.label}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}</button>`).join('') + '</div>').join('');
+  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${escH(g.label)}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${escH(o.value)}">${escH(o.textContent)}</button>`).join('') + '</div>').join('');
   $u('navList').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sel.value = b.dataset.go; sel.dispatchEvent(new Event('change')); });
 }
 
@@ -138,7 +138,7 @@ function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   const LN = curHouse === 3 ? LV_NAME : { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
+  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${escH(LN[l])}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${escH(n)}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
 
 // ---------- display: render style, layers, sun, camera ----------

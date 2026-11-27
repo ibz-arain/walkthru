@@ -1,6 +1,7 @@
 // Email. With RESEND_API_KEY set, mail goes out through Resend; without it, each message is kept in the
 // `outbox` table (and printed in the dev server log) so every flow still works locally.
-import { db, now } from './db.js';
+import { db, now, spendQuota } from './db.js';
+import { emailOn } from './features.js';
 
 export const appUrl = req => process.env.APP_URL || `${(req.headers['x-forwarded-proto'] || 'http').split(',')[0]}://${req.headers['x-forwarded-host'] || req.headers.host}`;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -18,8 +19,8 @@ export function layout({ heading, lines = [], cta, url, foot }) {
 }
 
 export async function sendMail(to, subject, msg) {
-  const c = await db(); let status = 'queued', error = null;
-  if (process.env.RESEND_API_KEY) {
+  const c = await db(); let status = emailOn() ? 'queued' : 'off', error = null; // off: kept in the outbox, never sent
+  if (emailOn() && process.env.RESEND_API_KEY) {
     try {
       const r = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'content-type': 'application/json' },
         body: JSON.stringify({ from: process.env.MAIL_FROM || 'Walkthru <onboarding@resend.dev>', to: [to], subject, html: msg.html, text: msg.text }) });
@@ -37,3 +38,9 @@ export async function notifyTeam(req, orgId, subject, msg) {
   const r = await c.execute({ sql: "SELECT u.email FROM members m JOIN users u ON u.id = m.user_id WHERE m.org_id = ? AND u.notify = 1 AND m.role IN ('owner','admin','editor')", args: [orgId] });
   for (const row of r.rows) await sendMail(row.email, subject, msg);
 }
+
+// Mail a person in the Studio can make the app send (share emails, invites, reset links): this many a day per account,
+// so an open sign-up can't turn your sending domain into a spam cannon.
+const MAIL_DAILY = () => Math.max(1, +process.env.MAIL_DAILY_LIMIT || 50);
+export const mailAllowed = userId => spendQuota(`mail:${userId}`, MAIL_DAILY());
+export const MAIL_LIMIT_MSG = 'You have sent a lot of email today. Try again tomorrow, or copy the link and send it yourself.';

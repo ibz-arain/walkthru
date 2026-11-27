@@ -658,7 +658,6 @@ pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click open
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 // ---------- Floors: level buttons and the Floors popover ----------
-const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 let lvSegKey = '';
 function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
   const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));
