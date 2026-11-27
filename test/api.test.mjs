@@ -221,6 +221,12 @@ test('the agent talks to Gemini when its key is set, and explains its errors', a
     assert.equal(part.type, 'image_url', 'Google reads a PDF sent as a data URL'); assert.match(part.image_url.url, /^data:application\/pdf;base64,/);
 
     process.env.AGENT_MODEL = 'gemini-test-model'; await ask(); assert.equal(sent.body.model, 'gemini-test-model');
+    const models = []; let busy = 2;
+    globalThis.fetch = async (url, init) => { const b = JSON.parse(init.body); models.push(b.model); sent = { url, headers: init.headers, body: b };
+      return busy-- > 0 ? new Response(JSON.stringify([{ error: { code: 503, message: 'high demand' } }]), { status: 503 }) : reply(); };
+    const busyReply = await ask();
+    assert.equal(busyReply.code, 200); assert.deepEqual(models, ['gemini-test-model', 'gemini-test-model', 'gemini-flash-lite-latest'], 'a busy model is retried, then the backup answers');
+    globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
     reply = () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.' } }]), { status: 400 });
     assert.match((await ask()).body.error, /Google rejected the API key/);
     reply = () => new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 });

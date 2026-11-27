@@ -59,6 +59,8 @@ ISSUES
 Every issue in the design block is yours to fix before the next floor and before @@done: overlaps, gaps, rooms touching nothing, upper rooms hanging past the main floor, floors stretched into one long strip, missing stairs.`;
 // Each pass of a reply is one request. A message usually takes 1 to 3 passes, so this is about 50 to 100 messages a day.
 const DAILY_LIMIT = () => Math.max(1, +process.env.AGENT_DAILY_LIMIT || 200);
+const busyUntil = new Map(), BUSY_FOR = 120_000; // a model that was overloaded is skipped for a while (per warm server instance)
+const START_LIMIT = 15_000; // how long one attempt may take to start answering before the next is tried
 const TIME_LIMIT = 52_000; // Vercel stops the function at 60 s (vercel.json maxDuration): finish the reply well before that
 // Count one request for this person today; false when they are over the limit.
 async function spend(w) {
@@ -122,22 +124,45 @@ export default route({
     if (!ai) return fail(res, 503, 'The agent is not configured');
     if (!(await spend(w))) return fail(res, 429, 'You’ve used the design agent a lot today. It will be ready again tomorrow.');
 
-    let upstream;
-    try {
-      upstream = await fetch(ai.url, {
-        method: 'POST',
-        headers: { authorization: `Bearer ${ai.key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
-        body: JSON.stringify({ model: ai.model, stream: true, temperature: 0.3, ...ai.options, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
-        signal: AbortSignal.timeout(TIME_LIMIT), // covers reading the stream below too
-      });
-    } catch (e) { console.error('agent', e.name || e.message); return fail(res, 502, 'Could not reach the agent'); }
+    // A busy model (503, or 429 that is not the daily quota) gets one retry, then the backup model if there is one.
+    const started = Date.now(), signal = AbortSignal.timeout(TIME_LIMIT); // covers every attempt and reading the stream below
+    const backup = ai.backup && ai.backup !== ai.model ? [ai.backup] : [];
+    const tries = backup.length && busyUntil.get(ai.model) > Date.now() ? backup : [ai.model, ai.model, ...backup]; // recently overloaded: go straight to the backup
+    let upstream, model;
+    for (let i = 0; i < tries.length; i++) {
+      model = tries[i];
+      const ctl = new AbortController(), stop = () => ctl.abort(signal.reason);
+      signal.addEventListener('abort', stop, { once: true });
+      const slow = setTimeout(() => ctl.abort(new Error('slow start')), START_LIMIT); // a hung attempt gives way to the next one
+      try {
+        upstream = await fetch(ai.url, {
+          method: 'POST', signal: ctl.signal,
+          headers: { authorization: `Bearer ${ai.key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
+          body: JSON.stringify({ model, stream: true, temperature: 0.3, ...ai.options, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
+        });
+      } catch (e) {
+        clearTimeout(slow); upstream = null;
+        const slowStart = ctl.signal.reason?.message === 'slow start';
+        if (slowStart) busyUntil.set(model, Date.now() + BUSY_FOR);
+        console.error('agent', ai.name, model, slowStart ? 'did not start in time' : e.name || e.message);
+        if (slowStart && i < tries.length - 1 && !signal.aborted) continue;
+        return fail(res, 504, slowStart ? 'The model is busy right now. Try again in a moment.' : 'Could not reach the agent');
+      }
+      clearTimeout(slow);
+      if (upstream.ok || ![429, 500, 503].includes(upstream.status) || i === tries.length - 1 || Date.now() - started > TIME_LIMIT / 2) break;
+      const peek = await upstream.clone().text().catch(() => '');
+      if (/quota|per day|exhausted/i.test(peek)) break; // out of allowance: waiting will not help
+      busyUntil.set(model, Date.now() + BUSY_FOR);
+      console.error('agent', ai.name, upstream.status, model, 'busy, trying again');
+      if (tries[i + 1] === model) await new Promise(r => setTimeout(r, 1200));
+    }
     if (!upstream.ok || !upstream.body) {
       let detail = '';
       try { let j = await upstream.json(); if (Array.isArray(j)) j = j[0]; detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ } // Google can wrap its error in a list
       console.error('agent', ai.name, upstream.status, String(detail).slice(0, 200));
-      const why = upstream.status === 429 ? (/quota|per day|exhausted/i.test(detail) ? 'The agent has used its free allowance for now. Try again later.' : 'The model is busy. Try again in a moment.')
+      const why = upstream.status === 429 || upstream.status === 503 ? (/quota|per day|exhausted/i.test(detail) ? 'The agent has used its free allowance for now. Try again later.' : 'The model is busy right now. Try again in a moment.')
         : upstream.status === 401 || upstream.status === 403 || /api key/i.test(detail) ? `${ai.name} rejected the API key.`
-        : upstream.status === 404 ? `${ai.name} has no model called ${ai.model}. Check AGENT_MODEL.`
+        : upstream.status === 404 ? `${ai.name} has no model called ${model}. Check AGENT_MODEL.`
         : (String(detail || '').trim().slice(0, 180) || 'The agent could not reply');
       return fail(res, 502, why);
     }

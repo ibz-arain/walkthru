@@ -218,6 +218,8 @@ test('layout checks: upper rooms past the main floor, long strips, loose rooms',
     { id: 4, type: 'bedroom', level: 'U', name: 'Bed 2', x: 20, z: 0, w: 16, d: 16 },
   ], stairs: [{ id: 5, level: 'M', cx: 18, cz: 8 }] };
   assert.deepEqual(agentIssues(tidy), []);
+  tidy.rooms.push({ id: 6, type: 'garage', level: 'M', name: 'Garage', x: 36, z: 0, w: 26, d: 16 });
+  assert.equal(agentIssues(tidy).some(i => /strip/.test(i)), false, 'an attached garage is not a strip');
 });
 
 test('a stair moves with @@set and its id', () => {
@@ -226,4 +228,18 @@ test('a stair moves with @@set and its id', () => {
   assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz, plan.stairs[0].L], [4, 12, 14]);
   assert.equal(plan.rooms[0].z, 0);
   assert.equal(applyAgentLine(plan, '@@set {"id":2}').kind, 'err');
+});
+
+test('the room over a resized room changes with it, so the floor above stays closed', () => {
+  const plan = { rooms: [
+    { id: 1, type: 'living', level: 'M', name: 'Living', x: 0, z: 0, w: 16, d: 12 },
+    { id: 2, type: 'kitchen', level: 'M', name: 'Kitchen', x: 16, z: 0, w: 12, d: 12 },
+    { id: 3, type: 'primary', level: 'U', name: 'Primary', x: 0, z: 0, w: 16, d: 12 },
+    { id: 4, type: 'bedroom', level: 'U', name: 'Bed 2', x: 16, z: 0, w: 12, d: 12 },
+  ], stairs: [] };
+  applyAgentLine(plan, '@@set {"id":1,"w":12}');
+  assert.deepEqual(plan.rooms.map(r => [r.x, r.w]), [[0, 12], [12, 12], [0, 12], [12, 12]]);
+  applyAgentLine(plan, '@@set {"id":1,"w":20}');
+  assert.deepEqual(plan.rooms.map(r => [r.x, r.w]), [[0, 20], [20, 12], [0, 20], [20, 12]]);
+  assert.equal(agentIssues(plan).some(i => /overlaps|gap/.test(i)), false);
 });

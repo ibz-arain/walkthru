@@ -6462,7 +6462,7 @@ function agentFit(plan, room, before) {
     for (const o of rooms) {
       if (o.level === room.level || !moved.some(r => perp(r, o) > .5)) continue;
       const lo = m.axis === 'x' ? o.x : o.z, hi = lo + (m.axis === 'x' ? o.w : o.d), E = m.edge;
-      const beyond = m.sign > 0 ? lo >= E - .05 : hi <= E + .05, across = lo < E - .05 && hi > E + .05;
+      const beyond = m.sign > 0 ? lo >= E - .05 : hi <= E + .05, across = !beyond && (m.sign > 0 ? hi >= E - .05 : lo <= E + .05); // a room ending on the edge stretches with it, like the one below
       if (beyond) shift(o, dx, dz);
       else if (across) { // it spans the edge: stretch it (or shrink it) by the same amount
         const size = (m.axis === 'x' ? o.w : o.d) + m.delta;
@@ -6502,7 +6502,8 @@ function agentLayout(rooms) {
   }
   for (const lv of new Set(inside.map(r => r.level))) {
     const on = inside.filter(r => r.level === lv); if (on.length < 2) continue;
-    const x0 = Math.min(...on.map(r => r.x)), x1 = Math.max(...on.map(r => r.x + r.w)), z0 = Math.min(...on.map(r => r.z)), z1 = Math.max(...on.map(r => r.z + r.d));
+    const body = on.filter(r => r.type !== 'garage'); if (!body.length) continue; // an attached garage makes a long house, not a strip
+    const x0 = Math.min(...body.map(r => r.x)), x1 = Math.max(...body.map(r => r.x + r.w)), z0 = Math.min(...body.map(r => r.z)), z1 = Math.max(...body.map(r => r.z + r.d));
     const long = Math.max(x1 - x0, z1 - z0), short = Math.min(x1 - x0, z1 - z0);
     if (long > 60 && long > 2.5 * short) out.push(`The ${AGENT_LV[lv] || lv} is a ${Math.round(x1 - x0)} × ${Math.round(z1 - z0)} ft strip. Arrange its rooms in two or three rows instead.`);
     for (const r of on) if (!on.some(o => agentTouch(r, o)) && !on.some(o => o !== r && agentOverlap(r, o))) out.push(`${agentLabel(r)} on the ${AGENT_LV[lv] || lv} touches no other room.`);
