@@ -6,7 +6,7 @@
 import { route, send, fail, body } from './_lib/http.js';
 import { db, now } from './_lib/db.js';
 import { who, canManage, ROLES, validEmail, token, sha, INVITE_DAYS } from './_lib/auth.js';
-import { sendMail, layout, appUrl } from './_lib/mail.js';
+import { sendMail, layout, appUrl, mailAllowed, MAIL_LIMIT_MSG } from './_lib/mail.js';
 
 async function owners(c, org) { return (await c.execute({ sql: "SELECT COUNT(*) AS n FROM members WHERE org_id = ? AND role = 'owner'", args: [org] })).rows[0].n; }
 
@@ -27,10 +27,11 @@ export default route({
       const m = (await c.execute({ sql: 'SELECT u.id, u.email, u.name, m.role FROM members m JOIN users u ON u.id = m.user_id WHERE m.org_id = ? AND m.user_id = ?', args: [w.org.id, uid] })).rows[0];
       if (!m) return fail(res, 404, 'Not a member');
       if (m.role === 'owner' && w.role !== 'owner') return fail(res, 403, 'Only an owner can reset an owner’s password');
+      if (!(await mailAllowed(w.user.id))) return fail(res, 429, MAIL_LIMIT_MSG);
       const raw = token(24); await c.execute({ sql: 'INSERT INTO resets (id, user_id, expires_at) VALUES (?, ?, ?)', args: [sha(raw), m.id, now() + 864e5] });
       const url = `${appUrl(req)}/account#reset/${raw}`;
-      await sendMail(m.email, 'Set a new password', layout({ heading: 'Set a new password', lines: [`${w.user.name || w.user.email} sent you a link to choose a new password. It works once, for 24 hours.`], cta: 'Choose a password', url }));
-      return send(res, 201, { url });
+      const status = await sendMail(m.email, 'Set a new password', layout({ heading: 'Set a new password', lines: [`${w.user.name || w.user.email} sent you a link to choose a new password. It works once, for 24 hours.`], cta: 'Choose a password', url }));
+      return send(res, 201, { emailed: status === 'sent' }); // the link goes only to the member: an admin who could read it could sign in as them
     }
     const c = await db(), b = body(req), email = String(b.email || '').trim().toLowerCase(), role = ROLES.includes(b.role) && b.role !== 'owner' ? b.role : 'editor';
     if (!validEmail(email)) return fail(res, 400, 'Enter a valid email address');
@@ -38,8 +39,9 @@ export default route({
     const t = token(18);
     await c.execute({ sql: 'DELETE FROM invites WHERE org_id = ? AND email = ? AND accepted_at IS NULL', args: [w.org.id, email] }); // a new invite replaces an old one
     await c.execute({ sql: 'INSERT INTO invites (token, org_id, email, role, invited_by, created_at) VALUES (?, ?, ?, ?, ?, ?)', args: [t, w.org.id, email, role, w.user.id, now()] });
-    await sendMail(email, `${w.user.name || w.user.email} invited you to ${w.org.name}`, layout({ heading: `Join ${w.org.name} on Walkthru`, lines: [`${w.user.name || w.user.email} invited you as ${role === 'viewer' ? 'a viewer' : `an ${role}`}. Walkthru is where the team designs homes and shares them with buyers in 3D.`], cta: 'Accept invite', url: `${appUrl(req)}/account#invite/${t}` }));
-    send(res, 201, { token: t });
+    const mailed = await mailAllowed(w.user.id); // over today's limit, the invite still exists: the Studio copies its link
+    if (mailed) await sendMail(email, `${w.user.name || w.user.email} invited you to ${w.org.name}`, layout({ heading: `Join ${w.org.name} on Walkthru`, lines: [`${w.user.name || w.user.email} invited you as ${role === 'viewer' ? 'a viewer' : `an ${role}`}. Walkthru is where the team designs homes and shares them with buyers in 3D.`], cta: 'Accept invite', url: `${appUrl(req)}/account#invite/${t}` }));
+    send(res, 201, { token: t, mailed });
   },
   async PATCH(req, res) {
     const w = await who(req); if (!canManage(w) || !w.org) return fail(res, 403, 'Only owners and admins can change roles');

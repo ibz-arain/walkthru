@@ -62,6 +62,8 @@ test('invites and roles', async () => {
 });
 
 test('customer links: expiry, password, comments', async () => {
+  process.env.EMAIL_ON = 'true'; process.env.COMMENTS_ON = 'true'; // this test covers them switched on
+  try {
   const b = client(), cust = client();
   await b('auth', 'POST', { action: 'signup' }, { email: 'b@example.com', password: 'longpassword' });
   const pid = (await b('projects', 'POST', {}, { name: 'House', bm })).body.id;
@@ -78,6 +80,7 @@ test('customer links: expiry, password, comments', async () => {
   const mails = (await c.execute("SELECT to_addr, subject FROM outbox WHERE to_addr IN ('jane@example.com','b@example.com')")).rows;
   assert.ok(mails.some(m => m.to_addr === 'jane@example.com'), 'customer got the link email');
   assert.ok(mails.some(m => m.to_addr === 'b@example.com' && /comment/i.test(m.subject)), 'team got the comment email');
+  } finally { delete process.env.EMAIL_ON; delete process.env.COMMENTS_ON; }
 });
 
 test('saved designs belong to their owner', async () => {
@@ -135,7 +138,9 @@ test('sign-in lockout, invite expiry, admin password reset', async () => {
   await mate('auth', 'POST', { action: 'signup' }, { email: 'mate@example.com', password: 'longpassword', invite: inv2 });
   const mateId = (await own('team')).body.members.find(m => m.email === 'mate@example.com').id;
   const r = await own('team', 'POST', { action: 'reset' }, { userId: mateId }); assert.equal(r.code, 201);
-  const tok = r.body.url.split('#reset/')[1];
+  assert.equal(r.body.url, undefined, 'the admin never sees the reset link');
+  const mail = (await (await db()).execute({ sql: "SELECT body FROM outbox WHERE to_addr = ? AND subject = 'Set a new password' ORDER BY id DESC LIMIT 1", args: ['mate@example.com'] })).rows[0];
+  const tok = String(mail.body).split('#reset/')[1].split(/\s/)[0];
   assert.equal((await client()('auth', 'POST', { action: 'reset' }, { token: tok, password: 'brandnewpass' })).code, 200);
   assert.equal((await client()('auth', 'POST', { action: 'login' }, { email: 'mate@example.com', password: 'brandnewpass' })).code, 200);
   assert.equal((await mate('auth')).body.user, null, 'old sessions end after a reset');
@@ -161,6 +166,59 @@ test('price list: owners edit, buyers read, project base price wins', async () =
   assert.equal(saved.rooms.length, 1, 'finishes-only links keep the builder layout'); assert.deepEqual(saved.addons, [r.body.catalog.addons[0].id]);
 });
 
+test('autosave never overwrites a newer save, and saved names lose markup', async () => {
+  const a = client();
+  await a('auth', 'POST', { action: 'signup' }, { email: 'rev@example.com', password: 'longpassword', workspace: 'Rev' });
+  const id = (await a('projects', 'POST', {}, { name: 'Two tabs', bm })).body.id;
+  const open = (await a('project', 'GET', { id })).body.project, start = { rev: open.design_rev, version: open.version };
+  const named = { ...bm, rooms: [{ ...bm.rooms[0], name: 'Den<img src=x onerror=alert(1)>' }] };
+  const tab1 = await a('project', 'PUT', { id }, { bm: named, ...start });
+  assert.equal(tab1.code, 200); assert.equal(tab1.body.rev, start.rev + 1);
+  assert.equal((await a('project', 'GET', { id })).body.bm.rooms[0].name, 'Denimg src=x onerror=alert(1)', 'no < or > survive a save');
+  const tab2 = await a('project', 'PUT', { id }, { bm: { ...bm, rooms: [] }, ...start });
+  assert.equal(tab2.code, 409, 'a tab that loaded the old revision is refused');
+  assert.equal((await a('project', 'GET', { id })).body.bm.rooms.length, 1, 'the newer save is still there');
+  assert.equal((await a('project', 'PUT', { id }, { bm, rev: tab1.body.rev, version: start.version })).code, 200, 'saving on top of the latest works');
+  assert.equal((await a('project', 'PUT', { id }, { bm: { ...bm, rooms: [] }, ...start, force: true })).code, 200, '"Keep mine" overwrites on purpose');
+  assert.equal((await a('project', 'PUT', { id }, { name: 'Renamed' })).code, 200, 'saves without a design need no revision');
+  assert.equal((await a('projects', 'POST', {}, { name: 'Huge', bm: { rooms: [], pad: 'x'.repeat(2_100_000) } })).code, 400, 'designs over 2 MB are refused');
+});
+
+test('email a Studio account can trigger is capped per day', async () => {
+  const a = client(); process.env.MAIL_DAILY_LIMIT = '2';
+  try {
+    await a('auth', 'POST', { action: 'signup' }, { email: 'mailer@example.com', password: 'longpassword', workspace: 'Mail' });
+    const pid = (await a('projects', 'POST', {}, { name: 'Lot 7', bm })).body.id;
+    const share = n => a('share', 'POST', {}, { projectId: pid, customer: `Buyer ${n}`, email: `buyer${n}@example.com`, access: 'view' });
+    assert.notEqual((await share(1)).body.mailed, 'limit'); assert.notEqual((await share(2)).body.mailed, 'limit');
+    const third = await share(3);
+    assert.equal(third.code, 201, 'the link is still made'); assert.equal(third.body.mailed, 'limit', 'but no email goes out');
+    const inv = await a('team', 'POST', {}, { email: 'friend@example.com', role: 'editor' });
+    assert.equal(inv.body.mailed, false); assert.ok(inv.body.token, 'the invite exists for the Studio to copy');
+  } finally { delete process.env.MAIL_DAILY_LIMIT; }
+  const { db } = await import('../api/_lib/db.js'), c = await db();
+  const forgot = () => client()('auth', 'POST', { action: 'forgot' }, { email: 'mailer@example.com' });
+  for (let i = 0; i < 7; i++) assert.equal((await forgot()).code, 200, 'the answer never changes');
+  const sent = (await c.execute({ sql: "SELECT COUNT(*) AS n FROM outbox WHERE to_addr = ? AND subject LIKE 'Reset%'", args: ['mailer@example.com'] })).rows[0].n;
+  assert.equal(Number(sent), 5, 'but only 5 reset emails a day reach the inbox');
+});
+
+test('email and comments stay off unless switched on', async () => {
+  const a = client();
+  await a('auth', 'POST', { action: 'signup' }, { email: 'quiet@example.com', password: 'longpassword', workspace: 'Quiet' });
+  const pid = (await a('projects', 'POST', {}, { name: 'Lot 9', bm })).body.id;
+  const r = await a('share', 'POST', {}, { projectId: pid, customer: 'Buyer', email: 'buyer9@example.com', access: 'view' });
+  assert.equal(r.body.mailed, 'off', 'nothing is sent while email is off');
+  const buyer = client();
+  assert.equal((await buyer('comments', 'POST', { token: r.body.token }, { body: 'Love it' })).code, 404, 'customers cannot comment');
+  assert.equal((await buyer('comments', 'GET', { token: r.body.token })).code, 404);
+  assert.equal((await a('comments', 'POST', {}, { projectId: pid, body: 'Note' })).code, 404, 'nor can the Studio');
+  assert.deepEqual((await buyer('share', 'GET', { token: r.body.token })).body.comments, [], 'links carry no comments');
+  const H = (await import('../api/health.js')).default, out = {};
+  await H({ method: 'GET', query: {}, headers: {} }, { setHeader() { }, getHeader() { }, status(c) { return this; }, json(b) { out.b = b; } });
+  assert.equal(out.b.mail, false); assert.equal(out.b.comments, false);
+});
+
 test('agent chat requires a signed-in user and a real drawing', async () => {
   const anon = client();
   assert.equal((await anon('agent', 'POST', {}, { messages: [{ role: 'user', text: 'hello' }] })).code, 401);
@@ -168,6 +226,83 @@ test('agent chat requires a signed-in user and a real drawing', async () => {
   await ann('auth', 'POST', { action: 'signup' }, { email: 'agent@example.com', password: 'longpassword', workspace: 'A' });
   const bad = await ann('agent', 'POST', {}, { messages: [{ role: 'user', text: 'look', files: [{ name: 'notes.txt', mime: 'text/plain', data: 'data:text/plain;base64,aGk=' }] }] });
   assert.equal(bad.code, 400);
+});
+
+test('agent streams the reply and stops at the daily limit', async () => {
+  const ann = client(); let cookie = '';
+  const su = { method: 'POST', query: { action: 'signup' }, headers: { host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' }, body: { email: 'limit@example.com', password: 'longpassword', workspace: 'L' } };
+  const sres = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, getHeader(k) { return this.headers[k.toLowerCase()]; }, status() { return sres; }, json() { } };
+  await H.auth(su, sres); cookie = String(sres.headers['set-cookie']).split(';')[0];
+  const realFetch = globalThis.fetch, oldKey = process.env.OPENROUTER_API_KEY, oldLimit = process.env.AGENT_DAILY_LIMIT;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; const sse = 'data: {"choices":[{"delta":{"content":"Hi\\n@@done\\n"}}]}\n\ndata: [DONE]\n\n'; return new Response(sse, { status: 200 }); };
+  process.env.OPENROUTER_API_KEY = 'test-key'; process.env.AGENT_DAILY_LIMIT = '2';
+  const ask = async () => {
+    const out = { code: 200, text: '', headers: {} };
+    const res = { set statusCode(c) { out.code = c; }, get statusCode() { return out.code; }, setHeader(k, v) { out.headers[k.toLowerCase()] = v; }, getHeader(k) { return out.headers[k.toLowerCase()]; }, status(c) { out.code = c; return res; }, json(b) { out.body = b; }, write(t) { out.text += t; }, end() { } };
+    await H.agent({ method: 'POST', query: {}, headers: { cookie, host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' }, body: { messages: [{ role: 'user', text: 'hello' }], bm } }, res);
+    return out;
+  };
+  try {
+    const a = await ask(); assert.equal(a.code, 200); assert.equal(a.text, 'Hi\n@@done\n');
+    assert.equal((await ask()).code, 200);
+    const c = await ask(); assert.equal(c.code, 429, 'the third message of the day is refused'); assert.equal(calls, 2, 'a refused message never reaches the paid model');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (oldKey === undefined) delete process.env.OPENROUTER_API_KEY; else process.env.OPENROUTER_API_KEY = oldKey;
+    if (oldLimit === undefined) delete process.env.AGENT_DAILY_LIMIT; else process.env.AGENT_DAILY_LIMIT = oldLimit;
+  }
+});
+
+test('the agent talks to Gemini when its key is set, and explains its errors', async () => {
+  const sres = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, getHeader(k) { return this.headers[k.toLowerCase()]; }, status() { return sres; }, json() { } };
+  await H.auth({ method: 'POST', query: { action: 'signup' }, headers: { host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.8' }, body: { email: 'gemini@example.com', password: 'longpassword', workspace: 'G' } }, sres);
+  const cookie = String(sres.headers['set-cookie']).split(';')[0];
+  const saved = { fetch: globalThis.fetch, GEMINI_API_KEY: process.env.GEMINI_API_KEY, OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY, AGENT_MODEL: process.env.AGENT_MODEL };
+  let sent, reply = () => new Response('data: {"choices":[{"delta":{"content":"Hello\\n@@done\\n"}}]}\n\n', { status: 200 });
+  globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
+  process.env.GEMINI_API_KEY = ' "g-key" '; process.env.OPENROUTER_API_KEY = 'or-key'; delete process.env.AGENT_MODEL;
+  const ask = async files => {
+    const out = { code: 200, text: '', headers: {} };
+    const res = { set statusCode(c) { out.code = c; }, get statusCode() { return out.code; }, setHeader(k, v) { out.headers[k.toLowerCase()] = v; }, getHeader(k) { return out.headers[k.toLowerCase()]; }, status(c) { out.code = c; return res; }, json(b) { out.body = b; }, write(t) { out.text += t; }, end() { } };
+    await H.agent({ method: 'POST', query: {}, headers: { cookie, host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.8' }, body: { messages: [{ role: 'user', text: 'hello', files }], bm } }, res);
+    return out;
+  };
+  try {
+    const pdf = [{ name: 'plan.pdf', mime: 'application/pdf', data: 'data:application/pdf;base64,JVBERi0=' }];
+    const a = await ask(pdf);
+    assert.equal(a.code, 200); assert.equal(a.text, 'Hello\n@@done\n');
+    assert.match(sent.url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+    assert.equal(sent.headers.authorization, 'Bearer g-key', 'quotes and spaces around the key are trimmed');
+    assert.equal(sent.body.model, 'gemini-flash-latest'); assert.equal(sent.body.reasoning_effort, 'low'); assert.equal(sent.body.reasoning, undefined);
+    const part = sent.body.messages.at(-1).content.find(p => p.type !== 'text');
+    assert.equal(part.type, 'image_url', 'Google reads a PDF sent as a data URL'); assert.match(part.image_url.url, /^data:application\/pdf;base64,/);
+
+    process.env.AGENT_MODEL = 'gemini-test-model'; await ask(); assert.equal(sent.body.model, 'gemini-test-model');
+    const models = []; let busy = 2;
+    globalThis.fetch = async (url, init) => { const b = JSON.parse(init.body); models.push(b.model); sent = { url, headers: init.headers, body: b };
+      return busy-- > 0 ? new Response(JSON.stringify([{ error: { code: 503, message: 'high demand' } }]), { status: 503 }) : reply(); };
+    const busyReply = await ask();
+    assert.equal(busyReply.code, 200); assert.deepEqual(models, ['gemini-test-model', 'gemini-test-model', 'gemini-flash-lite-latest'], 'a busy model is retried, then the backup answers');
+    globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
+    reply = () => new Response(JSON.stringify([{ error: { code: 400, message: 'API key not valid. Please pass a valid API key.' } }]), { status: 400 });
+    assert.match((await ask()).body.error, /Google rejected the API key/);
+    reply = () => new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 });
+    assert.match((await ask()).body.error, /free allowance/, 'every model out of quota');
+    process.env.AGENT_MODEL = 'gemini-quota-model'; const seen = [];
+    globalThis.fetch = async (url, init) => { const b = JSON.parse(init.body); seen.push(b.model); sent = { url, headers: init.headers, body: b };
+      return b.model === 'gemini-quota-model' ? new Response(JSON.stringify([{ error: { code: 429, message: 'You exceeded your current quota.' } }]), { status: 429 }) : new Response('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n', { status: 200 }); };
+    assert.equal((await ask()).code, 200); assert.deepEqual(seen, ['gemini-quota-model', 'gemini-flash-lite-latest'], 'out of quota goes straight to the backup');
+    globalThis.fetch = async (url, init) => { sent = { url, headers: init.headers, body: JSON.parse(init.body) }; return reply(); };
+
+    delete process.env.GEMINI_API_KEY; delete process.env.AGENT_MODEL;
+    reply = () => new Response('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n', { status: 200 });
+    await ask(pdf);
+    assert.match(sent.url, /openrouter\.ai/, 'without a Gemini key it falls back to OpenRouter'); assert.equal(sent.body.messages.at(-1).content.find(p => p.type !== 'text').type, 'file');
+  } finally {
+    globalThis.fetch = saved.fetch;
+    for (const k of ['GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'AGENT_MODEL']) if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+  }
 });
 
 test.after(() => { try { rmSync(file); } catch (e) { } });

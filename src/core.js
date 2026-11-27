@@ -210,6 +210,9 @@ function worldUV(g, cx, cy, cz) {
   }
   uv.needsUpdate = true;
 }
+// Text for innerHTML: room, floor, and design names come from people (and from customer links), never trusted as markup.
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 function box(parent, x0, x1, y0, y1, z0, z1, mat, o = {}) {
   if (x1 < x0) [x0, x1] = [x1, x0]; if (y1 < y0) [y0, y1] = [y1, y0]; if (z1 < z0) [z0, z1] = [z1, z0];
   const w = x1 - x0, h = y1 - y0, d = z1 - z0; if (w < .005 || h < .005 || d < .005) return null;

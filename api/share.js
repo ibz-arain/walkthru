@@ -10,7 +10,9 @@ import { db, now, logEvent } from './_lib/db.js';
 import { putJSON, getJSON, delBlob, keys } from './_lib/blob.js';
 import { who, canEdit, ownsProject, hashPass } from './_lib/auth.js';
 import { liveShare, expiryFrom } from './_lib/shares.js';
-import { sendMail, notifyTeam, layout, appUrl } from './_lib/mail.js';
+import { sendMail, notifyTeam, layout, appUrl, mailAllowed, MAIL_LIMIT_MSG } from './_lib/mail.js';
+import { planProblem, cleanPlan } from './_lib/plan.js';
+import { commentsOn } from './_lib/features.js';
 
 const PUBLIC = 'Anyone with the link'; // the customer name on a project's public view-only link
 const project = async (c, id) => (await c.execute({ sql: 'SELECT * FROM projects WHERE id = ?', args: [id] })).rows[0];
@@ -58,7 +60,8 @@ export default route({
     await c.execute({ sql: "UPDATE projects SET status = CASE WHEN status = 'draft' THEN 'shared' ELSE status END, updated_at = ? WHERE id = ?", args: [now(), b.projectId] });
     await logEvent(c, b.projectId, 'shared', { token, detail: { customer: b.customer, access } });
     let mailed = null;
-    if (email && b.sendEmail !== false) {
+    if (email && b.sendEmail !== false && !(await mailAllowed(w.user?.id || 'studio-key'))) mailed = 'limit'; // the link still works: they can send it themselves
+    else if (email && b.sendEmail !== false) {
       const what = { view: 'look around it in 3D and leave comments', finishes: 'look around, pick finishes and leave comments', edit: 'look around, pick finishes, change the floor plan and leave comments' }[access];
       mailed = await sendMail(email, `${brand().name}: your home ${p.name} is ready to view`, layout({ heading: `Hi ${String(b.customer).split(' ')[0]}, your home is ready to explore`, lines: [`${p.name}${p.address ? ` · ${p.address}` : ''}`, ...(b.message ? [String(b.message)] : []), `You can ${what}.`, ...(b.password ? ['Your builder will give you the password for this link.'] : [])], cta: 'Open your home', url: shareUrl(req, token) }));
     }
@@ -86,7 +89,7 @@ export default route({
       await logEvent(c, p.id, 'opened', { token: s.token, detail: { customer: s.customer } });
     }
     const bm = s.has_copy ? await getJSON(keys.share(s.token)) : await getJSON(keys.version(p.id, p.version));
-    const comments = await c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? AND (share_token = ? OR (share_token IS NULL AND author_role = ?)) ORDER BY created_at ASC', args: [p.id, s.token, 'studio-public'] });
+    const comments = !commentsOn() ? { rows: [] } : await c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? AND (share_token = ? OR (share_token IS NULL AND author_role = ?)) ORDER BY created_at ASC', args: [p.id, s.token, 'studio-public'] });
     const org = p.org_id && (await c.execute({ sql: 'SELECT name FROM orgs WHERE id = ?', args: [p.org_id] })).rows[0];
     send(res, 200, { brand: { ...brand(), name: org?.name || brand().name }, project: { name: p.name, address: p.address, version: p.version, base_price: p.base_price }, customer: s.customer, public: s.customer === PUBLIC, access: s.access, status: s.status, message: s.message,
       changed: !!s.has_copy, expires_at: s.expires_at, bm, comments: comments.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null })) });
@@ -94,12 +97,12 @@ export default route({
   async PUT(req, res) {
     const c = await db(), r = await liveShare(c, req); if (r.error) return deny(res, r); const s = r.s;
     if (s.access === 'view') return fail(res, 403, 'This link is view-only');
-    const b = body(req); if (!b.bm || !Array.isArray(b.bm.rooms)) return fail(res, 400, 'Bad design');
+    const b = body(req); const bad = planProblem(b.bm); if (bad) return fail(res, 400, bad);
     if (s.access === 'finishes') { // finishes-only links can't move rooms: keep the builder's layout, take only their finish picks
       const p = await project(c, s.project_id);
       const base = await getJSON(keys.version(p.id, p.version)); b.bm = { ...base, finishes: b.bm.finishes || {}, addons: Array.isArray(b.bm.addons) ? b.bm.addons.slice(0, 100) : [] };
     }
-    await putJSON(keys.share(s.token), b.bm);
+    await putJSON(keys.share(s.token), cleanPlan(b.bm));
     const first = !s.has_copy || (now() - (s.updated_at || 0)) > 10 * 60e3; // one activity entry per editing session
     await c.execute({ sql: "UPDATE shares SET has_copy = 1, status = 'editing', updated_at = ? WHERE token = ?", args: [now(), s.token] });
     if (first) await logEvent(c, s.project_id, s.access === 'finishes' ? 'finishes' : 'edited', { token: s.token, detail: { customer: s.customer } });

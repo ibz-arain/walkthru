@@ -4,6 +4,7 @@ import { route, send, fail, newId, body } from './_lib/http.js';
 import { who, canEdit } from './_lib/auth.js';
 import { db, now, logEvent } from './_lib/db.js';
 import { putJSON, keys } from './_lib/blob.js';
+import { planProblem, cleanPlan } from './_lib/plan.js';
 
 export default route({
   async GET(req, res) {
@@ -20,6 +21,7 @@ export default route({
   async POST(req, res) {
     const w = await who(req); if (!canEdit(w)) return fail(res, w ? 403 : 401, w ? 'Viewers can’t create projects' : 'Sign in to open the Studio');
     const b = body(req); if (!b.name || !b.bm || !Array.isArray(b.bm.rooms)) return fail(res, 400, 'Name and a design are required');
+    const bad = planProblem(b.bm); if (bad) return fail(res, 400, bad); cleanPlan(b.bm);
     const c = await db(), id = newId(6), t = now();
     await putJSON(keys.version(id, 1), b.bm);
     await c.batch([

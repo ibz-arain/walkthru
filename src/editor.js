@@ -372,6 +372,30 @@ function pickWall(D) {
 }
 pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   PE.s = Math.max(3, Math.min(40, PE.s * Math.exp(-e.deltaY * .0015))); PE.ox = sx - wx * PE.s; PE.oy = sy - wz * PE.s; peDraw(); }, { passive: false });
+// Pinch with two fingers to zoom (and move) the plan around the point between them. The second finger turns the gesture
+// into a pinch: the plan stops taking those touches (no room moves) until both fingers lift. Mouse and pen are untouched.
+const pinch = { pts: new Map(), on: false };
+const pinchMid = () => { const [a, b] = [...pinch.pts.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; };
+pc.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  pinch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch.pts.size === 2) {
+    PE.drag = null; PE.menu = false;
+    const r = pc.getBoundingClientRect(), m = pinchMid();
+    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(m.x - r.left, m.y - r.top) });
+  }
+  if (pinch.on) e.stopImmediatePropagation();
+}, true);
+pc.addEventListener('pointermove', e => {
+  if (!pinch.pts.has(e.pointerId)) return;
+  pinch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!pinch.on) return; e.stopImmediatePropagation();
+  if (pinch.pts.size < 2) return;
+  const r = pc.getBoundingClientRect(), m = pinchMid();
+  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = m.x - r.left - pinch.w[0] * PE.s; PE.oy = m.y - r.top - pinch.w[1] * PE.s; peDraw();
+}, true);
+const pinchUp = e => { if (!pinch.pts.delete(e.pointerId) || !pinch.on) return; e.stopImmediatePropagation(); if (!pinch.pts.size) pinch.on = false; };
+pc.addEventListener('pointerup', pinchUp, true); pc.addEventListener('pointercancel', pinchUp, true);
 
 // ---------- side panel ----------
 const PE_GROUPS = [['Fill', ['open']], ['Living', ['living', 'great', 'kitchen', 'dining', 'foyer', 'hall', 'stairs', 'sunroom', 'bonus', 'rec', 'playroom', 'theatre']],
@@ -658,7 +682,6 @@ pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click open
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 // ---------- Floors: level buttons and the Floors popover ----------
-const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 let lvSegKey = '';
 function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
   const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));

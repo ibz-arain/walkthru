@@ -11,6 +11,15 @@
 //  the corner), and the triangle under it is filled with wall.
 // =====================================================================
 const RG = 1 / 8; // grid step, feet (1½")
+// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters and downspouts.
+const ROOF_EDGE = { slim: { fascia: .46, gutter: false }, standard: { fascia: .6, gutter: true }, deep: { fascia: .77, gutter: true } };
+const EDGE_COLORS = { black: '#1e1f22', white: '#eeeeea', bronze: '#4a3b2e', grey: '#8a8d90' };
+const edgeMats = {};
+function roofEdge(m = BM) { // the eave the plan asks for, with its materials
+  const e = m.eave || {}, base = ROOF_EDGE[e.fascia] || ROOF_EDGE.standard, color = EDGE_COLORS[e.color] ? e.color : 'black';
+  const mat = edgeMats[color] ||= std({ color: EDGE_COLORS[color], roughness: .55, metalness: .15 });
+  return { ...base, gutter: e.gutter ?? base.gutter, mat, gutterMat: mat };
+}
 let ROOF3 = []; // what was built, per roof: { name, plate, pitch, eaveH, maxH, heightAt(x, z) }
 
 function roofLevel(parent, o) {
@@ -116,14 +125,54 @@ function roofLevel(parent, o) {
   // a second skin a hair below the first: the long merged strips meet at T-junctions, and this hides the hairline cracks there
   const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, o.roofMat || M.roof, uv); // casts shadow too, so sunlight can't leak through those cracks either
 
-  // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
-  const fas = [], FT = .22, FB = .75;
-  const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => { // outer face + top + bottom of a board along an edge, pushed out by (nx, nz)
-    const o0 = [x0 + nx * FT, z0 + nz * FT], o1 = [x1 + nx * FT, z1 + nz * FT];
-    const q = (a, b, c, d) => fas.push(...a, ...b, ...c, ...a, ...c, ...d);
-    q([o0[0], h0 - FB, o0[1]], [o1[0], h1 - FB, o1[1]], [o1[0], h1 + .1, o1[1]], [o0[0], h0 + .1, o0[1]]);
-    q([x0, h0 + .1, z0], [o0[0], h0 + .1, o0[1]], [o1[0], h1 + .1, o1[1]], [x1, h1 + .1, z1]);
-    q([x0, h0 - FB, z0], [x1, h1 - FB, z1], [o1[0], h1 - FB, o1[1]], [o0[0], h0 - FB, o0[1]]);
+  // ---------- the roof edge, built like a real one (level at the eaves, sloped up the rakes) ----------
+  //  a shingle lip that overhangs the board by ¾" and casts a fine shadow line, a 1" fascia board (5½"–9¼" tall, see
+  //  ROOF_EDGE), and on the level eaves an optional K-style gutter with downspouts (drawn by the builder, which knows
+  //  what lies below each one)
+  const E = o.edge || roofEdge(), FT = .08, FH = E.fascia, LIP = .06;
+  const fas = [], lip = [], gut = [], spouts = [];
+  // each face is wound to face `want` (out, up, down): the materials are one-sided, so a face wound the other way is
+  // culled and the board vanishes but for a thin edge (it did on every north and east eave)
+  const q = (arr, a, b, c, d, want) => {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    if (n[0] * want[0] + n[1] * want[1] + n[2] * want[2] >= 0) arr.push(...a, ...b, ...c, ...a, ...c, ...d); else arr.push(...a, ...c, ...b, ...a, ...d, ...c);
+  };
+  // a box-section strip along an edge: from `in` to `out` feet beyond it, between `lo` and `hi` below the roof line there
+  const strip = (arr, x0, z0, x1, z1, h0, h1, nx, nz, inn, out, lo, hi, faces = 'otb') => {
+    const P = (x, z, h, d, y) => [x + nx * d, h + y, z + nz * d];
+    const A = (d, y) => P(x0, z0, h0, d, y), B = (d, y) => P(x1, z1, h1, d, y);
+    if (faces.includes('o')) q(arr, A(out, lo), B(out, lo), B(out, hi), A(out, hi), [nx, 0, nz]);
+    if (faces.includes('t')) q(arr, A(inn, hi), A(out, hi), B(out, hi), B(inn, hi), [0, 1, 0]);
+    if (faces.includes('b')) q(arr, A(inn, lo), B(inn, lo), B(out, lo), A(out, lo), [0, -1, 0]);
+  };
+  // K-style gutter on a level eave: flat bottom, a chamfer into the front face, a rolled top lip, and a dark channel inside
+  const GW = .42, GH = .38;
+  const gutter = (x0, z0, x1, z1, h, nx, nz) => {
+    const len = Math.hypot(x1 - x0, z1 - z0); if (len < 1) return;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len, ext = FT + GW; // run on past the ends so two gutters meet at a corner
+    const ax = x0 - tx * ext, az = z0 - tz * ext, bx = x1 + tx * ext, bz = z1 + tz * ext, top = h - .1, bot = top - GH;
+    const W = (x, z, u, y) => [x + nx * (FT + u), y, z + nz * (FT + u)];
+    const prof = [[0, top], [0, bot], [GW * .78, bot], [GW, bot + GH * .3], [GW, top], [GW - .05, top]]; // u outward, y up
+    for (let k = 0; k < prof.length - 1; k++) { const [u0, y0] = prof[k], [u1, y1] = prof[k + 1];
+      const want = [nx * (y1 - y0), -(u1 - u0), nz * (y1 - y0)]; // the profile's outward normal, turned into the world
+      q(gut, W(ax, az, u0, y0), W(bx, bz, u0, y0), W(bx, bz, u1, y1), W(ax, az, u1, y1), k === 0 ? [-nx, 0, -nz] : want); }
+    q(gut, W(ax, az, .02, top - .07), W(bx, bz, .02, top - .07), W(bx, bz, GW - .05, top - .07), W(ax, az, GW - .05, top - .07), [0, 1, 0]); // the channel
+    for (const [ex, ez, s] of [[ax, az, -1], [bx, bz, 1]]) { const ring = prof.slice(0, 5).map(([u, y]) => W(ex, ez, u, y)); // end caps
+      for (let k = 1; k < ring.length - 1; k++) q(gut, ring[0], ring[k], ring[k + 1], ring[k + 1], [tx * s, 0, tz * s]); }
+    // downspouts: near an end of each run, just inside the wall's corner (the last `ov` of a run is overhang, with no wall
+    // under it), both ends on a long run, and never a second one beside a corner that already has one
+    const inset = ov + .7; if (len < 2 * inset + 1) return;
+    const spot = t => { const sx = x0 + tx * t, sz = z0 + tz * t; return { ox: sx + nx * (FT + GW / 2), oz: sz + nz * (FT + GW / 2), wx: sx - nx * (ov - .2), wz: sz - nz * (ov - .2), top: bot, nx, nz }; };
+    const taken = c => spouts.some(o => Math.hypot(o.wx - c.wx, o.wz - c.wz) < 2 * ov + 2);
+    const ends = [spot(len - inset), spot(inset)];
+    if (len > 34) { for (const c of ends) if (!taken(c)) spouts.push(c); }
+    else { const c = ends.find(e => !taken(e)); if (c) spouts.push(c); }
+  };
+  const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => {
+    strip(fas, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT, -FH, -.04);         // the fascia board
+    strip(lip, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT + LIP, -.05, .03);   // the shingle edge over it
+    if (E.gutter && Math.abs(h1 - h0) < 1e-3) gutter(x0, z0, x1, z1, h0, nx, nz); // gutters hang on level eaves, never up a rake
   };
   // edges against the storey above (within a few inches of its walls) get no fascia: it would poke out past the wall ends
   const nearHole = new Uint8Array(C), R3 = 3;
@@ -140,7 +189,8 @@ function roofLevel(parent, o) {
     for (let j = 0; j <= NZ; j++) { const inside = j < NZ && (side < 0 ? i < NX && draw[j * NX + i] && outside(i - 1, j) : i > 0 && draw[j * NX + i - 1] && outside(i, j));
       if (!inside) { end(j); continue; } const sl = Math.round((hAt(i, j + 1) - hAt(i, j)) * 1e4); if (s && s.sl !== sl) end(j); if (!s) s = { j0: j, sl }; }
   }
-  if (fas.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(fas, 3)); g.computeVertexNormals(); const m = new THREE.Mesh(g, M.trim); m.castShadow = true; parent.add(m); }
+  const flatMesh = (arr, mat) => { if (!arr.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(arr.length / 3 * 2).fill(.5), 2)); g.computeVertexNormals(); const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); };
+  flatMesh(fas, E.mat || M.trim); flatMesh(lip, o.roofMat || M.roof); flatMesh(gut, E.gutterMat || E.mat || M.trim);
 
   // ---------- wall under gables and shed sides: from the plate up to the roof ----------
   const gw = [], gu = [];
@@ -157,9 +207,22 @@ function roofLevel(parent, o) {
   if (gw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gw, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, o.wallMat || M.stucco); m.castShadow = true; m.receiveShadow = true; parent.add(m); }
 
-  const info = { name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
+  const info = { spouts, edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
     heightAt: (x, z) => { const fi = (x - X0) / RG, fj = (z - Z0) / RG, i = Math.floor(fi), j = Math.floor(fj); if (i < 0 || j < 0 || i >= NX || j >= NZ || !occ[j * NX + i]) return null;
       const u = fi - i, v = fj - j; return (hAt(i, j) * (1 - u) + hAt(i + 1, j) * u) * (1 - v) + (hAt(i, j + 1) * (1 - u) + hAt(i + 1, j + 1) * u) * v; } };
   ROOF3.push(info); return info;
+}
+// Downspouts, once every roof is built: from under each gutter outlet, an elbow back to the wall, then down the wall to
+// the ground, or to a lower roof when one lies below (an upper gutter drains onto the roof under it, as real ones do).
+function roofSpouts(parent) {
+  for (const info of ROOF3) for (const sp of info.spouts || []) {
+    let land = 0;
+    for (const r of ROOF3) if (r !== info) { const h = r.heightAt?.(sp.wx, sp.wz); if (h != null && h < sp.top - .5 && h > land) land = h; }
+    const S = .11, mat = info.edge?.gutterMat || M.trim, y1 = sp.top, y2 = sp.top - .45, y3 = sp.top - .8;
+    if (y3 - land < .5) continue;
+    box(parent, sp.ox - S, sp.ox + S, y2, y1, sp.oz - S, sp.oz + S, mat);
+    box(parent, Math.min(sp.ox, sp.wx) - S, Math.max(sp.ox, sp.wx) + S, y3, y2, Math.min(sp.oz, sp.wz) - S, Math.max(sp.oz, sp.wz) + S, mat);
+    box(parent, sp.wx - S, sp.wx + S, land, y3, sp.wz - S, sp.wz + S, mat);
+  }
 }
 window.wtRoofs = () => ROOF3.map(r => ({ name: r.name, style: r.style, pitch: +(r.pitch * 12).toFixed(2), asked: +(r.asked * 12).toFixed(2), eave: +r.eaveH.toFixed(2), top: +r.maxH.toFixed(2) })); // for checking roofs from the console

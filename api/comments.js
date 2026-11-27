@@ -6,15 +6,18 @@ import { route, send, fail, newId, body, brand } from './_lib/http.js';
 import { db, now, logEvent } from './_lib/db.js';
 import { who, canEdit, ownsProject } from './_lib/auth.js';
 import { liveShare } from './_lib/shares.js';
-import { sendMail, notifyTeam, layout, appUrl } from './_lib/mail.js';
+import { sendMail, notifyTeam, layout, appUrl, mailAllowed } from './_lib/mail.js';
+import { commentsOn } from './_lib/features.js';
 
 const clean = pin => pin && Number.isFinite(pin.x) && Number.isFinite(pin.y) && Number.isFinite(pin.z) ? JSON.stringify({ x: +pin.x.toFixed(2), y: +pin.y.toFixed(2), z: +pin.z.toFixed(2), level: pin.level || null }) : null;
 const rows = r => r.rows.map(m => ({ ...m, pin: m.pin ? JSON.parse(m.pin) : null }));
 const project = async (c, id) => (await c.execute({ sql: 'SELECT * FROM projects WHERE id = ?', args: [id] })).rows[0];
 function deny(res, r) { res.status(r.error[0]).json({ error: r.error[1], needPass: !!r.needPass }); }
 
+const OFF = 'Comments are turned off';
 export default route({
   async GET(req, res) {
+    if (!commentsOn()) return fail(res, 404, OFF);
     const c = await db();
     if (req.query.token) { const r = await liveShare(c, req); if (r.error) return deny(res, r); return send(res, 200, { comments: rows(await c.execute({ sql: 'SELECT * FROM comments WHERE share_token = ? ORDER BY created_at ASC', args: [r.s.token] })) }); }
     const w = await who(req); if (!w) return fail(res, 401, 'Sign in to open the Studio');
@@ -22,6 +25,7 @@ export default route({
     send(res, 200, { comments: rows(await c.execute({ sql: 'SELECT * FROM comments WHERE project_id = ? ORDER BY created_at ASC', args: [req.query.project] })) });
   },
   async POST(req, res) {
+    if (!commentsOn()) return fail(res, 404, OFF);
     const c = await db(), b = body(req), text = String(b.body || '').trim().slice(0, 2000); if (!text) return fail(res, 400, 'Write something first');
     const id = newId(8);
     if (req.query.token) {
@@ -38,12 +42,13 @@ export default route({
     const author = b.author || w.user?.name || 'Studio';
     await c.execute({ sql: 'INSERT INTO comments (id, project_id, share_token, author_role, author, body, pin, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', args: [id, b.projectId, b.token || null, 'studio', author, text, clean(b.pin), now()] });
     if (b.token) {
-      const s = (await c.execute({ sql: 'SELECT * FROM shares WHERE token = ? AND revoked = 0', args: [b.token] })).rows[0];
-      if (s?.email) await sendMail(s.email, `${author} replied about ${p.name}`, layout({ heading: `${author} replied to you`, lines: [`“${text.slice(0, 600)}”`], cta: 'Open your home', url: `${appUrl(req)}/playground#c/${s.token}`, foot: `Sent by ${brand().name} about ${p.name}.` }));
+      const s = (await c.execute({ sql: 'SELECT * FROM shares WHERE token = ? AND project_id = ? AND revoked = 0', args: [b.token, p.id] })).rows[0]; // only this project's own customers
+      if (s?.email && await mailAllowed(w.user?.id || 'studio-key')) await sendMail(s.email, `${author} replied about ${p.name}`, layout({ heading: `${author} replied to you`, lines: [`“${text.slice(0, 600)}”`], cta: 'Open your home', url: `${appUrl(req)}/playground#c/${s.token}`, foot: `Sent by ${brand().name} about ${p.name}.` }));
     }
     send(res, 201, { id });
   },
   async PATCH(req, res) {
+    if (!commentsOn()) return fail(res, 404, OFF);
     const w = await who(req); if (!canEdit(w)) return fail(res, w ? 403 : 401, 'Sign in as an editor');
     const c = await db(), m = (await c.execute({ sql: 'SELECT project_id FROM comments WHERE id = ?', args: [req.query.id] })).rows[0];
     if (!m || !ownsProject(w, await project(c, m.project_id))) return fail(res, 404, 'Comment not found');

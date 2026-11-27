@@ -67,7 +67,7 @@ const labelObjs = [];
 const LEVEL_Y2 = { M: MF2, U: UF2 };
 for (const [house, list, LY] of [[1, ROOMS, LEVEL_Y], [2, ROOMS2, LEVEL_Y2]]) for (const [name, lv, rs] of list) {
   const r = rs[0], el = document.createElement('div'); el.className = 'lbl';
-  el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
   const o = new CSS2DObject(el); o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
   o.userData.lv = lv; o.userData.house = house; scene.add(o); labelObjs.push(o);
 }
@@ -153,7 +153,7 @@ function autoView(v) {
 //  WALK MODE
 // =====================================================================
 const player = { x: 15.9, z: -18, feet: 0, yaw: Math.PI, pitch: -0.05, vy: 0 };
-const keys = {}; let colliders = []; window.__house = { player, keys, renderer, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
+const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
 function buildColliders() {
   scene.updateMatrixWorld(true); colliders = [];
   scene.traverse(o => {
@@ -516,7 +516,7 @@ document.querySelectorAll('#views button').forEach(b => b.addEventListener('clic
 const sel = document.getElementById('goto');
 function fillGoto() {
   const RM = roomsOf(curHouse), lvls = curHouse === 2 ? ['M', 'U'] : ['M', 'U', 'B'].filter(l => RM.some(r => r[1] === l));
-  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${r[0]}</option>` : '').join('') + '</optgroup>').join('')
+  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${escH(r[0])}</option>` : '').join('') + '</optgroup>').join('')
     + '<optgroup label="Outside"><option value="yard">Backyard &amp; pool</option><option value="drive">Driveway</option></optgroup>';
   uiSync();
 }
@@ -530,7 +530,7 @@ sel.onchange = () => {
   const r = roomsOf(curHouse)[+v]; enterWalk([r[3][0], r[3][1], r[3][2], H.levelY[r[1]] + 1], third);
 };
 // House 1 / House 2 tabs
-function setHouse(n, fromHash) {
+function setHouse(n, fromHash) { setTimeout(planCheck, 0);
   const tab = n; if (n === 4) n = 3;
   if (n === 3 && usePreset(tab === 4)) { PE.sel = PE.selStair = PE.selWall = null; PE.hist = []; if (PE.open && tab === 4) openEditor(false); rebuildHouse3(); }
   curHouse = n;
@@ -610,6 +610,7 @@ setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
 const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
+  setTimeout(planCheck, 0); // the plan changed: recount its problems once this rebuild is done
   buildHouse3();
   scene.updateMatrixWorld(true);
   const cols = []; HOUSE3.traverse(o => { if (o.isMesh && o.userData.solid) { const b = new THREE.Box3().setFromObject(o); b.mesh = o.parent; cols.push(b); } });
@@ -618,7 +619,7 @@ function rebuildHouse3() {
   syncDoorColliders();
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
-  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
     const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, (LV_Y[lv] ?? 0) + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
   updateViews3(); renderLevelSegs();
   if (curHouse === 3) { if (!lvOf(curView) && !HOUSES[3].views[curView] && /^[A-Z]/.test(curView)) curView = 'M'; applyVisibility(); fillGoto(); }

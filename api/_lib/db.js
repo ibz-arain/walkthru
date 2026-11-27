@@ -45,12 +45,15 @@ const SCHEMA = [
   // Workspace price list (base price, finish upgrades, add-ons) as one JSON document.
   `CREATE TABLE IF NOT EXISTS catalogs (org_id TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS attempts (key TEXT PRIMARY KEY, n INTEGER NOT NULL, first_at INTEGER NOT NULL, locked_until INTEGER)`,
+  // Design agent requests per person per day (UTC), so one account can't run up the model bill.
+  `CREATE TABLE IF NOT EXISTS agent_use (who TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (who, day))`,
+  `CREATE TABLE IF NOT EXISTS quota (key TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (key, day))`,
 ];
 // Columns added after the first release. SQLite has no "ADD COLUMN IF NOT EXISTS", so each one is tried and "duplicate column" is ignored.
 const COLUMNS = [
   ['projects', 'org_id TEXT'], ['projects', 'created_by TEXT'],
   ['shares', 'expires_at INTEGER'], ['shares', 'pass_hash TEXT'],
-  ['projects', 'base_price INTEGER'], ['projects', 'thumb TEXT'],
+  ['projects', 'base_price INTEGER'], ['projects', 'thumb TEXT'], ['projects', 'design_rev INTEGER NOT NULL DEFAULT 0'],
 ];
 
 export async function db() {
@@ -67,4 +70,11 @@ export const now = () => Date.now();
 
 export async function logEvent(c, projectId, kind, { token = null, detail = null } = {}) {
   await c.execute({ sql: 'INSERT INTO events (project_id, share_token, kind, detail, created_at) VALUES (?, ?, ?, ?, ?)', args: [projectId, token, kind, detail ? JSON.stringify(detail) : null, now()] });
+}
+
+// Count one use of `key` today; false once it is over `limit`. For things that cost money or reach strangers (email).
+export async function spendQuota(key, limit) {
+  const c = await db(), day = new Date().toISOString().slice(0, 10);
+  const r = await c.execute({ sql: 'INSERT INTO quota (key, day, n) VALUES (?, ?, 1) ON CONFLICT (key, day) DO UPDATE SET n = n + 1 RETURNING n', args: [String(key), day] });
+  return (r.rows[0]?.n || 0) <= limit;
 }

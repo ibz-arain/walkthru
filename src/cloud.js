@@ -212,12 +212,23 @@ async function saveThumb() {
   if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
   const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
 }
-function projectSave() {
-  if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
+// Autosave names the revision this tab started from. If the project moved on elsewhere (another tab, a teammate,
+// accepting a customer's changes), the server refuses rather than overwrite, and we ask which copy to keep.
+function projectSave(force) {
+  if (CL.view !== 'base' || CL.conflict && !force) return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave('Saved'); }
-    catch (e) { setSave(`Not saved: ${e.message}`); }
-  }, 800);
+    const P = CL.project.project;
+    try {
+      const j = await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, rev: P.design_rev || 0, version: P.version, force: force === true || undefined, summary: summarize(BM), preview: previewOf(BM) });
+      P.design_rev = j.rev; P.version = j.version; CL.dirty = false; CL.conflict = false; banner(''); setTimeout(saveThumb, 1500); setSave('Saved');
+    } catch (e) {
+      if (e.status !== 409) return setSave(`Not saved: ${e.message}`);
+      CL.conflict = true; setSave('Not saved');
+      banner(`This project was changed somewhere else (another tab or a teammate) since you opened it. Your latest edits here are not saved. <button class="btn" type="button" id="clReload">Load the latest</button> <button class="btn" type="button" id="clKeep">Keep mine</button>`);
+      $c('clReload').onclick = () => { CL.conflict = false; CL.dirty = false; openProject(CL.route.id, true); };
+      $c('clKeep').onclick = () => { if (confirm('Replace the saved version with what you see here?')) projectSave(true); };
+    }
+  }, force ? 0 : 800);
 }
 $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
@@ -268,6 +279,7 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   let h = null;
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
-  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
+  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked; document.body.classList.toggle('agent-on', !!h.agent);
+  if (!h.comments) ACCESS_NAME.view = 'View only'; // comments are switched off on the server (COMMENTS_ON)
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();

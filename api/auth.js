@@ -8,7 +8,7 @@
 //       /api/auth?action=accept        {invite}           → join a workspace you were invited to
 // PATCH /api/auth                      {name?, notify?, current?, password?, workspace?}
 import { route, send, fail, body } from './_lib/http.js';
-import { db, now } from './_lib/db.js';
+import { db, now, spendQuota } from './_lib/db.js';
 import { who, hashPass, checkPass, startSession, endSession, createWorkspace, validEmail, token, sha, canManage, ROLES, signupsOpen, inviteLive, clientIp, throttled, failed, cleared } from './_lib/auth.js';
 import { sendMail, layout, appUrl } from './_lib/mail.js';
 
@@ -71,7 +71,7 @@ export default route({
     if (a === 'logout') { await endSession(req, res); return send(res, 200, { ok: true }); }
     if (a === 'forgot') {
       const u = (await c.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [String(b.email || '').trim().toLowerCase()] })).rows[0];
-      if (u) { // same answer either way, so the form can't be used to find out who has an account
+      if (u && await spendQuota(`forgot:${u.id}`, 5)) { // same answer either way (and past 5 a day, silence), so the form can't find accounts or flood an inbox
         const raw = token(24); await c.execute({ sql: 'INSERT INTO resets (id, user_id, expires_at) VALUES (?, ?, ?)', args: [sha(raw), u.id, now() + 3600e3] });
         await sendMail(u.email, 'Reset your Walkthru password', layout({ heading: 'Reset your password', lines: ['Someone asked to reset the password for this account. The link works for one hour.'], cta: 'Choose a new password', url: `${appUrl(req)}/account#reset/${raw}`, foot: 'If this wasn’t you, ignore this email: your password stays the same.' }));
       }

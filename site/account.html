@@ -75,6 +75,7 @@ section > header p{margin:2px 0 0;color:var(--ink-2);font-size:13px}
 ::-webkit-scrollbar-thumb{background:rgba(128,128,140,.35);border-radius:10px;border:3px solid transparent;background-clip:padding-box;min-height:32px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(128,128,140,.6);background-clip:padding-box}
 ::-webkit-scrollbar-button{display:none}
+@media (max-width:760px){input,select,textarea{font-size:16px}} /* under 16px, iPhone Safari zooms the page when you tap a field */
 </style>
 </head>
 <body>
@@ -179,7 +180,7 @@ async function settings() {
   if ($('#inv')) bindForm('#inv', async v => { const j = await api('POST', 'team', v); track('invite_sent'); await navigator.clipboard?.writeText(`${location.origin}/account#invite/${j.token}`).catch(() => { }); settings(); });
   view.querySelectorAll('[data-role]').forEach(s => s.onchange = async () => { try { await api('PATCH', 'team', { userId: s.dataset.role, role: s.value }); } catch (e) { alert(e.message); } settings(); });
   view.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => { if (!confirm(b.dataset.rm === T.me ? 'Leave this workspace?' : 'Remove this person from the workspace?')) return; try { await api('DELETE', `team?user=${encodeURIComponent(b.dataset.rm)}`); } catch (e) { return alert(e.message); } b.dataset.rm === T.me ? (ME = await api('GET', 'auth'), settings()) : settings(); });
-  view.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => { try { const j = await api('POST', 'team?action=reset', { userId: b.dataset.reset }); await navigator.clipboard?.writeText(j.url).catch(() => { }); b.textContent = 'Link copied'; } catch (e) { alert(e.message); } });
+  view.querySelectorAll('[data-reset]').forEach(b => b.onclick = async () => { try { const j = await api('POST', 'team?action=reset', { userId: b.dataset.reset }); b.textContent = j.emailed ? 'Email sent' : 'Not sent'; if (!j.emailed) alert('Email is turned off, so the reset link was not sent. Turn it on with EMAIL_ON=true and RESEND_API_KEY, then try again.'); } catch (e) { alert(e.message); } });
   view.querySelectorAll('[data-resend]').forEach(b => b.onclick = async () => { await api('POST', 'team', { email: b.dataset.resend, role: b.dataset.rrole }); settings(); });
   view.querySelectorAll('[data-uninv]').forEach(b => b.onclick = async () => { await api('DELETE', `team?invite=${encodeURIComponent(b.dataset.uninv)}`); settings(); });
   view.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { await navigator.clipboard?.writeText(`${location.origin}/account#invite/${b.dataset.copy}`).catch(() => { }); b.textContent = 'Copied'; });

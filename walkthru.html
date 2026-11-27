@@ -205,7 +205,7 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .sp-b{flex:1;overflow:auto;padding:6px 10px 20px}
 .chat-tools{display:flex;align-items:center;gap:2px}
 .chat-sp{position:relative;min-height:0}
-.chat-log{flex:1;min-height:0;overflow:auto;padding:14px 12px 8px;display:flex;flex-direction:column;gap:8px}
+.chat-log{flex:1;min-height:0;overflow:auto;padding:16px 14px 10px;display:flex;flex-direction:column;gap:10px}
 .chat-empty{margin:auto;max-width:280px;text-align:center;padding:12px 16px 28px}
 .chat-empty .ic{width:22px;height:22px;color:var(--ink-2);margin-bottom:10px}
 .chat-empty b{display:block;font-size:15px;font-weight:600;letter-spacing:-.015em}
@@ -213,33 +213,47 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .chat-shot{display:block;max-width:220px;max-height:140px;border-radius:8px;object-fit:cover}
 .chat-files{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .chat-file{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:3px 9px 3px 7px;border-radius:999px;background:var(--paper-3);font-size:12px;line-height:1.2}
-.chat-row.user .chat-file{background:rgba(21,21,24,.1)}
+.chat-row.user .chat-file{background:var(--paper-3)}
 .chat-file .ic{width:13px;height:13px;flex:none}
 .chat-file b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .chat-row{display:flex}
 .chat-row.user{justify-content:flex-end}
-.chat-bubble{display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:86%;padding:8px 11px;border-radius:12px;font-size:13px;line-height:1.45}
+.chat-row.user + .chat-row.assistant,.chat-row.assistant + .chat-row.user{margin-top:6px}
+.chat-bubble{display:flex;flex-direction:column;align-items:flex-start;gap:4px;font-size:13.5px;line-height:1.5;min-width:0}
+/* your messages: a soft bubble on the right. The agent's: plain text across the panel, no bubble */
+.chat-row.user .chat-bubble{max-width:85%;padding:7px 12px;border-radius:14px;border-bottom-right-radius:5px;background:var(--paper-2);color:var(--ink)}
+.chat-row.assistant .chat-bubble{width:100%;padding:0 2px;color:var(--ink)}
 .chat-text{white-space:pre-wrap;overflow-wrap:anywhere}
 .chat-step{display:block;white-space:pre-wrap;overflow-wrap:anywhere}
-.chat-step.think,.chat-step.act{color:var(--ink-3);font-size:12px}
-.chat-step.err{color:var(--danger);font-size:12px}
-.chat-step.say{color:inherit}
-.chat-ask{display:flex;flex-direction:column;gap:6px;width:100%;margin-top:2px}
+.chat-step.say{color:var(--ink)}
+.chat-step.say + .chat-step.say{margin-top:2px}
+.chat-step.think{color:var(--ink-3);font-size:12px;font-style:italic}
+.chat-step.note{margin-top:2px;padding:6px 10px;border-radius:8px;background:var(--paper-2);color:var(--ink-2);font-size:12px;line-height:1.45;width:100%;box-sizing:border-box}
+.chat-step.act,.chat-step.err{position:relative;padding-left:13px;font-size:12px;line-height:1.45;color:var(--ink-2)}
+.chat-step.act::before,.chat-step.err::before{content:"";position:absolute;left:1px;top:.55em;width:5px;height:5px;border-radius:50%;background:var(--ink-3)}
+.chat-step.err{color:var(--danger)}.chat-step.err::before{background:var(--danger)}
+.chat-verb{font-weight:600;color:var(--ink)}
+.chat-step.v-added::before{background:var(--ok)}
+.chat-step.v-updated::before,.chat-step.v-set::before,.chat-step.v-opened::before,.chat-step.v-put::before,.chat-step.v-resized::before,.chat-step.v-moved::before{background:#3b82f6}
+.chat-step.v-removed::before,.chat-step.v-cleared::before,.chat-step.v-closed::before{background:var(--danger)}
+.chat-ask{display:flex;flex-direction:column;gap:6px;width:100%;margin-top:4px}
 .chat-opt{width:100%;text-align:left;border:1px solid var(--rule-2);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 10px;font:13px/1.35 var(--f-ui);cursor:pointer}
 .chat-opt:hover{border-color:var(--ink)}
 .chat-opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.chat-work{margin:1px 0 8px;font-size:12px;color:var(--ink-3)}
-.chat-work summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;width:fit-content;user-select:none}
+/* the work behind a reply: one quiet line ("4 changes"), opening to the list */
+.chat-work{font-size:12px;color:var(--ink-3);width:100%}
+.chat-work summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:2px 6px 2px 4px;margin-left:-4px;border-radius:6px;user-select:none}
+.chat-work summary:hover{color:var(--ink-2);background:var(--paper-2)}
 .chat-work summary::-webkit-details-marker{display:none}
-.chat-work summary::before{content:"";width:0;height:0;border-top:3.5px solid transparent;border-bottom:3.5px solid transparent;border-left:4.5px solid currentColor;opacity:.7}
-.chat-work[open] summary::before{transform:rotate(90deg)}
-.chat-work-b{display:flex;flex-direction:column;gap:3px;margin:6px 0 2px 4px;padding-left:8px;border-left:1px solid var(--rule)}
-.chat-verb{font-weight:600}
-.chat-step.v-added .chat-verb{color:var(--ok)}
-.chat-step.v-updated .chat-verb,.chat-step.v-set .chat-verb,.chat-step.v-opened .chat-verb,.chat-step.v-put .chat-verb{color:#3b82f6}
-.chat-step.v-removed .chat-verb,.chat-step.v-cleared .chat-verb,.chat-step.v-closed .chat-verb{color:var(--danger)}
-.chat-row.user .chat-bubble{background:var(--primary);color:var(--primary-ink);border-bottom-right-radius:4px}
-.chat-row.assistant .chat-bubble{background:var(--paper-2);color:var(--ink);border-bottom-left-radius:4px}
+.chat-work summary::before{content:"";width:5px;height:5px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin:0 1px 0 0;transition:transform .15s}
+.chat-work[open] summary::before{transform:rotate(45deg) translate(-1px,-1px)}
+.chat-work-b{display:flex;flex-direction:column;gap:2px;margin:3px 0 2px 3px;padding:1px 0 1px 9px;border-left:1px solid var(--rule)}
+.chat-caret{display:inline-block;width:6px;height:6px;margin-left:5px;vertical-align:.1em;border-radius:50%;background:var(--ink-3);animation:chatcaret 1.1s ease-in-out infinite}
+.chat-thinking{display:inline-flex;align-items:baseline;gap:1px;font-size:12.5px;color:var(--ink-3)}
+.chat-thinking i{width:3px;height:3px;margin-left:2px;border-radius:50%;background:currentColor;animation:chatdot 1.2s ease-in-out infinite}
+.chat-thinking i:nth-child(2){animation-delay:.15s}.chat-thinking i:nth-child(3){animation-delay:.3s}
+@keyframes chatcaret{0%,100%{opacity:.25}50%{opacity:1}}
+@keyframes chatdot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-2px)}}
 .chat-compose{display:flex;flex-direction:column;gap:8px;padding:0;border-top:1px solid var(--rule);flex:none}
 .chat-line{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 6px 14px}
 .chat-compose textarea{flex:1;resize:none;overflow:hidden;min-height:36px;max-height:120px;box-sizing:border-box;border:0;border-radius:0;background:transparent;color:var(--ink);font:13px/1.45 var(--f-ui);padding:8px 4px}
@@ -260,10 +274,6 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .chat-send{width:32px;height:32px;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-send:disabled{opacity:.35;cursor:default}
 .chat-send .ic{width:15px;height:15px}
-.chat-caret{display:inline-block;width:.55em;height:.9em;margin-left:2px;vertical-align:-.12em;background:currentColor;border-radius:1px;animation:chatcaret 1.1s ease-in-out infinite}
-.chat-wait{display:flex;align-items:center;min-height:18px;padding:10px 14px}
-.chat-wait .chat-caret{margin-left:0}
-@keyframes chatcaret{0%,100%{opacity:.2}50%{opacity:1}}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 .sp-b > h3:first-child{margin-top:10px}
 .sp-b > .seg{margin:0 0 6px}
@@ -397,6 +407,55 @@ html.gate #gateCover::before{content:"";width:22px;height:22px;border-radius:50%
 body:not(.cl-on) #exLink{display:none}
 body.cl-on #exImport{display:none}
 body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,body.cl-customer #texGrp,body.cl-customer #designTab,body.cl-customer #segHouse{display:none!important}
+
+/* the design agent: only where the server has it set up, never on a shared link (viewers can't sign in) */
+body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
+.chat-send.stop .ic{width:12px;height:12px}
+
+/* plan check: a quiet warning button in the bar, and the list of problems */
+.tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}
+#planChkPop{width:340px;max-width:calc(100vw - 32px)}
+.plan-chk-list{list-style:none;margin:4px 0 10px;padding:0;display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow:auto}
+.plan-chk-list li{position:relative;padding-left:14px;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.plan-chk-list li::before{content:"";position:absolute;left:2px;top:.55em;width:5px;height:5px;border-radius:50%;background:#d97706}
+.plan-chk-fix{width:100%;justify-content:center}
+.plan-chk-fix + .plan-chk-fix{margin-top:6px}
+
+/* ---------- phones: the bar becomes two rows on top. Row one: back, the name, plan check, account, Edit plan.
+   Row two: the tools (view, floors, overview/walk, chat, finishes, more). Labels go; icons stay. ---------- */
+@media (max-width:760px){
+  body{--tbh:100px}
+  body.dock-top .tb{height:auto;min-height:var(--tbh);flex-wrap:wrap;justify-content:space-between;row-gap:4px;padding:5px 6px;overflow:visible}
+  .tb .tb-t,.tb .tb-sep,#charBtn,.tb [data-panel-btn="export"]{display:none}
+  .tb > .tb-g:first-child{order:0;min-width:0;flex:1 1 auto}
+  .tb > .tb-g:last-child{order:1}
+  .tb-fill{order:2;flex:0 0 100%;height:0}
+  .tb > *:not(.tb-g:first-child):not(.tb-g:last-child):not(.tb-fill){order:3}
+  .tb-b{height:36px;min-width:34px;padding:0 5px;gap:3px}
+  .tb .chev{display:none}
+  .tb-primary{height:36px;padding:0 10px}
+  .tb .seg button{min-height:32px;padding:0 8px}
+  .tb > *:not(.tb-fill){gap:1px}
+  .cl-title{max-width:none;min-width:0;flex:1}
+  .tb-proj{min-width:0;flex:1}
+  input,select,textarea{font-size:16px} /* under 16px, iPhone Safari zooms the page when you tap a field */
+  body .tb .tb-sep,body.editing .tb .tb-sep{display:none!important} .tb-fill{height:0!important;margin:0!important;padding:0!important}
+  #segPeLvl .l,#segLvl .l{display:none} #segPeLvl .s,#segLvl .s{display:inline}
+  body.editing .tb [data-panel-btn="finish"],body.editing #moreBtn{display:none!important} /* the plan editor has its own menu */
+  /* Safari's address bar comes and goes: size by the visible height (dvh), and keep clear of the notch and home bar */
+  body.dock-top .tb{top:calc(var(--gap) + env(safe-area-inset-top));left:calc(var(--gap) + env(safe-area-inset-left));right:calc(var(--gap) + env(safe-area-inset-right))}
+  #side,#clSide{height:58dvh;bottom:calc(var(--gap) + env(safe-area-inset-bottom))}
+  .pop{max-height:calc(100dvh - var(--tbh) - 40px)}
+  #stSearch{width:100%!important;font-size:16px}
+}
+/* tablets (portrait iPads and the like): one row still fits once the labels and arrows go */
+@media (min-width:761px) and (max-width:1000px){
+  .tb .tb-t,.tb .chev{display:none}
+  .tb-b{padding:0 6px}
+  .cl-title{max-width:130px}
+  #segPeLvl .l{display:none} #segPeLvl .s{display:inline}
+  body.editing .tb [data-panel-btn="finish"],body.editing #moreBtn{display:none!important}
+}
 
 /* ---------- floor plan editor: library | canvas | inspector ---------- */
 #planEd{position:fixed;left:calc(var(--il) + var(--gap));top:max(var(--it),var(--gap));bottom:max(var(--ib),var(--gap));width:min(66vw,1120px);z-index:12;background:var(--paper);border:1px solid var(--rule);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;box-shadow:12px 0 32px -24px rgba(0,0,0,.35)}
@@ -665,6 +724,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.3 0 1.8-.9 1.4-1.9-.5-1.2.3-2.6 1.7-2.6h1.6a3.8 3.8 0 0 0 3.8-3.8c0-4.8-3.8-8.7-8.5-8.7z"/><circle cx="8" cy="11" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/></symbol>
     <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s6.5-6 6.5-11a6.5 6.5 0 0 0-13 0c0 5 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.8"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M5.3 18.7l1.5-1.5M17.2 6.8l1.5-1.5"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2M12 17v.01"/></symbol>
     <symbol id="i-info" viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4.5 19.5h15"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 19.5h15"/></symbol>
@@ -690,6 +750,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-clip" viewBox="0 0 24 24"><path d="m16.5 7.5-7.8 7.8a3 3 0 0 1-4.2-4.2l8-8a4.2 4.2 0 0 1 6 6l-8 8a5.5 5.5 0 0 1-7.8-7.8l7.3-7.3"/></symbol>
   </defs>
@@ -739,6 +800,7 @@ body.editing .cl-save{display:none}
   </div>
   <span class="tb-fill"></span>
   <div class="tb-g" id="tbPanels">
+    <button class="tb-b plan-chk" id="planChkBtn" type="button" data-pop="planChkPop" hidden data-tip="Problems in this plan"><svg class="ic"><use href="#i-alert"/></svg><span class="plan-chk-n" id="planChkN"></span></button>
     <button class="tb-b" type="button" data-panel-btn="agent" data-tip="Chat with the design agent"><svg class="ic"><use href="#i-msg"/></svg><span class="tb-t">Chat</span></button>
     <button class="tb-b" type="button" data-panel-btn="finish" data-tip="Colours and materials"><svg class="ic"><use href="#i-palette"/></svg><span class="tb-t">Finishes</span></button>
     <span id="tbCloud" class="tb-g"></span>
@@ -754,6 +816,12 @@ body.editing .cl-save{display:none}
 </header>
 
 <!-- "More" menus: everything occasional lives here instead of on the bar -->
+<div class="pop" id="planChkPop" hidden role="dialog" aria-label="Plan check">
+  <h6>Plan check</h6>
+  <ul class="plan-chk-list" id="planChkList"></ul>
+  <button class="btn plan-chk-fix" id="planChkStairs" type="button"><svg class="ic"><use href="#i-wand"/></svg>Fix the stairs</button>
+  <button class="btn plan-chk-fix" id="planChkFix" type="button"><svg class="ic"><use href="#i-msg"/></svg>Ask the agent to fix these</button>
+</div>
 <div class="pop" id="morePop" hidden role="menu" aria-label="More">
   <div class="menu">
     <button type="button" id="measureBtn" aria-pressed="false"><svg class="ic"><use href="#i-ruler"/></svg>Measure<kbd>M</kbd></button>
@@ -1286,6 +1354,9 @@ function worldUV(g, cx, cy, cz) {
   }
   uv.needsUpdate = true;
 }
+// Text for innerHTML: room, floor, and design names come from people (and from customer links), never trusted as markup.
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 function box(parent, x0, x1, y0, y1, z0, z1, mat, o = {}) {
   if (x1 < x0) [x0, x1] = [x1, x0]; if (y1 < y0) [y0, y1] = [y1, y0]; if (z1 < z0) [z0, z1] = [z1, z0];
   const w = x1 - x0, h = y1 - y0, d = z1 - z0; if (w < .005 || h < .005 || d < .005) return null;
@@ -2461,6 +2532,15 @@ parkSedan(G2.site, 41.5, -34, -Math.PI / 2);
 //  the corner), and the triangle under it is filled with wall.
 // =====================================================================
 const RG = 1 / 8; // grid step, feet (1½")
+// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters and downspouts.
+const ROOF_EDGE = { slim: { fascia: .46, gutter: false }, standard: { fascia: .6, gutter: true }, deep: { fascia: .77, gutter: true } };
+const EDGE_COLORS = { black: '#1e1f22', white: '#eeeeea', bronze: '#4a3b2e', grey: '#8a8d90' };
+const edgeMats = {};
+function roofEdge(m = BM) { // the eave the plan asks for, with its materials
+  const e = m.eave || {}, base = ROOF_EDGE[e.fascia] || ROOF_EDGE.standard, color = EDGE_COLORS[e.color] ? e.color : 'black';
+  const mat = edgeMats[color] ||= std({ color: EDGE_COLORS[color], roughness: .55, metalness: .15 });
+  return { ...base, gutter: e.gutter ?? base.gutter, mat, gutterMat: mat };
+}
 let ROOF3 = []; // what was built, per roof: { name, plate, pitch, eaveH, maxH, heightAt(x, z) }
 
 function roofLevel(parent, o) {
@@ -2566,14 +2646,54 @@ function roofLevel(parent, o) {
   // a second skin a hair below the first: the long merged strips meet at T-junctions, and this hides the hairline cracks there
   const skin = []; for (let q = 0; q < pos.length; q += 3) skin.push(pos[q], pos[q + 1] - .04, pos[q + 2]); mesh(skin, o.roofMat || M.roof, uv); // casts shadow too, so sunlight can't leak through those cracks either
 
-  // ---------- fascia along every open edge (level at the eaves, sloped up the rakes) ----------
-  const fas = [], FT = .22, FB = .75;
-  const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => { // outer face + top + bottom of a board along an edge, pushed out by (nx, nz)
-    const o0 = [x0 + nx * FT, z0 + nz * FT], o1 = [x1 + nx * FT, z1 + nz * FT];
-    const q = (a, b, c, d) => fas.push(...a, ...b, ...c, ...a, ...c, ...d);
-    q([o0[0], h0 - FB, o0[1]], [o1[0], h1 - FB, o1[1]], [o1[0], h1 + .1, o1[1]], [o0[0], h0 + .1, o0[1]]);
-    q([x0, h0 + .1, z0], [o0[0], h0 + .1, o0[1]], [o1[0], h1 + .1, o1[1]], [x1, h1 + .1, z1]);
-    q([x0, h0 - FB, z0], [x1, h1 - FB, z1], [o1[0], h1 - FB, o1[1]], [o0[0], h0 - FB, o0[1]]);
+  // ---------- the roof edge, built like a real one (level at the eaves, sloped up the rakes) ----------
+  //  a shingle lip that overhangs the board by ¾" and casts a fine shadow line, a 1" fascia board (5½"–9¼" tall, see
+  //  ROOF_EDGE), and on the level eaves an optional K-style gutter with downspouts (drawn by the builder, which knows
+  //  what lies below each one)
+  const E = o.edge || roofEdge(), FT = .08, FH = E.fascia, LIP = .06;
+  const fas = [], lip = [], gut = [], spouts = [];
+  // each face is wound to face `want` (out, up, down): the materials are one-sided, so a face wound the other way is
+  // culled and the board vanishes but for a thin edge (it did on every north and east eave)
+  const q = (arr, a, b, c, d, want) => {
+    const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    if (n[0] * want[0] + n[1] * want[1] + n[2] * want[2] >= 0) arr.push(...a, ...b, ...c, ...a, ...c, ...d); else arr.push(...a, ...c, ...b, ...a, ...d, ...c);
+  };
+  // a box-section strip along an edge: from `in` to `out` feet beyond it, between `lo` and `hi` below the roof line there
+  const strip = (arr, x0, z0, x1, z1, h0, h1, nx, nz, inn, out, lo, hi, faces = 'otb') => {
+    const P = (x, z, h, d, y) => [x + nx * d, h + y, z + nz * d];
+    const A = (d, y) => P(x0, z0, h0, d, y), B = (d, y) => P(x1, z1, h1, d, y);
+    if (faces.includes('o')) q(arr, A(out, lo), B(out, lo), B(out, hi), A(out, hi), [nx, 0, nz]);
+    if (faces.includes('t')) q(arr, A(inn, hi), A(out, hi), B(out, hi), B(inn, hi), [0, 1, 0]);
+    if (faces.includes('b')) q(arr, A(inn, lo), B(inn, lo), B(out, lo), A(out, lo), [0, -1, 0]);
+  };
+  // K-style gutter on a level eave: flat bottom, a chamfer into the front face, a rolled top lip, and a dark channel inside
+  const GW = .42, GH = .38;
+  const gutter = (x0, z0, x1, z1, h, nx, nz) => {
+    const len = Math.hypot(x1 - x0, z1 - z0); if (len < 1) return;
+    const tx = (x1 - x0) / len, tz = (z1 - z0) / len, ext = FT + GW; // run on past the ends so two gutters meet at a corner
+    const ax = x0 - tx * ext, az = z0 - tz * ext, bx = x1 + tx * ext, bz = z1 + tz * ext, top = h - .1, bot = top - GH;
+    const W = (x, z, u, y) => [x + nx * (FT + u), y, z + nz * (FT + u)];
+    const prof = [[0, top], [0, bot], [GW * .78, bot], [GW, bot + GH * .3], [GW, top], [GW - .05, top]]; // u outward, y up
+    for (let k = 0; k < prof.length - 1; k++) { const [u0, y0] = prof[k], [u1, y1] = prof[k + 1];
+      const want = [nx * (y1 - y0), -(u1 - u0), nz * (y1 - y0)]; // the profile's outward normal, turned into the world
+      q(gut, W(ax, az, u0, y0), W(bx, bz, u0, y0), W(bx, bz, u1, y1), W(ax, az, u1, y1), k === 0 ? [-nx, 0, -nz] : want); }
+    q(gut, W(ax, az, .02, top - .07), W(bx, bz, .02, top - .07), W(bx, bz, GW - .05, top - .07), W(ax, az, GW - .05, top - .07), [0, 1, 0]); // the channel
+    for (const [ex, ez, s] of [[ax, az, -1], [bx, bz, 1]]) { const ring = prof.slice(0, 5).map(([u, y]) => W(ex, ez, u, y)); // end caps
+      for (let k = 1; k < ring.length - 1; k++) q(gut, ring[0], ring[k], ring[k + 1], ring[k + 1], [tx * s, 0, tz * s]); }
+    // downspouts: near an end of each run, just inside the wall's corner (the last `ov` of a run is overhang, with no wall
+    // under it), both ends on a long run, and never a second one beside a corner that already has one
+    const inset = ov + .7; if (len < 2 * inset + 1) return;
+    const spot = t => { const sx = x0 + tx * t, sz = z0 + tz * t; return { ox: sx + nx * (FT + GW / 2), oz: sz + nz * (FT + GW / 2), wx: sx - nx * (ov - .2), wz: sz - nz * (ov - .2), top: bot, nx, nz }; };
+    const taken = c => spouts.some(o => Math.hypot(o.wx - c.wx, o.wz - c.wz) < 2 * ov + 2);
+    const ends = [spot(len - inset), spot(inset)];
+    if (len > 34) { for (const c of ends) if (!taken(c)) spouts.push(c); }
+    else { const c = ends.find(e => !taken(e)); if (c) spouts.push(c); }
+  };
+  const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => {
+    strip(fas, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT, -FH, -.04);         // the fascia board
+    strip(lip, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT + LIP, -.05, .03);   // the shingle edge over it
+    if (E.gutter && Math.abs(h1 - h0) < 1e-3) gutter(x0, z0, x1, z1, h0, nx, nz); // gutters hang on level eaves, never up a rake
   };
   // edges against the storey above (within a few inches of its walls) get no fascia: it would poke out past the wall ends
   const nearHole = new Uint8Array(C), R3 = 3;
@@ -2590,7 +2710,8 @@ function roofLevel(parent, o) {
     for (let j = 0; j <= NZ; j++) { const inside = j < NZ && (side < 0 ? i < NX && draw[j * NX + i] && outside(i - 1, j) : i > 0 && draw[j * NX + i - 1] && outside(i, j));
       if (!inside) { end(j); continue; } const sl = Math.round((hAt(i, j + 1) - hAt(i, j)) * 1e4); if (s && s.sl !== sl) end(j); if (!s) s = { j0: j, sl }; }
   }
-  if (fas.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(fas, 3)); g.computeVertexNormals(); const m = new THREE.Mesh(g, M.trim); m.castShadow = true; parent.add(m); }
+  const flatMesh = (arr, mat) => { if (!arr.length) return; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array(arr.length / 3 * 2).fill(.5), 2)); g.computeVertexNormals(); const m = new THREE.Mesh(g, mat); m.castShadow = true; m.receiveShadow = true; parent.add(m); };
+  flatMesh(fas, E.mat || M.trim); flatMesh(lip, o.roofMat || M.roof); flatMesh(gut, E.gutterMat || E.mat || M.trim);
 
   // ---------- wall under gables and shed sides: from the plate up to the roof ----------
   const gw = [], gu = [];
@@ -2607,10 +2728,23 @@ function roofLevel(parent, o) {
   if (gw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gw, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, o.wallMat || M.stucco); m.castShadow = true; m.receiveShadow = true; parent.add(m); }
 
-  const info = { name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
+  const info = { spouts, edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
     heightAt: (x, z) => { const fi = (x - X0) / RG, fj = (z - Z0) / RG, i = Math.floor(fi), j = Math.floor(fj); if (i < 0 || j < 0 || i >= NX || j >= NZ || !occ[j * NX + i]) return null;
       const u = fi - i, v = fj - j; return (hAt(i, j) * (1 - u) + hAt(i + 1, j) * u) * (1 - v) + (hAt(i, j + 1) * (1 - u) + hAt(i + 1, j + 1) * u) * v; } };
   ROOF3.push(info); return info;
+}
+// Downspouts, once every roof is built: from under each gutter outlet, an elbow back to the wall, then down the wall to
+// the ground, or to a lower roof when one lies below (an upper gutter drains onto the roof under it, as real ones do).
+function roofSpouts(parent) {
+  for (const info of ROOF3) for (const sp of info.spouts || []) {
+    let land = 0;
+    for (const r of ROOF3) if (r !== info) { const h = r.heightAt?.(sp.wx, sp.wz); if (h != null && h < sp.top - .5 && h > land) land = h; }
+    const S = .11, mat = info.edge?.gutterMat || M.trim, y1 = sp.top, y2 = sp.top - .45, y3 = sp.top - .8;
+    if (y3 - land < .5) continue;
+    box(parent, sp.ox - S, sp.ox + S, y2, y1, sp.oz - S, sp.oz + S, mat);
+    box(parent, Math.min(sp.ox, sp.wx) - S, Math.max(sp.ox, sp.wx) + S, y3, y2, Math.min(sp.oz, sp.wz) - S, Math.max(sp.oz, sp.wz) + S, mat);
+    box(parent, sp.wx - S, sp.wx + S, land, y3, sp.wz - S, sp.wz + S, mat);
+  }
 }
 window.wtRoofs = () => ROOF3.map(r => ({ name: r.name, style: r.style, pitch: +(r.pitch * 12).toFixed(2), asked: +(r.asked * 12).toFixed(2), eave: +r.eaveH.toFixed(2), top: +r.maxH.toFixed(2) })); // for checking roofs from the console
 
@@ -2993,7 +3127,11 @@ function planLevel(lv) {
   addShapeWalls(lv, walls);
   // openings
   let frontDone = lv !== 'M';
-  const frontCands = walls.filter(w => !w.angled && w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
+  // the front door faces the street with nothing in the way: a wall set back in a notch behind other rooms would send the
+  // walk to the street straight under the house, so a wall with a clear run to the street comes first
+  const clearToStreet = w => { const mid = (w.a + w.b) / 2; return !BM.rooms.some(r => r.level === w.room.level && r !== w.room && !isOut(r) && r.z < w.c - .6 && r.x < mid + 2.5 && r.x + r.w > mid - 2.5); };
+  const frontCands = walls.filter(w => !w.angled && w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4)
+    .sort((p, q) => (clearToStreet(q) ? 1 : 0) - (clearToStreet(p) ? 1 : 0) || (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
   if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
@@ -3112,6 +3250,9 @@ function stairStatus(S) {
   if (!roomAt3(up, ...e.top)) return { msg: `The top lands outside: put a ${LV_NAME[up]} room where it arrives`, dir };
   if (!roomAt3(S.level, ...e.start)) return { msg: 'The bottom step faces a wall or outside: move it or ↻ rotate it', dir };
   if (stairFits(S, dir) < 2) return { msg: 'These stairs cross a wall: move them inside one room or ↻ rotate them', dir };
+  // a flight on the next floor up or down shares a floor with this one: stacked is one stairwell, anything else collides
+  const mine = stairRect(S, dir), clash = (BM.stairs || []).find(o => o !== S && (stairUp(o) === S.level || o.level === up) && Math.hypot(o.cx - S.cx, o.cz - S.cz) >= 3 && ovl(stairRect(o, stairDirOf(o)), mine));
+  if (clash) return { msg: `Runs into the ${clash.level === up ? 'stair above' : 'stair from below'}: stack them or move one`, dir };
   return { ok: true, dir, up };
 }
 // Old plans used a "Stairs" room: turn each into a hall plus a staircase object in the same spot.
@@ -3180,8 +3321,10 @@ function clearZones(lv) {
   const rs = BM.rooms.filter(r => r.level === lv);
   for (const A of rs) for (const Bq of rs) { if (A.id >= Bq.id || wallMode(A, Bq) !== 'open') continue; // doorway-sized openings stay clear
     for (const e of edgesOf(A)) { const f = edgesOf(Bq).find(x => x.side === OPP[e.side]); if (!f || Math.abs(f.c - e.c) > EPS) continue; const a = Math.max(e.a, f.a), b = Math.min(e.b, f.b); if (b - a > .3 && b - a <= 10) add(e.axis, e.c, a, b, 2.4, -99); } }
-  for (const S of stairsOn(lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
-  for (const S of (BM.stairs || []).filter(t => stairUp(t) === lv)) { const r = stairRect(S, stairDirOf(S)); Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99 }); }
+  // stairs and the openings of flights coming up from below: steered around like a door, and also a hard zone (`hard`):
+  // a piece that still lands on the flight or in the hole is taken out (see furnish)
+  for (const S of stairsOn(lv).concat((BM.stairs || []).filter(t => stairUp(t) === lv))) { const r = stairRect(S, stairDirOf(S));
+    Z.push({ x0: r.x - 2.6, x1: r.x + r.w + 2.6, z0: r.z - 2.6, z1: r.z + r.d + 2.6, yMin: -99, hard: { x0: r.x - .5, x1: r.x + r.w + .5, z0: r.z - .5, z1: r.z + r.d + .5 } }); }
   return Z;
 }
 // Guard rail round a floor opening, only along the stretches where you could actually walk up to the edge:
@@ -3457,6 +3600,7 @@ function buildHouse3() {
     } }
   for (const r of ownRoof) { const x0 = r.x - e, x1 = r.x + r.w + e, z0 = r.z - e, z1 = r.z + r.d + e; // ridge runs front to back: a gable end faces the street
     hipRoof(G3.roof, { x0, x1, z0: z0 - 1.4, z1, plate: MC + .03, pitch, ov: 1.4, slopes: { e: true, w: true }, mat: rmo.roofMat, soffit: rmo.soffitMat, wall: CLAD()[r.clad] || gw, gables: [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] }); }
+  roofSpouts(G3.roof);
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: (gb.pitch || 7) / 12, ov: gb.ov ?? 1.2, slopes: { e: true, w: true }, wall: gb.wall === 'siding' ? M.dsiding : gb.wall === 'stone' ? M.fstone : M.batten,
     gables: [{ edge: 'n', at: gb.z0 + (gb.at ?? 1.05) }, ...(gb.back ? [{ edge: 's', at: gb.z1 }] : [])] });
@@ -3504,7 +3648,10 @@ function buildHouse3() {
     fence('x', fz1, fx0, fx1); fence('z', fx0, fz0, fz1); fence('z', fx1, fz0, fz1); fence('x', fz0, fx0, wallAtZ(fz0, -1)); fence('x', fz0, wallAtZ(fz0, 1), fx1);
     const sx = fx1 - 12, sz = fz1 - 10; box(G3.site, sx, sx + 10, 0, .3, sz, sz + 8, M.concrete, { walk: true }); box(G3.site, sx, sx + 10, .3, 7.5, sz, sz + 8, M.batten, { solid: true });
     box(G3.site, sx + 3.5, sx + 6.5, .3, 6.8, sz - .05, sz, M.trim); hipRoof(G3.site, { x0: sx, x1: sx + 10, z0: sz, z1: sz + 8, plate: 7.5, pitch: 4 / 12, ov: .6, slopes: { n: true, e: true, s: true, w: true } }); }
-  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+  if (fd) { const op = fd.ops[0];
+    const inWay = rooms.filter(r => r.level === 'M' && !isOut(r) && r.z < fd.c - .6 && r.x < op.c + 2 && r.x + r.w > op.c - 2); // only if no clear wall was left
+    const walkEnd = inWay.length ? Math.min(...inWay.map(r => r.z)) - .6 : fd.c - .4;
+    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
     { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
@@ -3685,7 +3832,23 @@ function furnish(F, r, y, zones = []) {
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
+  const hard = near.filter(z => z.hard).map(z => z.hard);
+  if (hard.length) clearHard(best.g, hard, y);
   best.g.userData.room = r.id; F.add(best.g); walkables.push(...best.g.userData.walk); // tagged so a right-click in 3D finds its room
+}
+// Nothing stands on a stair or in a stairwell opening, however tight the room: take out every piece that reaches into one,
+// rugs too (one left over the hole hides it, and you walk through it on the way down). A piece is all the meshes touching
+// each other (a table's top and legs, a sofa's parts), so it goes whole; a rug goes alone, never taking what stands on it.
+const _fa = new THREE.Box3();
+function clearHard(g, zones, y) {
+  g.updateMatrixWorld(true);
+  const parts = []; g.traverse(o => { if (o.isMesh && o.visible) { const b = new THREE.Box3().setFromObject(o); parts.push({ o, b, low: b.max.y - y < .3 }); } });
+  const hit = b => zones.some(z => b.max.x > z.x0 && b.min.x < z.x1 && b.max.z > z.z0 && b.min.z < z.z1);
+  const gone = new Set(parts.filter(p => hit(p.b)));
+  for (let grew = true; grew;) { grew = false;
+    for (const p of parts) if (!gone.has(p) && !p.low) for (const q of gone) if (!q.low && _fa.copy(q.b).expandByScalar(.05).intersectsBox(p.b)) { gone.add(p); grew = true; break; } }
+  for (const { o } of gone) { o.parent?.remove(o); o.geometry?.dispose(); }
+  const removed = new Set([...gone].map(p => p.o)); g.userData.walk = (g.userData.walk || []).filter(m => !removed.has(m));
 }
 function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); }); }
 
@@ -4063,6 +4226,30 @@ function pickWall(D) {
 }
 pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
   PE.s = Math.max(3, Math.min(40, PE.s * Math.exp(-e.deltaY * .0015))); PE.ox = sx - wx * PE.s; PE.oy = sy - wz * PE.s; peDraw(); }, { passive: false });
+// Pinch with two fingers to zoom (and move) the plan around the point between them. The second finger turns the gesture
+// into a pinch: the plan stops taking those touches (no room moves) until both fingers lift. Mouse and pen are untouched.
+const pinch = { pts: new Map(), on: false };
+const pinchMid = () => { const [a, b] = [...pinch.pts.values()]; return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, d: Math.hypot(a.x - b.x, a.y - b.y) }; };
+pc.addEventListener('pointerdown', e => {
+  if (e.pointerType !== 'touch') return;
+  pinch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch.pts.size === 2) {
+    PE.drag = null; PE.menu = false;
+    const r = pc.getBoundingClientRect(), m = pinchMid();
+    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(m.x - r.left, m.y - r.top) });
+  }
+  if (pinch.on) e.stopImmediatePropagation();
+}, true);
+pc.addEventListener('pointermove', e => {
+  if (!pinch.pts.has(e.pointerId)) return;
+  pinch.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!pinch.on) return; e.stopImmediatePropagation();
+  if (pinch.pts.size < 2) return;
+  const r = pc.getBoundingClientRect(), m = pinchMid();
+  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = m.x - r.left - pinch.w[0] * PE.s; PE.oy = m.y - r.top - pinch.w[1] * PE.s; peDraw();
+}, true);
+const pinchUp = e => { if (!pinch.pts.delete(e.pointerId) || !pinch.on) return; e.stopImmediatePropagation(); if (!pinch.pts.size) pinch.on = false; };
+pc.addEventListener('pointerup', pinchUp, true); pc.addEventListener('pointercancel', pinchUp, true);
 
 // ---------- side panel ----------
 const PE_GROUPS = [['Fill', ['open']], ['Living', ['living', 'great', 'kitchen', 'dining', 'foyer', 'hall', 'stairs', 'sunroom', 'bonus', 'rec', 'playroom', 'theatre']],
@@ -4349,7 +4536,6 @@ pc.addEventListener('contextmenu', e => e.preventDefault()); // right-click open
 addEventListener('wheel', () => { if (document.getElementById('planEd').classList.contains('has-sel')) requestAnimationFrame(pePlaceSide); }, { passive: true });
 
 // ---------- Floors: level buttons and the Floors popover ----------
-const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 let lvSegKey = '';
 function renderLevelSegs() { // the floor buttons in the toolbar (view a floor / edit a floor) follow the design's floors
   const L = typeof curHouse === 'undefined' || curHouse === 3 ? levelList() : DEFAULT_LEVELS, key = JSON.stringify(L.map(l => [l.id, l.name]));
@@ -4733,6 +4919,10 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="2" max="12" step="1" class="pop-range">
   <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
+  <h6>Roof edge</h6>
+  <div class="seg full" id="eaveF"><button type="button" data-eave-f="slim" title="A 1×6 fascia board">Slim</button><button type="button" data-eave-f="standard" title="A 1×8 fascia board">Standard</button><button type="button" data-eave-f="deep" title="A 1×10 fascia board">Deep</button></div>
+  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves, with downspouts">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
+  <div class="fld fld-stack" style="margin-top:6px">Fascia and gutter colour <div class="chips" id="eaveC">${Object.entries(EDGE_COLORS).map(([k, c]) => `<button type="button" data-eave-c="${k}" title="${k[0].toUpperCase() + k.slice(1)}" style="background:${c}"></button>`).join('')}</div></div>
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
@@ -4763,9 +4953,18 @@ function syncPlanPop() {
   syncLevels();
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
+  { const e = BM.eave || {}, f = ROOF_EDGE[e.fascia] ? e.fascia : 'standard', g = e.gutter ?? ROOF_EDGE[f].gutter, c = EDGE_COLORS[e.color] ? e.color : 'black', flat = BM.roof === 'flat';
+    document.querySelectorAll('[data-eave-f]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.eaveF === f)); b.disabled = flat; });
+    document.querySelectorAll('[data-eave-g]').forEach(b => { b.setAttribute('aria-pressed', String((b.dataset.eaveG === '1') === g)); b.disabled = flat; });
+    document.querySelectorAll('[data-eave-c]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.eaveC === c))); }
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
   const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
+// the roof edge: fascia size, gutters, colour (BM.eave; see ROOF_EDGE in roof.js)
+const setEave = patch => { pushHist(); BM.eave = { ...(BM.eave || {}), ...patch }; syncPlanPop(); planChanged(false); };
+document.querySelectorAll('[data-eave-f]').forEach(b => b.onclick = () => setEave({ fascia: b.dataset.eaveF }));
+document.querySelectorAll('[data-eave-g]').forEach(b => b.onclick = () => setEave({ gutter: b.dataset.eaveG === '1' }));
+document.querySelectorAll('[data-eave-c]').forEach(b => b.onclick = () => setEave({ color: b.dataset.eaveC }));
 document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('ovR').onpointerdown = () => pushHist();
 document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
@@ -4942,7 +5141,7 @@ const labelObjs = [];
 const LEVEL_Y2 = { M: MF2, U: UF2 };
 for (const [house, list, LY] of [[1, ROOMS, LEVEL_Y], [2, ROOMS2, LEVEL_Y2]]) for (const [name, lv, rs] of list) {
   const r = rs[0], el = document.createElement('div'); el.className = 'lbl';
-  el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
   const o = new CSS2DObject(el); o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; o.position.set((r[0] + r[1]) / 2, LY[lv] + (lv === 'M' && name === 'Garage' ? -1.5 : 0.5), (r[2] + r[3]) / 2);
   o.userData.lv = lv; o.userData.house = house; scene.add(o); labelObjs.push(o);
 }
@@ -5028,7 +5227,7 @@ function autoView(v) {
 //  WALK MODE
 // =====================================================================
 const player = { x: 15.9, z: -18, feet: 0, yaw: Math.PI, pitch: -0.05, vy: 0 };
-const keys = {}; let colliders = []; window.__house = { player, keys, renderer, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
+const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
 function buildColliders() {
   scene.updateMatrixWorld(true); colliders = [];
   scene.traverse(o => {
@@ -5391,7 +5590,7 @@ document.querySelectorAll('#views button').forEach(b => b.addEventListener('clic
 const sel = document.getElementById('goto');
 function fillGoto() {
   const RM = roomsOf(curHouse), lvls = curHouse === 2 ? ['M', 'U'] : ['M', 'U', 'B'].filter(l => RM.some(r => r[1] === l));
-  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${r[0]}</option>` : '').join('') + '</optgroup>').join('')
+  sel.innerHTML = '<option value="">Choose a room…</option>' + lvls.map(lv => `<optgroup label="${{ M: 'Main floor', U: '2nd floor', B: 'Basement' }[lv]}">` + RM.map((r, i) => r[1] === lv ? `<option value="${i}">${escH(r[0])}</option>` : '').join('') + '</optgroup>').join('')
     + '<optgroup label="Outside"><option value="yard">Backyard &amp; pool</option><option value="drive">Driveway</option></optgroup>';
   uiSync();
 }
@@ -5405,7 +5604,7 @@ sel.onchange = () => {
   const r = roomsOf(curHouse)[+v]; enterWalk([r[3][0], r[3][1], r[3][2], H.levelY[r[1]] + 1], third);
 };
 // House 1 / House 2 tabs
-function setHouse(n, fromHash) {
+function setHouse(n, fromHash) { setTimeout(planCheck, 0);
   const tab = n; if (n === 4) n = 3;
   if (n === 3 && usePreset(tab === 4)) { PE.sel = PE.selStair = PE.selWall = null; PE.hist = []; if (PE.open && tab === 4) openEditor(false); rebuildHouse3(); }
   curHouse = n;
@@ -5485,6 +5684,7 @@ setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
 const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
+  setTimeout(planCheck, 0); // the plan changed: recount its problems once this rebuild is done
   buildHouse3();
   scene.updateMatrixWorld(true);
   const cols = []; HOUSE3.traverse(o => { if (o.isMesh && o.userData.solid) { const b = new THREE.Box3().setFromObject(o); b.mesh = o.parent; cols.push(b); } });
@@ -5493,7 +5693,7 @@ function rebuildHouse3() {
   syncDoorColliders();
   mergeStatic(HOUSE3);
   for (const o of labelObjs.filter(o => o.userData.house === 3)) { scene.remove(o); labelObjs.splice(labelObjs.indexOf(o), 1); }
-  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${name}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
+  for (const [name, lv, rs] of ROOMS3) { const r = rs[0], el = document.createElement('div'); el.className = 'lbl'; el.innerHTML = `${escH(name)}<small>${ftin(r[1] - r[0])} × ${ftin(r[3] - r[2])}</small>`;
     const o = new CSS2DObject(el); o.position.set((r[0] + r[1]) / 2, (LV_Y[lv] ?? 0) + .5, (r[2] + r[3]) / 2); o.userData.lv = lv; o.userData.house = 3; o.userData.dims = [name, r[1] - r[0], r[3] - r[2]]; scene.add(o); labelObjs.push(o); }
   updateViews3(); renderLevelSegs();
   if (curHouse === 3) { if (!lvOf(curView) && !HOUSES[3].views[curView] && /^[A-Z]/.test(curView)) curView = 'M'; applyVisibility(); fillGoto(); }
@@ -5880,12 +6080,23 @@ async function saveThumb() {
   if (CL.route?.kind !== 'project' || CL.view !== 'base' || Date.now() - thumbAt < 120e3) return; thumbAt = Date.now();
   const t = captureThumb(); if (t) try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { thumb: t }); } catch (e) { }
 }
-function projectSave() {
-  if (CL.view !== 'base') return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
+// Autosave names the revision this tab started from. If the project moved on elsewhere (another tab, a teammate,
+// accepting a customer's changes), the server refuses rather than overwrite, and we ask which copy to keep.
+function projectSave(force) {
+  if (CL.view !== 'base' || CL.conflict && !force) return; CL.dirty = true; setSave('Saving…'); clearTimeout(CL.saveT);
   CL.saveT = setTimeout(async () => {
-    try { await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, summary: summarize(BM), preview: previewOf(BM) }); CL.dirty = false; setTimeout(saveThumb, 1500); setSave('Saved'); }
-    catch (e) { setSave(`Not saved: ${e.message}`); }
-  }, 800);
+    const P = CL.project.project;
+    try {
+      const j = await cloudApi('PUT', `project?id=${encodeURIComponent(CL.route.id)}`, { bm: BM, rev: P.design_rev || 0, version: P.version, force: force === true || undefined, summary: summarize(BM), preview: previewOf(BM) });
+      P.design_rev = j.rev; P.version = j.version; CL.dirty = false; CL.conflict = false; banner(''); setTimeout(saveThumb, 1500); setSave('Saved');
+    } catch (e) {
+      if (e.status !== 409) return setSave(`Not saved: ${e.message}`);
+      CL.conflict = true; setSave('Not saved');
+      banner(`This project was changed somewhere else (another tab or a teammate) since you opened it. Your latest edits here are not saved. <button class="btn" type="button" id="clReload">Load the latest</button> <button class="btn" type="button" id="clKeep">Keep mine</button>`);
+      $c('clReload').onclick = () => { CL.conflict = false; CL.dirty = false; openProject(CL.route.id, true); };
+      $c('clKeep').onclick = () => { if (confirm('Replace the saved version with what you see here?')) projectSave(true); };
+    }
+  }, force ? 0 : 800);
 }
 $c('clTitle').onchange = async () => {
   if (CL.route?.kind !== 'project') return; const name = $c('clTitle').value.trim(); if (!name) { $c('clTitle').value = CL.project.project.name; return; }
@@ -5936,7 +6147,8 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   let h = null;
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
-  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
+  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked; document.body.classList.toggle('agent-on', !!h.agent);
+  if (!h.comments) ACCESS_NAME.view = 'View only'; // comments are switched off on the server (COMMENTS_ON)
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();
 
@@ -5952,23 +6164,27 @@ const $u = id => document.getElementById(id);
 const ST = { get(k, d) { try { return localStorage.getItem(k) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 const press = (sel, key, val) => document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[key] === String(val))));
+const PHONE = () => innerWidth <= 760; // phones keep the bar on top, in two rows (see the phone styles in ui.css)
 const dockSide = () => ['top', 'bottom', 'left', 'right'].find(d => document.body.classList.contains('dock-' + d)) || 'top';
 const VIEW_NAME = { front: 'Front', rear: 'Rear', aerial: 'Aerial', left: 'Left', right: 'Right', top: 'Top', B: 'Basement', M: 'Main floor', U: '2nd floor', saved: 'Saved view' };
 
 function setEditLabel(t) { const el = document.getElementById('editLabel'); if (el) el.textContent = t; const b = document.getElementById('editBtn'); if (b) b.dataset.tip = `${t} (E)`; }
 function toast(msg) { const t = document.getElementById('toast'); if (!t) return; t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2200); }
 function uiInsets() {
-  const b = document.body, hidden = b.classList.contains('ui-hidden'), H = hidden ? 0 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides
+  const b = document.body, hidden = b.classList.contains('ui-hidden'), bar = document.querySelector('.tb');
+  const H = hidden ? 0 : PHONE() && bar ? bar.offsetHeight + 20 : 66, W = hidden ? 0 : 70; // bar + its gap on both sides (two rows on a phone)
   const side = document.getElementById('side');
   const open = side && !side.hidden && innerWidth > 760 && !hidden;
   return { t: b.classList.contains('dock-top') ? H : 0, b: b.classList.contains('dock-bottom') ? H : 0, l: b.classList.contains('dock-left') ? W : 0, r: b.classList.contains('dock-right') ? W : 0, p: open ? side.offsetWidth + 10 : 0 };
 }
 
 // ---------- dock + theme ----------
-function setDock(d) {
-  document.body.classList.remove('dock-top', 'dock-bottom', 'dock-left', 'dock-right'); document.body.classList.add('dock-' + d);
-  ST.set('walkthru-dock', d); press('[data-dock]', 'dock', d); closePops(); relayout();
+function setDock(d, remember = true) {
+  const at = PHONE() ? 'top' : d; // a phone is too narrow for a side bar: the saved choice comes back on a wider screen
+  document.body.classList.remove('dock-top', 'dock-bottom', 'dock-left', 'dock-right'); document.body.classList.add('dock-' + at);
+  if (remember) ST.set('walkthru-dock', d); press('[data-dock]', 'dock', d); closePops(); relayout();
 }
+matchMedia('(max-width:760px)').addEventListener('change', () => setDock(ST.get('walkthru-dock', 'top'), false));
 function setTheme(t) {
   if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
   ST.set('walkthru-theme', t); press('[data-theme-set]', 'themeSet', t); if (PE.open) peDraw();
@@ -5980,7 +6196,7 @@ document.querySelectorAll('[data-theme-set]').forEach(b => b.onclick = () => set
 function setUnits(u) {
   METRIC = u === 'metric'; ST.set('walkthru-units', u); press('[data-units]', 'units', u);
   document.querySelectorAll('.u-len').forEach(e => e.textContent = U_LEN());
-  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${n}<small>${ftin(w)} × ${ftin(d)}</small>`; }
+  for (const o of labelObjs) if (o.userData.dims) { const [n, w, d] = o.userData.dims; o.element.innerHTML = `${escH(n)}<small>${ftin(w)} × ${ftin(d)}</small>`; }
   if (PE.open) { peInspector(); peDraw(); } if (popOpen === 'pePlanPop') syncPlanPop(); uiSync(); renderInfo();
 }
 document.querySelectorAll('[data-units]').forEach(b => b.onclick = () => setUnits(b.dataset.units));
@@ -6059,7 +6275,7 @@ $u('helpBtn2').onclick = () => { closePops(); openPanel('help'); };
 let navKey = '';
 function renderNav() {
   const sel = $u('goto'), key = curHouse + ':' + sel.innerHTML.length; if (key === navKey && $u('navList').childElementCount) return; navKey = key;
-  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${g.label}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${o.value}">${o.textContent}</button>`).join('') + '</div>').join('');
+  $u('navList').innerHTML = [...sel.querySelectorAll('optgroup')].map(g => `<p>${escH(g.label)}</p><div>` + [...g.querySelectorAll('option')].map(o => `<button type="button" data-go="${escH(o.value)}">${escH(o.textContent)}</button>`).join('') + '</div>').join('');
   $u('navList').querySelectorAll('[data-go]').forEach(b => b.onclick = () => { sel.value = b.dataset.go; sel.dispatchEvent(new Event('change')); });
 }
 
@@ -6080,7 +6296,7 @@ function renderInfo() {
   const A = areaData();
   $u('infoStats').innerHTML = [[fmtSf(A.above), 'Above grade'], [A.base ? fmtSf(A.base) : '—', 'Basement'], [A.beds, 'Bedrooms'], [A.baths, 'Bathrooms']].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   const LN = curHouse === 3 ? LV_NAME : { M: 'Main floor', U: '2nd floor', B: 'Basement' };
-  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${LN[l]}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${n}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
+  $u('schedule').innerHTML = '<table class="sched">' + Object.keys(A.lv).reverse().filter(l => A.lv[l].length).map(l => `<tr class="lv"><td>${escH(LN[l])}</td><td>${fmtSf(A.lv[l].reduce((a, [, s]) => a + s, 0))}</td></tr>` + A.lv[l].map(([n, s]) => `<tr><td>${escH(n)}</td><td>${fmtSf(s)}</td></tr>`).join('')).join('') + '</table>';
 }
 
 // ---------- display: render style, layers, sun, camera ----------
@@ -6221,14 +6437,14 @@ $u('exLink').onclick = async () => {
 };
 
 // ---------- editor extras ----------
-let libOn = ST.get('walkthru-lib', '1') === '1';
+let libOn = !PHONE() && ST.get('walkthru-lib', '1') === '1'; // a phone opens the plan full width; Add shows the room list
 function uiEditing(on) {
   if (!uiReady) return;
   closePops(); if (on && MEAS.on) setMeasure(false); if (on) { closePanel(); window.wtTrack?.('editor_opened'); }
   $u('planEd').classList.toggle('lib-off', !libOn); $u('peLibBtn').setAttribute('aria-pressed', String(libOn));
   if (on) requestAnimationFrame(() => requestAnimationFrame(() => { peSize(); peFit(); peDraw(); }));
 }
-$u('peLibBtn').onclick = () => { libOn = !libOn; ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
+$u('peLibBtn').onclick = () => { libOn = !libOn; if (!PHONE()) ST.set('walkthru-lib', libOn ? '1' : '0'); uiEditing(true); };
 $u('peLibHide').onclick = $u('peLibShow').onclick = () => $u('peLibBtn').click();
 $u('peFind').oninput = e => {
   const q = e.target.value.trim().toLowerCase();
@@ -6391,86 +6607,300 @@ function agentTouch(a, b) {
   if (xo > .5 && Math.abs(b.z + b.d - a.z) < .25) return { side: 'north', along: xo, room: b };
   return null;
 }
-function agentGrew(before, after) {
-  const out = [];
-  const east = +((after.x + after.w) - (before.x + before.w)).toFixed(2);
-  const west = +(before.x - after.x).toFixed(2);
-  const south = +((after.z + after.d) - (before.z + before.d)).toFixed(2);
-  const north = +(before.z - after.z).toFixed(2);
-  if (east > .05) out.push({ axis: 'x', sign: 1, edge: before.x + before.w, delta: east });
-  if (west > .05) out.push({ axis: 'x', sign: -1, edge: before.x, delta: west });
-  if (south > .05) out.push({ axis: 'z', sign: 1, edge: before.z + before.d, delta: south });
-  if (north > .05) out.push({ axis: 'z', sign: -1, edge: before.z, delta: north });
-  return out;
+const agentArea = (a, b) => Math.max(0, agentSpan(a.x, a.x + a.w, b.x, b.x + b.w)) * Math.max(0, agentSpan(a.z, a.z + a.d, b.z, b.z + b.d));
+// A drawn outline (r.pts, in feet from the room's corner) stretches with its box, as the editor does.
+function agentResize(r, w, d) {
+  if (r.shape === 'poly' && Array.isArray(r.pts) && r.w > 0 && r.d > 0) r.pts = r.pts.map(([u, v]) => [+(u * w / r.w).toFixed(2), +(v * d / r.d).toFixed(2)]);
+  r.w = +w.toFixed(2); r.d = +d.toFixed(2);
 }
-// A room grown into its neighbours pushes that whole side, and the furniture in it, so nothing merges.
+// The edges of a room that moved: delta > 0 grew outward, < 0 came in.
+function agentEdges(before, after) {
+  const e = (axis, sign, edge, delta) => ({ axis, sign, edge, delta: +delta.toFixed(2) });
+  return [
+    e('x', 1, before.x + before.w, (after.x + after.w) - (before.x + before.w)),
+    e('x', -1, before.x, before.x - after.x),
+    e('z', 1, before.z + before.d, (after.z + after.d) - (before.z + before.d)),
+    e('z', -1, before.z, before.z - after.z),
+  ].filter(m => Math.abs(m.delta) > .05);
+}
+const EDGE_SIDE = { x1: 'east', 'x-1': 'west', z1: 'south', 'z-1': 'north' };
+// A resized room keeps the plan whole. Growing pushes the rooms on that side out; shrinking pulls them in when they can
+// follow without hitting anything. Rooms above and below the ones that moved shift or stretch the same way, so floors stay lined up.
 function agentFit(plan, room, before) {
   const after = { x: room.x, z: room.z, w: room.w, d: room.d };
-  const shifts = new Map();
-  for (const push of agentGrew(before, after)) {
-    const dx = push.axis === 'x' ? push.sign * push.delta : 0;
-    const dz = push.axis === 'z' ? push.sign * push.delta : 0;
-    const moved = new Set([room.id]);
-    const queue = (plan.rooms || []).filter(r => {
-      if (r.level !== room.level || r.id === room.id || moved.has(r.id)) return false;
-      const touch = agentTouch(before, r);
-      const onEdge = touch && ((push.sign > 0 && touch.side === (push.axis === 'x' ? 'east' : 'south')) || (push.sign < 0 && touch.side === (push.axis === 'x' ? 'west' : 'north')));
-      return onEdge || (agentOverlap(after, r) && !agentOverlap(before, r));
-    });
-    while (queue.length) {
-      const r = queue.pop();
-      if (!r || moved.has(r.id)) continue;
-      moved.add(r.id);
-      r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
-      const prev = shifts.get(r.id) || { dx: 0, dz: 0, name: agentLabel(r) };
-      shifts.set(r.id, { dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2), name: prev.name });
-      for (const o of plan.rooms || []) if (o.level === room.level && !moved.has(o.id) && agentOverlap(r, o)) queue.push(o);
+  const rooms = plan.rooms || [];
+  const shifts = new Map(), lined = new Map(), gaps = [];
+  const shift = (r, dx, dz) => {
+    const prev = shifts.get(r.id) || { dx: 0, dz: 0, name: agentLabel(r), level: r.level, old: { level: r.level, x: r.x, z: r.z, w: r.w, d: r.d } };
+    r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
+    shifts.set(r.id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
+  };
+  for (const m of agentEdges(before, after)) {
+    const amount = m.sign * m.delta, dx = m.axis === 'x' ? amount : 0, dz = m.axis === 'z' ? amount : 0, side = EDGE_SIDE[m.axis + m.sign];
+    const same = rooms.filter(r => r.level === room.level && r.id !== room.id);
+    const group = new Set(), olds = new Map();
+    const take = r => { if (group.has(r.id)) return false; group.add(r.id); olds.set(r.id, { x: r.x, z: r.z, w: r.w, d: r.d }); return true; };
+    if (m.delta > 0) {
+      const queue = same.filter(r => agentTouch(before, r)?.side === side || (agentOverlap(after, r) && !agentOverlap(before, r)));
+      while (queue.length) {
+        const r = queue.pop(); if (!take(r)) continue;
+        r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2);
+        for (const o of same) if (!group.has(o.id) && agentOverlap(r, o)) queue.push(o);
+      }
+    } else {
+      const queue = same.filter(r => agentTouch(before, r)?.side === side);
+      while (queue.length) {
+        const r = queue.pop(); if (!take(r)) continue;
+        for (const o of same) if (!group.has(o.id) && agentTouch(r, o)?.side === side) queue.push(o);
+      }
+      for (const id of group) { const r = rooms.find(q => q.id === id); r.x = +(r.x + dx).toFixed(2); r.z = +(r.z + dz).toFixed(2); }
+      const blocked = [...group].some(id => { const r = rooms.find(q => q.id === id); return [room, ...same].some(o => !group.has(o.id) && agentOverlap(r, o)); });
+      if (blocked) { // something is in the way: leave them, and say there is a gap to fix
+        for (const id of group) { const r = rooms.find(q => q.id === id), o = olds.get(id); r.x = o.x; r.z = o.z; }
+        gaps.push(...[...group].map(id => agentLabel(rooms.find(q => q.id === id))).slice(0, 2));
+        group.clear();
+      }
+    }
+    for (const id of group) { // record the move once, from where the room was before this edge
+      const r = rooms.find(q => q.id === id), o = olds.get(id);
+      const prev = shifts.get(id) || { dx: 0, dz: 0, name: agentLabel(r), level: r.level, old: { level: r.level, ...o } };
+      shifts.set(id, { ...prev, dx: +(prev.dx + dx).toFixed(2), dz: +(prev.dz + dz).toFixed(2) });
+    }
+    if (!group.size) continue;
+    // Other floors: rooms over (or under) the ones that moved follow the edge.
+    const moved = [...group].map(id => olds.get(id));
+    const perp = (a, b) => m.axis === 'x' ? agentSpan(a.z, a.z + a.d, b.z, b.z + b.d) : agentSpan(a.x, a.x + a.w, b.x, b.x + b.w);
+    for (const o of rooms) {
+      if (o.level === room.level || !moved.some(r => perp(r, o) > .5)) continue;
+      const lo = m.axis === 'x' ? o.x : o.z, hi = lo + (m.axis === 'x' ? o.w : o.d), E = m.edge;
+      const beyond = m.sign > 0 ? lo >= E - .05 : hi <= E + .05, across = !beyond && (m.sign > 0 ? hi >= E - .05 : lo <= E + .05); // a room ending on the edge stretches with it, like the one below
+      if (beyond) shift(o, dx, dz);
+      else if (across) { // it spans the edge: stretch it (or shrink it) by the same amount
+        const size = (m.axis === 'x' ? o.w : o.d) + m.delta;
+        if (size < 3) continue;
+        if (m.sign < 0) { if (m.axis === 'x') o.x = +(o.x + amount).toFixed(2); else o.z = +(o.z + amount).toFixed(2); }
+        agentResize(o, m.axis === 'x' ? size : o.w, m.axis === 'z' ? size : o.d);
+      } else continue;
+      lined.set(o.id, agentLabel(o));
     }
   }
   let furn = 0;
   const carry = (p, xk, zk) => {
-    if (!p || p.level !== room.level) return;
-    for (const [id, sh] of shifts) {
-      const r = (plan.rooms || []).find(q => q.id === id); if (!r) continue;
-      const old = { ...r, x: +(r.x - sh.dx).toFixed(2), z: +(r.z - sh.dz).toFixed(2) };
-      if (agentInside(old, { level: p.level, x: p[xk], z: p[zk] })) { p[xk] = +(p[xk] + sh.dx).toFixed(2); p[zk] = +(p[zk] + sh.dz).toFixed(2); furn++; return; }
+    if (!p) return;
+    for (const [, sh] of shifts) {
+      if (sh.level !== p.level || !agentInside(sh.old, { level: p.level, x: p[xk], z: p[zk] })) continue;
+      p[xk] = +(p[xk] + sh.dx).toFixed(2); p[zk] = +(p[zk] + sh.dz).toFixed(2); furn++; return;
     }
-    if (!agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) return;
+    if (p.level !== room.level || !agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) return;
     p[xk] = +Math.min(room.x + room.w - .5, Math.max(room.x + .5, p[xk])).toFixed(2);
     p[zk] = +Math.min(room.z + room.d - .5, Math.max(room.z + .5, p[zk])).toFixed(2);
   };
   for (const it of plan.items || []) carry(it, 'x', 'z');
   for (const s of plan.stairs || []) carry(s, 'cx', 'cz');
-  return { rooms: [...shifts.values()], furn };
+  const here = [...shifts.values()].filter(s => s.level === room.level);
+  return { rooms: here, lined: [...lined.values()], gaps: [...new Set(gaps)], furn };
 }
 
-export function agentIssues(plan) {
+// How a floor reads as a house: upper rooms need a floor under them, a floor should not be one long strip, and every room
+// should touch another. Porches, decks and balconies sit outside the walls, so they are left out.
+const AGENT_OUTSIDE = new Set(['porch', 'deck', 'balcony', 'bridge']);
+const AGENT_LANDING = new Set(['hall', 'foyer', 'open', 'great', 'living', 'rec', 'mud']); // where a stair may start and arrive
+const ft = n => String(+n.toFixed(1));
+const agentAt = (rooms, lv, x, z) => rooms.find(r => r.level === lv && x > r.x && x < r.x + r.w && z > r.z && z < r.z + r.d);
+const agentUp = lv => ({ B: 'M', M: 'U' })[lv];
+
+// ---------- stairs: placed by code, where the flight starts and arrives in a hall or open room ----------
+const stairXY = s => [+(s.cx ?? s.x), +(s.cz ?? s.z)];
+const agentInsideRooms = plan => (plan.rooms || []).filter(r => !AGENT_OUTSIDE.has(r.type));
+// The whole flight stands in rooms a stair may be in (one room, or open rooms that join), one way round or the other:
+// every corner of its W × L box, a few inches in, lands in such a room. Otherwise it runs through a wall or into the ground.
+function flightFits(inside, s) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
+  return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
+}
+// The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
+export function agentStairOk(plan, s) {
+  const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
+  const here = agentAt(inside, s.level, cx, cz);
+  if (!here || !AGENT_LANDING.has(here.type)) return false;
+  if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
+  if (!up || !inside.some(r => r.level === up)) return true;
+  const above = agentAt(inside, up, cx, cz);
+  return !!above && AGENT_LANDING.has(above.type);
+}
+// The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
+// above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
+export function agentStairSpot(plan, level, W, L, nx, nz, skip, below) { // below: {W, L} of a basement flight that must fit underneath
+  const inside = agentInsideRooms(plan), up = agentUp(level);
+  const lows = inside.filter(r => r.level === level && AGENT_LANDING.has(r.type));
+  const highs = up && inside.some(r => r.level === up) ? inside.filter(r => r.level === up && AGENT_LANDING.has(r.type)) : null;
+  const others = (plan.stairs || []).filter(o => o !== skip && o.level === level);
+  // a basement flight goes straight under the main stair when the room below has space for it (one stairwell, as in real houses)
+  if (level === 'B') for (const m of (plan.stairs || []).filter(o => o !== skip && o.level === 'M')) {
+    const [mx, mz] = stairXY(m), low = agentAt(inside, 'B', mx, mz);
+    if (low && AGENT_LANDING.has(low.type) && (low.w >= L + 2 && low.d >= W || low.d >= L + 2 && low.w >= W) && !stairClash(plan, { level, cx: mx, cz: mz, W, L }, skip))
+      return { cx: mx, cz: mz, dist: 0, low, high: agentAt(inside, 'M', mx, mz) || null, stacked: m };
+  }
+  let best = null;
+  const tryAt = (cx, cz, low, high) => {
+    cx = +cx.toFixed(2); cz = +cz.toFixed(2);
+    if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) return;
+    if (!flightFits(inside, { level, cx, cz, W, L })) return;
+    if (highs && !flightFits(inside, { level: up, cx, cz, W, L })) return; // the opening above lands in halls too
+    if (stairClash(plan, { level, cx, cz, W, L }, skip)) return;
+    if (below && !flightFits(inside, { level: 'B', cx, cz, W: below.W, L: below.L })) return;
+    const dist = Math.hypot(cx - nx, cz - nz);
+    if (!best || dist < best.dist) best = { cx, cz, dist, low, high: highs ? high : null };
+  };
+  for (const low of lows) for (const high of highs || [low]) {
+    const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
+    if (x1 - x0 <= 0 || z1 - z0 <= 0) continue;
+    // slide along the flight a foot at a time (centred across it) wherever it fits in the overlap, one way round or the
+    // other; its foot needs 2 ft more in the room
+    const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    if (x1 - x0 >= L && z1 - z0 >= W && low.w >= L + 2) { for (let cx = x0 + L / 2; cx <= x1 - L / 2 + .01; cx += 1) tryAt(cx, mz, low, high); tryAt(mx, mz, low, high); }
+    if (z1 - z0 >= L && x1 - x0 >= W && low.d >= L + 2) { for (let cz = z0 + L / 2; cz <= z1 - L / 2 + .01; cz += 1) tryAt(mx, cz, low, high); tryAt(mx, mz, low, high); }
+  }
+  return best;
+}
+// Two flights on neighbouring floors share a floor: the lower one's opening is cut into it, and the upper one stands on it.
+// They may stack (centres within 3 ft: the builder runs them as one stairwell), but must not otherwise overlap there.
+// Which way a flight runs is the builder's choice, so each counts as an L × L square around its centre.
+function stairClash(plan, s, skip) {
+  const [cx, cz] = stairXY(s), L = s.L ?? 12;
+  return (plan.stairs || []).filter(o => o !== skip && o !== s && (agentUp(o.level) === s.level || agentUp(s.level) === o.level)).find(o => {
+    const [ox, oz] = stairXY(o), reach = (L + (o.L ?? 12)) / 2 + 1;
+    return Math.hypot(ox - cx, oz - cz) >= 3 && Math.abs(ox - cx) < reach && Math.abs(oz - cz) < reach;
+  }) || null;
+}
+const spotWords = (spot, level) => spot.stacked ? `under stair ${spot.stacked.id}, as one stairwell` : spot.high ? `in ${agentLabel(spot.low)}, under ${agentLabel(spot.high)} on the ${AGENT_LV[agentUp(level)] || agentUp(level)}` : `in ${agentLabel(spot.low)}`;
+// After a pass: a stair stacked on another goes, and a stair that would come up through the roof or into a bedroom moves
+// to the nearest place that works. Returns what changed, as results the chat can show.
+export function agentFixStairs(plan) {
+  const out = [], stairs = plan.stairs || [];
+  for (const s of [...stairs].sort((a, b) => (+b.id || 0) - (+a.id || 0))) { // the newest of a stacked pair goes
+    const [cx, cz] = stairXY(s);
+    const twin = stairs.find(o => o !== s && o.level === s.level && (+o.id || 0) < (+s.id || 0) && Math.hypot(stairXY(o)[0] - cx, stairXY(o)[1] - cz) < 4);
+    if (twin) { plan.stairs = plan.stairs.filter(o => o !== s); out.push({ kind: 'act', text: `Removed stair ${s.id}: stair ${twin.id} is already there.`, edit: true }); }
+  }
+  for (const s of [...(plan.stairs || [])].sort((a, b) => (a.level === 'B' ? 0 : 1) - (b.level === 'B' ? 0 : 1))) { // the basement flight gives way to the main one
+    if (agentStairOk(plan, s) && !stairClash(plan, s)) continue;
+    const [cx, cz] = stairXY(s), spot = agentStairSpot(plan, s.level, s.W ?? 3.5, s.L ?? 12, cx, cz, s);
+    if (!spot && s.level === 'B') { // nowhere for the basement flight: move the main stair to where both fit, one over the other
+      const m = (plan.stairs || []).find(o => o.level === 'M'), [mx, mz] = m ? stairXY(m) : [0, 0];
+      const both = m && agentStairSpot({ ...plan, stairs: plan.stairs.filter(o => o !== s) }, 'M', m.W ?? 3.5, m.L ?? 12, mx, mz, m, { W: s.W ?? 3.5, L: s.L ?? 12 });
+      if (both) {
+        m.cx = both.cx; m.cz = both.cz; s.cx = both.cx; s.cz = both.cz; delete m.x; delete m.z; delete s.x; delete s.z;
+        out.push({ kind: 'act', text: `Moved stairs ${m.id} and ${s.id} ${spotWords(both, 'M')}, with the basement flight under it as one stairwell.`, edit: true });
+      }
+      continue;
+    }
+    if (!spot) continue; // nowhere better: the issue list says what is wrong
+    s.cx = spot.cx; s.cz = spot.cz; delete s.x; delete s.z;
+    out.push({ kind: 'act', text: `Moved stair ${s.id} ${spotWords(spot, s.level)}, so it reaches the next floor.`, edit: true });
+  }
+  return out;
+}
+
+// Empty space on one floor, found on a half-foot grid: a slot between two rooms is a gap, an enclosed space is a hole,
+// and a small bite out of the outline is a notch. A long step in the outline (beside a garage, say) is left alone.
+function agentEmpty(on, where) {
+  const S = 2, out = [];
+  const x0 = Math.floor(Math.min(...on.map(r => r.x))), x1 = Math.ceil(Math.max(...on.map(r => r.x + r.w)));
+  const z0 = Math.floor(Math.min(...on.map(r => r.z))), z1 = Math.ceil(Math.max(...on.map(r => r.z + r.d)));
+  const W = (x1 - x0) * S, D = (z1 - z0) * S;
+  if (!(W > 0 && D > 0) || W * D > 250_000) return out;
+  const full = new Uint8Array(W * D);
+  for (const r of on) {
+    const i0 = Math.max(0, Math.round((r.x - x0) * S)), i1 = Math.min(W, Math.round((r.x + r.w - x0) * S));
+    const j0 = Math.max(0, Math.round((r.z - z0) * S)), j1 = Math.min(D, Math.round((r.z + r.d - z0) * S));
+    for (let j = j0; j < j1; j++) full.fill(1, j * W + i0, j * W + i1);
+  }
+  const span = (a0, a1, b0, b1) => Math.min(a1, b1) - Math.max(a0, b0);
+  for (let start = 0; start < full.length; start++) {
+    if (full[start]) continue;
+    let n = 0, edge = false, ci0 = W, ci1 = 0, cj0 = D, cj1 = 0;
+    const stack = [start]; full[start] = 2;
+    while (stack.length) {
+      const c = stack.pop(), i = c % W, j = (c - i) / W; n++;
+      if (i < ci0) ci0 = i; if (i > ci1) ci1 = i; if (j < cj0) cj0 = j; if (j > cj1) cj1 = j;
+      if (i === 0 || j === 0 || i === W - 1 || j === D - 1) edge = true;
+      for (const k of [i > 0 && c - 1, i < W - 1 && c + 1, j > 0 && c - W, j < D - 1 && c + W]) if (k !== false && !full[k]) { full[k] = 2; stack.push(k); }
+    }
+    const area = n / (S * S); if (area < 1) continue;
+    const rx0 = x0 + ci0 / S, rx1 = x0 + (ci1 + 1) / S, rz0 = z0 + cj0 / S, rz1 = z0 + (cj1 + 1) / S, w = rx1 - rx0, d = rz1 - rz0;
+    const at = `(x ${ft(rx0)}–${ft(rx1)}, z ${ft(rz0)}–${ft(rz1)})`;
+    const left = on.find(r => Math.abs(r.x + r.w - rx0) < .3 && span(r.z, r.z + r.d, rz0, rz1) > .4), right = on.find(r => Math.abs(r.x - rx1) < .3 && span(r.z, r.z + r.d, rz0, rz1) > .4);
+    const front = on.find(r => Math.abs(r.z + r.d - rz0) < .3 && span(r.x, r.x + r.w, rx0, rx1) > .4), back = on.find(r => Math.abs(r.z - rz1) < .3 && span(r.x, r.x + r.w, rx0, rx1) > .4);
+    if (w <= 6 && left && right) out.push(`${agentLabel(left)} and ${agentLabel(right)} have a ${w.toFixed(1)} ft gap on the ${where} ${at}. Make their edges meet.`);
+    else if (d <= 6 && front && back) out.push(`${agentLabel(front)} and ${agentLabel(back)} have a ${d.toFixed(1)} ft gap on the ${where} ${at}. Make their edges meet.`);
+    else if (!edge) out.push(`There is an empty ${ft(w)} × ${ft(d)} ft space inside the ${where} ${at}. Grow a neighbour into it, or add a room there.`);
+    else if (area <= 72 && ((left && right) || (front && back) ? Math.min(w, d) <= 8 : Math.min(w, d) <= 3)) { // a recess between rooms, or a thin sliver at a corner (a wider corner step is just the outline)
+      const by = [...new Set([left, right, front, back].filter(Boolean).map(agentLabel))].slice(0, 2);
+      out.push(`The ${where} outline has a ${ft(w)} × ${ft(d)} ft notch ${at}${by.length ? ` next to ${by.join(' and ')}` : ''}. Grow a neighbour into it so the outside walls run straight.`);
+    }
+  }
+  return out;
+}
+
+// How each floor reads as a house: no empty space, upper rooms over the floor below, no long strips, no loose rooms,
+// and stairs that start and arrive in a hall or open room.
+function agentLayout(rooms, stairs) {
+  const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
+  for (const lv of new Set(inside.map(r => r.level))) {
+    const on = inside.filter(r => r.level === lv), where = AGENT_LV[lv] || lv;
+    if (on.length >= 2) out.push(...agentEmpty(rooms.filter(r => r.level === lv), where)); // a porch or deck may fill a notch
+    const body = on.filter(r => r.type !== 'garage'); // an attached garage makes a long house, not a strip
+    if (body.length >= 2) {
+      const x0 = Math.min(...body.map(r => r.x)), x1 = Math.max(...body.map(r => r.x + r.w)), z0 = Math.min(...body.map(r => r.z)), z1 = Math.max(...body.map(r => r.z + r.d));
+      const long = Math.max(x1 - x0, z1 - z0), short = Math.min(x1 - x0, z1 - z0);
+      if (long > 60 && long > 2.5 * short) out.push(`The ${where} is a ${Math.round(x1 - x0)} × ${Math.round(z1 - z0)} ft strip. Arrange its rooms in two or three rows instead.`);
+    }
+    if (on.length >= 2) for (const r of on) if (!on.some(o => agentTouch(r, o)) && !on.some(o => o !== r && agentOverlap(r, o))) out.push(`${agentLabel(r)} on the ${where} touches no other room.`);
+  }
+  if (main.length) for (const r of inside.filter(q => q.level === 'U')) { // the second floor stands on the main floor (a garage counts)
+    const loose = r.w * r.d - main.reduce((a, m) => a + agentArea(r, m), 0);
+    if (loose > Math.max(4, .05 * r.w * r.d)) out.push(`${agentLabel(r)} on the second floor has ${Math.round(loose)} sq ft over nothing. Keep it over main-floor rooms, or grow the main floor under it.`);
+  }
+  for (const s of stairs) {
+    const cx = +(s.cx ?? s.x), cz = +(s.cz ?? s.z), where = AGENT_LV[s.level] || s.level, up = agentUp(s.level);
+    if (!Number.isFinite(cx) || !Number.isFinite(cz)) continue;
+    const here = agentAt(inside, s.level, cx, cz), W = s.W ?? 3.5, L = s.L ?? 12;
+    if (!here) out.push(`Stair ${s.id} on the ${where} is not inside a room. Put it in a hall or foyer.`);
+    else if (!AGENT_LANDING.has(here.type)) out.push(`Stair ${s.id} starts inside ${agentLabel(here)}. Put it in a hall or foyer.`);
+    else if (!flightFits(inside, s)) out.push(`Stair ${s.id} does not fit inside ${agentLabel(here)}: its ${W} × ${L} ft flight runs out through the walls${s.level === 'B' ? ' into the ground' : ''}. Move it, or make the room bigger.`);
+    const clash = stairClash({ stairs }, s);
+    if (clash && (+clash.id || 0) > (+s.id || 0)) out.push(`Stairs ${s.id} and ${clash.id} run into each other: one comes up through the floor where the other stands. Stack the lower flight under the upper one, or move one.`);
+    if (!up || !inside.some(r => r.level === up)) continue;
+    const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
+    if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
+    else if (!AGENT_LANDING.has(above.type)) out.push(`Stair ${s.id} comes up inside ${agentLabel(above)} on the ${there}. Put a hall over it.`);
+  }
+  return out;
+}
+
+// The first `limit` problems in the plan (Infinity to count them all).
+export function agentIssues(plan, limit = 10) {
   const rooms = Array.isArray(plan?.rooms) ? plan.rooms : [], stairs = Array.isArray(plan?.stairs) ? plan.stairs : [], out = [];
   const levels = new Set(rooms.map(r => r.level));
-  for (let i = 0; i < rooms.length; i++) for (let j = i + 1; j < rooms.length; j++) {
+  const most = limit === Infinity ? Infinity : Math.min(5, limit);
+  for (let i = 0; i < rooms.length && out.length < most; i++) for (let j = i + 1; j < rooms.length && out.length < most; j++) {
     const a = rooms[i], b = rooms[j];
-    if (a.level !== b.level) continue;
-    const overlap = a.x < b.x + b.w - .05 && a.x + a.w > b.x + .05 && a.z < b.z + b.d - .05 && a.z + a.d > b.z + .05;
-    if (overlap) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
-    if (out.length >= 8) return out;
-    const zo = Math.min(a.z + a.d, b.z + b.d) - Math.max(a.z, b.z), xo = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-    let gap = 0;
-    if (zo > 1) gap = a.x + a.w <= b.x ? b.x - (a.x + a.w) : b.x + b.w <= a.x ? a.x - (b.x + b.w) : 0;
-    else if (xo > 1) gap = a.z + a.d <= b.z ? b.z - (a.z + a.d) : b.z + b.d <= a.z ? a.z - (b.z + b.d) : 0;
-    if (gap > .2 && gap < 3) out.push(`${agentLabel(a)} and ${agentLabel(b)} have a ${gap.toFixed(1)} ft gap. Make their edges meet.`);
-    if (out.length >= 8) return out;
+    if (a.level === b.level && agentOverlap(a, b)) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
   }
+  out.push(...agentLayout(rooms, stairs));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
-  return out.slice(0, 8);
+  return out.slice(0, limit);
 }
 
-export function agentBrief(plan) {
+// `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
+export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Resizing a room shifts the rooms and furniture on that side. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
   const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
@@ -6478,12 +6908,14 @@ export function agentBrief(plan) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
       .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
     const pieces = (Array.isArray(plan?.items) ? plan.items : []).filter(it => agentInside(r, it)).slice(0, 6).map(it => it.name || it.kind);
-    lines.push(`${r.id} ${r.type} ${r.level} "${agentName(r.name)}" ${r.x},${r.z} ${r.w}x${r.d}${neighbours ? ` | ${neighbours}` : ''}${pieces.length ? ` | furn: ${pieces.join(', ')}` : ''}`);
+    const shape = r.shape && r.shape !== 'rect' ? ` ${r.shape === 'tri' ? 'triangle' : r.shape === 'round' ? 'round' : 'drawn outline'} in its box` : '';
+    lines.push(`${r.id} ${r.type} ${r.level} "${agentName(r.name)}" ${r.x},${r.z} ${r.w}x${r.d}${shape}${neighbours ? ` | ${neighbours}` : ''}${pieces.length ? ` | furn: ${pieces.join(', ')}` : ''}`);
   }
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
-  const issues = agentIssues(plan);
+  const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
+  const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
   return lines.join('\n').slice(0, 8000);
 }
@@ -6494,9 +6926,10 @@ export function applyAgentLine(plan, line, types) {
   if (!plan.stairs) plan.stairs = [];
   const raw = String(line ?? '').trim();
   if (!raw) return { kind: 'say', text: '' };
+  if (/^\{.*\}$/.test(raw)) return { kind: 'err', text: 'That line was a command without its @@ name.' }; // bare JSON is never meant for the user
   if (!raw.startsWith('@@')) return { kind: 'say', text: raw };
   const sp = raw.indexOf(' ');
-  const cmd = (sp < 0 ? raw.slice(2) : raw.slice(2, sp)).toLowerCase();
+  const cmd = (sp < 0 ? raw.slice(2) : raw.slice(2, sp)).toLowerCase().replace(/[^a-z]+$/, ''); // "@@think," is still @@think
   const rest = sp < 0 ? '' : raw.slice(sp + 1).trim();
   const say = (kind, text, edit) => ({ kind, text, edit: !!edit });
   if (cmd === 'think') return say('think', rest);
@@ -6511,8 +6944,9 @@ export function applyAgentLine(plan, line, types) {
     if (!options.length) return say('say', q);
     return { kind: 'ask', text: q, options };
   }
-  if (cmd === 'clear') {
-    plan.rooms = []; plan.stairs = []; plan.walls = {};
+  if (cmd === 'clear') { // a fresh house: nothing tied to the old rooms may land on the new ones (ids start over)
+    plan.rooms = []; plan.stairs = []; plan.walls = {}; plan.items = [];
+    for (const k of ROOM_KEYED) if (plan[k]) plan[k] = {};
     return say('act', 'Cleared the rooms and started over.', true);
   }
   if (cmd === 'roof') {
@@ -6534,6 +6968,11 @@ export function applyAgentLine(plan, line, types) {
     const x = agentNum(body.x, -40, 300), z = agentNum(body.z, -40, 300), w = agentNum(body.w, 3, 80), d = agentNum(body.d, 3, 80);
     if (x == null || z == null || w == null || d == null) return say('err', 'A room needs x, z, w, and d in feet.');
     const name = agentName(body.name);
+    const where = AGENT_LV[level] || level;
+    const twin = name && plan.rooms.find(o => o.level === level && agentName(o.name).toLowerCase() === name.toLowerCase());
+    if (twin) return say('err', `${name} is already on the ${where} (#${twin.id}). Change it with @@set {"id":${twin.id}}, or give the new room another name.`);
+    const clash = plan.rooms.find(o => o.level === level && agentArea(o, { x, z, w, d }) > .5 * Math.min(o.w * o.d, w * d));
+    if (clash) return say('err', `${agentLabel(clash)} (#${clash.id}) is already there on the ${where}. Change it with @@set {"id":${clash.id}}, or @@del it first.`);
     const room = { id: agentNextId(plan), type, level, x, z, w, d };
     if (name) room.name = name;
     plan.rooms.push(room);
@@ -6541,6 +6980,8 @@ export function applyAgentLine(plan, line, types) {
   }
   if ((cmd === 'set' || cmd === 'wall') && !body) return say('err', 'Could not read that command.');
   if (cmd === 'set') {
+    const stair = body.id != null && !body.name ? (plan.stairs || []).find(q => String(q.id) === String(body.id)) : null;
+    if (stair) return setStair(plan, stair, body);
     const found = agentRoom(plan, body.id ?? body.name);
     const setMiss = roomMiss(found); if (setMiss) return setMiss;
     const r = found.room;
@@ -6554,15 +6995,24 @@ export function applyAgentLine(plan, line, types) {
     if (body.name != null && body.id != null) r.name = agentName(body.name);
     if (body.x != null) { const n = agentNum(body.x, -40, 300); if (n == null) return say('err', 'Bad x.'); r.x = n; }
     if (body.z != null) { const n = agentNum(body.z, -40, 300); if (n == null) return say('err', 'Bad z.'); r.z = n; }
-    if (body.w != null) { const n = agentNum(body.w, 3, 80); if (n == null) return say('err', 'Bad width.'); r.w = n; }
-    if (body.d != null) { const n = agentNum(body.d, 3, 80); if (n == null) return say('err', 'Bad depth.'); r.d = n; }
+    let w = r.w, d = r.d;
+    if (body.w != null) { const n = agentNum(body.w, 3, 80); if (n == null) return say('err', 'Bad width.'); w = n; }
+    if (body.d != null) { const n = agentNum(body.d, 3, 80); if (n == null) return say('err', 'Bad depth.'); d = n; }
+    agentResize(r, w, d);
     const geom = before.x !== r.x || before.z !== r.z || before.w !== r.w || before.d !== r.d;
-    const fit = geom ? agentFit(plan, r, before) : { rooms: [], furn: 0 };
+    const sized = before.w !== r.w || before.d !== r.d;
+    const fit = sized ? agentFit(plan, r, before) : { rooms: [], lined: [], gaps: [], furn: 0 }; // a move places only that room; a resize keeps the plan together
+    if (geom && !sized) { // its furniture and stairs go with it
+      const dx = r.x - before.x, dz = r.z - before.z;
+      for (const [p, xk, zk] of [...(plan.items || []).map(it => [it, 'x', 'z']), ...(plan.stairs || []).map(st => [st, 'cx', 'cz'])])
+        if (agentInside(before, { level: p.level, x: p[xk], z: p[zk] })) { p[xk] = +(p[xk] + dx).toFixed(2); p[zk] = +(p[zk] + dz).toFixed(2); fit.furn++; }
+    }
     const names = [...new Set(fit.rooms.map(s => s.name))];
     const shown = names.slice(0, 3).join(', ') + (names.length > 3 ? ` and ${names.length - 3} more` : '');
-    const sized = before.w !== r.w || before.d !== r.d;
     let text = sized ? `Resized ${agentLabel(r)} to ${r.w} × ${r.d} ft.` : geom ? `Moved ${agentLabel(r)}.` : `Updated ${agentLabel(r)}.`;
-    if (names.length) text += ` Shifted ${shown} so the rooms stay separate.`;
+    if (names.length) text += ` Shifted ${shown} to keep the rooms together.`;
+    if (fit.lined.length) text += ` Lined up ${fit.lined.slice(0, 3).join(', ')}${fit.lined.length > 3 ? ` and ${fit.lined.length - 3} more` : ''} on the other floor.`;
+    if (fit.gaps.length) text += ` ${fit.gaps.join(' and ')} could not move in, so there is a gap to fix.`;
     if (fit.furn) text += ' Furniture moved with them.';
     return say('act', text, true);
   }
@@ -6597,19 +7047,38 @@ export function applyAgentLine(plan, line, types) {
     const W = agentNum(spec.w ?? spec.W ?? 3.5, 3, 8), L = agentNum(spec.l ?? spec.L ?? 12, 6, 24);
     if (cx == null || cz == null || W == null || L == null) return say('err', 'A stair needs a center cx, cz.');
     plan.stairs = plan.stairs || [];
-    plan.stairs.push({ id: agentNextId(plan), level, cx, cz, W, L });
-    return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true);
+    const stair = { id: agentNextId(plan), level, cx, cz, W, L };
+    if (agentStairOk(plan, stair) && !stairClash(plan, stair)) { plan.stairs.push(stair); return say('act', `Added a stair on the ${AGENT_LV[level] || level}.`, true); }
+    const spot = agentStairSpot(plan, level, W, L, cx, cz); // the spot asked for does not work: use the nearest one that does
+    if (!spot) {
+      const up = AGENT_LV[agentUp(level)] || 'floor above';
+      return say('err', `No place fits a ${W} × ${L} ft stair on the ${AGENT_LV[level] || level}: it needs a hall or foyer there with a hall over it on the ${up}, overlapping at least ${W} × ${L} ft. Make that space, then add the stair.`);
+    }
+    stair.cx = spot.cx; stair.cz = spot.cz; plan.stairs.push(stair);
+    return say('act', `Added a stair ${spotWords(spot, level)}, so it reaches the next floor.`, true);
   }
   return say('err', `Unknown command @@${cmd}.`);
 }
 
+function setStair(plan, stair, body) {
+  const num = (k, lo, hi) => body[k] == null ? undefined : agentNum(body[k], lo, hi);
+  const cx = num('cx', -40, 300) ?? num('x', -40, 300), cz = num('cz', -40, 300) ?? num('z', -40, 300), W = num('w', 3, 8), L = num('l', 6, 24);
+  if ([cx, cz, W, L].some(v => v === null)) return { kind: 'err', text: 'A stair takes cx, cz, w, and l in feet.' };
+  if (cx === undefined && cz === undefined && W === undefined && L === undefined) return { kind: 'err', text: 'Give the stair a new cx, cz, w, or l.' };
+  if (cx !== undefined) stair.cx = cx; if (cz !== undefined) stair.cz = cz; if (W !== undefined) stair.W = W; if (L !== undefined) stair.L = L;
+  return { kind: 'act', text: `Moved the stair on the ${AGENT_LV[stair.level] || stair.level}.`, edit: true };
+}
 function removeStair(plan, stair) {
   plan.stairs = (plan.stairs || []).filter(s => s !== stair);
   return { kind: 'act', text: `Removed the stair on the ${AGENT_LV[stair.level] || stair.level}.`, edit: true };
 }
+// Settings stored per room id: walls "a-b", outside walls and openings "id:side" or "a-b", railings "id:side:at" / "id:*".
+const ROOM_KEYED = ['walls', 'ext', 'ops', 'rails'];
+const keyHasRoom = (key, id) => String(key).split(':')[0].split('-').includes(String(id));
 function removeRoom(plan, room) {
   plan.rooms = plan.rooms.filter(r => r !== room);
-  if (plan.walls) for (const k of Object.keys(plan.walls)) if (k.split('-').includes(String(room.id))) delete plan.walls[k];
+  for (const k of ROOM_KEYED) if (plan[k]) for (const key of Object.keys(plan[k])) if (keyHasRoom(key, room.id)) delete plan[k][key];
+  if (Array.isArray(plan.items)) plan.items = plan.items.filter(it => !agentInside(room, it)); // its placed furniture goes with it
   return { kind: 'act', text: `Removed ${agentLabel(room)}.`, edit: true };
 }
 
@@ -6637,34 +7106,107 @@ function keepAgent(res) {
   return [res];
 }
 
+// ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
+export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
+// A request to repair the plan: then every problem counts, not only the ones this message made.
+export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
+export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
+// Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
+// or after AGENT_PASS_EDITS changes, so the next pass reads the plan and its issues. Each call returns the results to show.
+export function agentPass(plan, types) {
+  const buf = { plan, types, hold: '' };
+  const out = { done: false, more: false, ask: false, edited: false, ended: false, edits: 0, errors: [], raw: '' };
+  const take = list => {
+    const shown = [];
+    for (const res of list) {
+      if (out.ended) break;
+      shown.push(res);
+      if (res.kind === 'ask') out.ask = out.done = true;
+      if (res.kind === 'done') out.done = true;
+      if (res.kind === 'more') out.more = true;
+      if (res.kind === 'ask' || res.kind === 'done' || res.kind === 'more') out.ended = true;
+      if (res.kind === 'err') out.errors.push(res.text);
+      if (res.edit) { out.edited = true; out.edits++; }
+      if (out.edits >= AGENT_PASS_EDITS && !out.ended) out.ended = out.more = true;
+    }
+    return shown;
+  };
+  const settle = () => { const fixed = out.edited ? agentFixStairs(plan) : []; if (fixed.length) out.edited = true; return fixed; }; // stairs are placed by code once the pass's rooms are in
+  return { out, line: l => { if (out.ended) return []; out.raw += l + '\n'; return take(feedAgentLine(buf, l)); }, end: () => [...(out.ended ? [] : take(flushAgentLine(buf))), ...settle()] };
+}
+// What to do after a pass: { finish }, { stop }, or the hidden note (extra) that starts the next pass.
+// s: { step, build, rechecked, acted (anything changed this message), fresh() (problems this message added) }
+export function agentNext(turn, s) {
+  if (turn.ask) return { finish: true };
+  if (turn.errors.length) return { review: true, extra: `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.` };
+  if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
+    const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
+    if (!fresh.length) return { finish: true };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+  }
+  if (!turn.edited && !turn.more) {
+    if (!s.build || s.step > 1) return { stop: true };
+    return { extra: 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.' };
+  }
+  if (!turn.edited) return { stop: true };
+  return { extra: 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.' };
+}
+// The changes already made this message, put in front of each follow-up note so nothing is done twice.
+export function agentApplied(steps) {
+  const acts = (steps || []).filter(s => s.k === 'act').map(s => '- ' + s.t).slice(-30);
+  return acts.length ? `Already done for this message (do not repeat these; each size change is applied and final):\n${acts.join('\n')}\n\n` : '';
+}
+// A repair that left the plan with as many problems as before (or more) is undone: a failed fix must not make things worse.
+// How bad a plan is: overlaps weigh most, then rooms over nothing and stair problems, then gaps, notches, and loose rooms.
+export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair/.test(i) ? 2 : 1), 0);
+export const agentRepairFailed = (fixing, acted, before, plan) => fixing && acted && agentBadness(plan) >= before;
+export const AGENT_REVERTED = 'I couldn’t improve the plan this time, so I put it back the way it was. Try one fix at a time, like “close the gap between Living and Hall”.';
+export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;
+
 // =====================================================================
 //  AGENT — chat beside the plan. A question gets an answer. A request to
 //  build or change the house comes back as commands, applied one at a time
 //  so the 3D model updates while the agent checks its work and continues.
 // =====================================================================
 const CHAT_KEY = 'walkthru-agent';
-const CHAT_MAX_FILES = 4, CHAT_MAX_BYTES = 8 * 1024 * 1024;
+const CHAT_MAX_FILES = 4, CHAT_MAX_BYTES = 8 * 1024 * 1024; // what you can pick; images are shrunk before sending
+const CHAT_SEND_BUDGET = 3_400_000; // all attachments together, as data URLs: the hosting takes request bodies up to 4.5 MB
+const CHAT_IMG_PX = 1800;           // longest side of an image as sent: plenty to read a floor plan
 const CHAT_MIME = { 'image/png': 'image', 'image/jpeg': 'image', 'image/webp': 'image', 'image/gif': 'image', 'application/pdf': 'pdf' };
 let chatMsgs = [];
 let chatPending = [];
 let chatBusy = false;
 let chatGen = 0;
-try {
-  const saved = JSON.parse(sessionStorage.getItem(CHAT_KEY) || '[]');
-  if (Array.isArray(saved)) chatMsgs = saved.flatMap(m => {
-    if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
-    const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
-    const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
-    const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
-    return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
-  });
-} catch (e) { }
+// Each design keeps its own conversation (a Studio project, a customer link, or one of this browser's designs), so the
+// agent never answers about the last house you had open.
+const chatKey = () => { const r = typeof CL !== 'undefined' ? CL.route : null;
+  return `${CHAT_KEY}:${r?.kind === 'project' ? `p:${r.id}` : r?.kind === 'customer' ? `c:${r.token}` : `d:${typeof DS !== 'undefined' ? DS.cur : ''}`}`; };
+let chatAt = null;
+function loadChat(key) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(key) || '[]');
+    return !Array.isArray(saved) ? [] : saved.flatMap(m => {
+      if (!m || (m.role !== 'user' && m.role !== 'assistant') || typeof m.text !== 'string') return [];
+      const files = Array.isArray(m.files) ? m.files.flatMap(f => f && typeof f.name === 'string' ? [{ name: f.name.slice(0, 120), kind: f.kind === 'image' ? 'image' : 'pdf' }] : []) : [];
+      const steps = Array.isArray(m.steps) ? m.steps.flatMap(s => s && typeof s.t === 'string' && ['think', 'act', 'say', 'err', 'note'].includes(s.k) ? [{ k: s.k, t: s.t.slice(0, 600) }] : []).slice(0, 80) : [];
+      const options = Array.isArray(m.ask?.options) ? m.ask.options.flatMap(o => o && typeof o.label === 'string' ? [{ id: String(o.id || o.label).slice(0, 80), label: o.label.slice(0, 160) }] : []).slice(0, 6) : [];
+      return [{ role: m.role, text: m.text, files, ...(steps.length ? { steps } : {}), ...(options.length ? { ask: { q: String(m.ask.q || '').slice(0, 300), options } } : {}) }];
+    });
+  } catch (e) { return []; }
+}
+// Another design is open: put this conversation away and bring that one's back (a reply in flight is stopped).
+function syncChatDesign() {
+  const key = chatKey(); if (key === chatAt) return;
+  if (chatAt !== null && chatBusy) { chatCtl?.abort(); chatCtl = null; chatGen++; chatBusy = false; }
+  chatAt = key; chatMsgs = loadChat(key); chatPending = [];
+  if (typeof renderChat === 'function' && $u('agentLog')) { renderPending(); renderChat(); syncSend(); }
+}
 
 const chatEsc = s => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function saveChat() {
   try {
     const slim = chatMsgs.map(m => ({ role: m.role, text: m.text, files: (m.files || []).map(f => ({ name: f.name, kind: f.kind })), steps: (m.steps || []).map(s => ({ k: s.k, t: s.t })), ...(m.ask?.options?.length ? { ask: m.ask } : {}) }));
-    sessionStorage.setItem(CHAT_KEY, JSON.stringify(slim));
+    sessionStorage.setItem(chatAt || chatKey(), JSON.stringify(slim));
   } catch (e) { }
 }
 
@@ -6675,7 +7217,7 @@ function fileBits(files) {
     return `<span class="chat-file"><svg class="ic"><use href="#${icon}"/></svg><b>${chatEsc(f.name)}</b></span>`;
   }).join('');
 }
-const STEP_VERB = /^(Added|Updated|Removed|Opened|Closed|Cleared|Set|Put)\b/;
+const STEP_VERB = /^(Added|Updated|Removed|Opened|Closed|Cleared|Set|Put|Resized|Moved)\b/;
 function stepHtml(s, caret) {
   const verb = s.k === 'act' ? (s.t.match(STEP_VERB) || [])[1] : '';
   const text = chatEsc(s.t).replace(STEP_VERB, m => `<b class="chat-verb">${m}</b>`);
@@ -6687,7 +7229,7 @@ function renderChat() {
     log.innerHTML = '<div class="chat-empty"><svg class="ic"><use href="#i-msg"/></svg><b>Design agent</b><p>Drop a floor plan and ask for a house, or describe a change. It builds the plan floor by floor.</p></div>';
     return;
   }
-  const caret = '<i class="chat-caret" aria-hidden="true"></i>';
+  const caret = '<i class="chat-caret" aria-hidden="true"></i>', thinking = '<span class="chat-thinking" role="status">Thinking<i></i><i></i><i></i></span>';
   log.innerHTML = chatMsgs.map((m, i) => {
     const bits = m.files?.length ? `<span class="chat-files">${fileBits(m.files)}</span>` : '';
     const writing = chatBusy && i === chatMsgs.length - 1 && m.role === 'assistant';
@@ -6696,23 +7238,26 @@ function renderChat() {
       const parts = []; let work = [];
       const flush = open => {
         if (!work.length) return;
-        const n = work.length, label = n === 1 ? '1 step' : `${n} steps`;
+        const kinds = work.map(w => w.k), acts = kinds.filter(k => k === 'act').length, errs = kinds.filter(k => k === 'err').length, n = work.length;
+        const label = (acts ? `${acts} change${acts === 1 ? '' : 's'}` : `${n} step${n === 1 ? '' : 's'}`) + (errs ? ` · ${errs} didn’t apply` : '');
+        work = work.map(w => w.html);
         parts.push(`<details class="chat-work"${open ? ' open' : ''}><summary>${label}</summary><div class="chat-work-b">${work.join('')}</div></details>`);
         work = [];
       };
       m.steps.forEach((s, n) => {
         const mark = writing && n === m.steps.length - 1 ? caret : '';
-        if (s.k === 'say') { flush(false); parts.push(stepHtml(s, mark)); }
-        else work.push(stepHtml(s, mark));
+        if (s.k === 'say' || s.k === 'note') { flush(false); parts.push(stepHtml(s, mark)); } // the app's own notes ("Still to fix…") sit apart from the agent's words
+        else work.push({ k: s.k, html: stepHtml(s, mark) });
       });
       flush(writing);
       body = parts.join('');
-    } else if (m.text || writing) body = `<span class="chat-text">${chatEsc(m.text)}${writing ? caret : ''}</span>`;
+    } else if (m.text) body = `<span class="chat-text">${chatEsc(m.text)}${writing ? caret : ''}</span>`;
+    else if (writing) body = thinking;
     const choices = !writing && m.ask?.options?.length && i === chatMsgs.length - 1
       ? `<div class="chat-ask" role="group" aria-label="${chatEsc(m.ask.q || 'Choose')}">${m.ask.options.map((o, n) => `<button type="button" class="chat-opt" data-opt="${n}">${chatEsc(o.label)}</button>`).join('')}</div>`
       : '';
     return `<div class="chat-row ${m.role}"><div class="chat-bubble">${bits}${body}${choices}</div></div>`;
-  }).join('') + (chatBusy && chatMsgs[chatMsgs.length - 1]?.role !== 'assistant' ? `<div class="chat-row assistant"><div class="chat-bubble chat-wait" aria-label="Agent is working">${caret}</div></div>` : '');
+  }).join('') + (chatBusy && chatMsgs[chatMsgs.length - 1]?.role !== 'assistant' ? `<div class="chat-row assistant"><div class="chat-bubble">${thinking}</div></div>` : '');
   log.querySelectorAll('[data-opt]').forEach(b => b.onclick = () => pickAsk(+b.dataset.opt));
   log.scrollTop = log.scrollHeight;
 }
@@ -6735,12 +7280,24 @@ function fitComposer() {
   t.style.height = Math.min(120, t.scrollHeight) + 'px';
   t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden';
 }
-function syncSend() { $u('agentSend').disabled = chatBusy || (!$u('agentInput').value.trim() && !chatPending.length); }
+function syncSend() { // while the agent works, the send button is a Stop button
+  const b = $u('agentSend'), stop = chatBusy;
+  b.disabled = !stop && !$u('agentInput').value.trim() && !chatPending.length;
+  if (b.dataset.stop !== String(stop)) { b.dataset.stop = String(stop); b.classList.toggle('stop', stop); b.setAttribute('aria-label', stop ? 'Stop' : 'Send'); b.innerHTML = `<svg class="ic"><use href="#${stop ? 'i-stop' : 'i-send'}"/></svg>`; }
+}
 
 let chatDraw = 0;
 function paintChat() { cancelAnimationFrame(chatDraw); chatDraw = requestAnimationFrame(() => { chatDraw = 0; renderChat(); }); }
 
 function readFile(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(file); }); }
+// A photo or scan of a drawing, shrunk to CHAT_IMG_PX on its longest side and re-encoded, so it fits the upload budget.
+async function shrinkImage(file) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, CHAT_IMG_PX / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); bmp.close?.();
+  return { data: c.toDataURL('image/jpeg', .85), mime: 'image/jpeg' };
+}
+const pendingBytes = () => chatPending.reduce((n, f) => n + f.data.length, 0);
 async function addFiles(list) {
   const files = [...list || []];
   for (const file of files) {
@@ -6750,31 +7307,44 @@ async function addFiles(list) {
     if (!kind) { toast('Use a PDF, PNG, JPEG, WebP, or GIF.'); continue; }
     if (file.size > CHAT_MAX_BYTES) { toast(`${file.name} is over 8 MB.`); continue; }
     try {
-      const data = await readFile(file);
-      chatPending.push({ id: Math.random().toString(36).slice(2), name: file.name || (kind === 'pdf' ? 'drawing.pdf' : 'drawing'), kind, mime, data });
+      const got = kind === 'image' && mime !== 'image/gif' ? await shrinkImage(file) : { data: await readFile(file), mime };
+      if (pendingBytes() + got.data.length > CHAT_SEND_BUDGET) { toast(kind === 'pdf' ? `${file.name} is too large to send. Try a PDF under 2.5 MB, or a screenshot of the plan.` : 'That’s more than one message can carry. Send fewer drawings.'); continue; }
+      chatPending.push({ id: Math.random().toString(36).slice(2), name: file.name || (kind === 'pdf' ? 'drawing.pdf' : 'drawing'), kind, mime: got.mime, data: got.data });
     } catch { toast(`Couldn’t read ${file.name}.`); }
   }
   renderPending(); syncSend();
 }
 
+// The warnings the plan editor draws in red, worded for the agent.
+function agentChecks() {
+  const out = [];
+  try {
+    for (const S of BM.stairs || []) { const st = stairStatus(S); if (!st.ok) out.push(`Stair ${S.id} on the ${LV_NAME[S.level]}: ${st.msg.replace(/ or ↻ rotate (it|them)$/, '')}.`); }
+    for (const r of BM.rooms) if (!lvOK(r.type, r.level)) out.push(`${r.name || r.type} #${r.id} is on the wrong floor for a ${r.type}.`);
+  } catch { /* checks are a help, never a blocker */ }
+  return out.slice(0, 8);
+}
 function agentPlan() {
   return {
     roof: BM.roof || 'hip',
-    rooms: BM.rooms.map(r => ({ id: r.id, type: r.type, level: r.level, name: r.name || '', x: r.x, z: r.z, w: r.w, d: r.d })),
+    rooms: BM.rooms.map(r => ({ id: r.id, type: r.type, level: r.level, name: r.name || '', x: r.x, z: r.z, w: r.w, d: r.d, ...(r.shape && r.shape !== 'rect' ? { shape: r.shape } : {}) })),
     stairs: (BM.stairs || []).map(s => ({ id: s.id, level: s.level, cx: s.cx, cz: s.cz, W: s.W, L: s.L })),
     walls: BM.walls || {},
     levels: BM.levels || {},
+    checks: agentChecks(),
     items: (BM.items || []).map(it => ({ id: it.id, kind: it.kind, name: (typeof CATALOG !== 'undefined' && CATALOG[it.kind]?.[0]) || it.kind, level: it.level, x: it.x, z: it.z })),
   };
 }
-let agentUndo = false;
+// Undo: the house as it was before this message, pushed once when the first edit lands (so one ⌘Z undoes the whole reply).
+let agentUndoSnap = null, agentViewed = false;
 function agentShow() {
   if (typeof H3P !== 'undefined' && H3P) usePreset(false);
   if (curHouse !== 3) setHouse(3);
-  if (!agentUndo) { pushHist(); agentUndo = true; }
-  resetBID(); planChanged(); clearTimeout(peTimer); rebuildHouse3();
-  if (HOUSES?.[3]?.views?.aerial) goView('aerial', true);
+  if (agentUndoSnap) { PE.redo = []; PE.hist.push(agentUndoSnap); if (PE.hist.length > 80) PE.hist.shift(); agentUndoSnap = null; }
+  resetBID(); planChanged(); // saves, redraws the plan, and rebuilds the 3D a moment after the edits stop arriving
+  if (!agentViewed && mode !== 'walk' && !PE.open && HOUSES?.[3]?.views?.aerial) { agentViewed = true; goView('aerial'); } // one look from above per message, not a jump per edit
 }
+function agentSettle() { clearTimeout(peTimer); rebuildHouse3(); } // end of a pass: the 3D catches up at once
 function agentApiMessages(extra) {
   const list = chatMsgs.filter(m => m.text || m.raw || m.files?.some(f => f.data)).slice(-10).map(m => ({
     role: m.role,
@@ -6786,100 +7356,108 @@ function agentApiMessages(extra) {
 }
 function agentNote(reply, res) {
   if (!reply.steps) reply.steps = [];
-  if (res.kind === 'err') return;
+  if (res.kind === 'err') { reply.steps.push({ k: 'err', t: res.text }); if (!chatMsgs.includes(reply)) chatMsgs.push(reply); paintChat(); return; } // shown in the steps, and handed back to the model
   if (res.kind === 'ask') {
     reply.ask = { q: res.text, options: (res.options || []).slice(0, 6) };
     if (res.text) reply.steps.push({ k: 'say', t: res.text });
   } else if ((res.kind === 'done' || res.kind === 'more') && res.text) reply.steps.push({ k: 'say', t: res.text });
   else if (res.kind !== 'done' && res.kind !== 'more') reply.steps.push({ k: res.kind === 'act' ? 'act' : res.kind, t: res.text });
-  reply.text = reply.steps.filter(s => s.k === 'say' || s.k === 'act').map(s => s.t).join('\n');
+  reply.text = reply.steps.filter(s => s.k === 'say' || s.k === 'act' || s.k === 'note').map(s => s.t).join('\n');
   if (!chatMsgs.includes(reply)) chatMsgs.push(reply);
   paintChat();
 }
 // One pass: stream the model's lines, and apply each edit as it arrives.
+let chatCtl = null; // aborts the request in flight (Stop, or New chat)
 async function agentTurn(gen, reply, extra) {
   const r = await fetch('/api/agent', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
+    method: 'POST', headers: { 'content-type': 'application/json' }, signal: chatCtl?.signal,
     body: JSON.stringify({ messages: agentApiMessages(extra), plan: agentPlan() }),
   });
   if (gen !== chatGen) return { stop: true };
   if (!r.ok || !r.body) {
     let msg = 'The agent could not reply.';
     try { msg = (await r.json()).error || msg; } catch { /* not JSON */ }
-    agentNote(reply, { kind: 'say', text: msg });
+    agentNote(reply, { kind: 'note', text: msg });
     return { stop: true };
   }
-  const buf = { plan: BM, types: new Set(Object.keys(RT)), hold: '' };
-  const reader = r.body.getReader(), dec = new TextDecoder();
-  let raw = '', pending = '';
-  const out = { done: false, more: false, edited: false, errors: [], raw: '' };
-  const take = async list => {
+  const pass = agentPass(BM, new Set(Object.keys(RT)));
+  const show = async list => {
     for (const res of list) {
-      if (gen !== chatGen || out.ask) return;
+      if (gen !== chatGen) return;
       agentNote(reply, res);
-      if (res.kind === 'ask') { out.ask = true; out.done = true; }
-      if (res.kind === 'done') out.done = true;
-      if (res.kind === 'more') out.more = true;
-      if (res.kind === 'err') out.errors.push(res.text);
-      if (res.edit) { out.edited = true; agentShow(); await new Promise(r => requestAnimationFrame(r)); }
+      if (res.edit) { agentShow(); await new Promise(r => requestAnimationFrame(r)); }
     }
   };
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let pending = '';
   while (true) {
     const { done, value } = await reader.read();
     if (gen !== chatGen) { reader.cancel(); return { stop: true }; }
     if (done) break;
-    const chunk = dec.decode(value, { stream: true });
-    if (!chunk) continue;
-    raw += chunk; pending += chunk;
+    pending += dec.decode(value, { stream: true });
     const lines = pending.split('\n'); pending = lines.pop() || '';
-    for (const line of lines) await take(feedAgentLine(buf, line));
+    for (const line of lines) { await show(pass.line(line)); if (pass.out.ended) break; }
+    if (pass.out.ended) { reader.cancel().catch(() => {}); pending = ''; break; } // the rest of the reply is ignored
   }
-  if (pending) await take(feedAgentLine(buf, pending));
-  await take(flushAgentLine(buf));
-  out.raw = raw;
-  return out;
+  if (pending) await show(pass.line(pending));
+  await show(pass.end());
+  if (pass.out.edited) agentSettle();
+  return pass.out;
 }
 async function sendChat(text, files) {
+  syncChatDesign();
   const gen = ++chatGen;
   const pendingAsk = chatMsgs.at(-1);
   if (pendingAsk?.ask) delete pendingAsk.ask;
   if (!text && files.length) text = 'Build the house from this drawing.';
   chatMsgs.push({ role: 'user', text, files });
-  chatBusy = true; agentUndo = false; saveChat(); renderChat(); syncSend();
+  chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
-  const build = files.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(text);
+  const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
+  const startSnap = agentUndoSnap, startCount = agentBadness(BM);
+  const build = agentWantsEdit(text, files);
   try {
-    let extra = null, step = 0, finished = false, review = false;
-    while (step < 5) {
+    let extra = null, step = 0, finished = false, review = false, rechecked = false;
+    while (step < AGENT_PASSES) {
       if (gen !== chatGen) return;
       step++;
-      const turn = await agentTurn(gen, reply, extra);
+      const turn = await agentTurn(gen, reply, extra && agentApplied(reply.steps) + extra);
       if (gen !== chatGen || turn.stop) return;
       reply.raw = [reply.raw, turn.raw].filter(Boolean).join('\n').slice(-8000);
-      if (turn.ask) { finished = true; break; }
-      if (turn.errors.length) {
-        review = true;
-        extra = `A command failed. The user does not see this note:\n${turn.errors.map(e => '- ' + e).join('\n')}\nRead the design block and do the edit. Remove a room or stair with @@del and its id. If two rooms have the same name, @@ask with those choices and stop. Otherwise fix it. Do not repeat the failed command, and do not quote this failure to the user.`;
-        continue;
-      }
-      if (turn.done) { finished = true; break; }
-      if (!turn.edited && !turn.more) {
-        if (!build || step > 1) break;
-        extra = 'That reply did not change the house. This is a remove or edit. Use the design block: the back is the larger z. Remove each matching room with @@del and its id, or resize with @@set, then @@done. Do not answer with only a question.';
-        continue;
-      }
-      if (!turn.edited) break;
-      extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
+      const next = agentNext(turn, { step, build, rechecked, acted: !!reply.steps?.some(s => s.k === 'act'), fresh: () => problems().filter(i => !before.has(i)) });
+      if (next.finish) { finished = true; break; }
+      if (next.stop) break;
+      if (next.review) review = true;
+      if (next.rechecked) rechecked = true;
+      extra = next.extra;
     }
-    if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
-    else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'say', text: 'I need you to tell me which room or stair you mean.' });
-    if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'say', text: 'The agent returned an empty reply.' });
+    if (agentRepairFailed(fixing, !!reply.steps?.some(s => s.k === 'act'), startCount, BM) && startSnap) { // the repair made things worse: put the house back
+      BM = JSON.parse(startSnap); if (PE.hist.at(-1) === startSnap) PE.hist.pop();
+      resetBID(); planChanged(); agentSettle();
+      agentNote(reply, { kind: 'note', text: AGENT_REVERTED });
+    }
+    const left = reply.steps?.some(s => s.k === 'act') && !reply.ask ? problems().filter(i => !before.has(i)) : [];
+    if (left.length) agentNote(reply, { kind: 'note', text: agentLeftNote(left) });
+    const lastErr = reply.steps?.at(-1)?.k === 'err';
+    if (!finished && step >= AGENT_PASSES && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'note', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
+    else if (!finished && lastErr) agentNote(reply, { kind: 'note', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
+    else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'note', text: 'I need you to tell me which room or stair you mean.' });
+    if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'note', text: 'The agent returned an empty reply.' });
   } catch (e) {
     if (gen !== chatGen) return;
-    if (!reply.text) agentNote(reply, { kind: 'say', text: 'Couldn’t reach the agent.' });
+    if (!reply.text) agentNote(reply, { kind: 'note', text: 'Couldn’t reach the agent.' });
   } finally {
-    if (gen === chatGen) { chatBusy = false; saveChat(); renderChat(); syncSend(); $u('agentInput').focus(); }
+    if (gen === chatGen) { chatBusy = false; chatCtl = null; saveChat(); renderChat(); syncSend(); $u('agentInput').focus(); }
   }
+}
+// Stop: cancel the request; whatever was already built stays (one ⌘Z undoes it).
+function stopChat() {
+  if (!chatBusy) return;
+  chatCtl?.abort(); chatGen++; chatBusy = false; chatCtl = null;
+  const last = chatMsgs.at(-1);
+  if (last?.role === 'assistant') agentNote(last, { kind: 'note', text: 'Stopped.' }); else chatMsgs.push({ role: 'assistant', text: 'Stopped.', steps: [{ k: 'note', t: 'Stopped.' }] });
+  if (PE.hist.length || BM.rooms.length) agentSettle();
+  saveChat(); renderChat(); syncSend();
 }
 
 // Drop a drawing on the open chat only. A counter keeps the highlight up while the pointer crosses child elements.
@@ -6907,7 +7485,7 @@ $u('agentPick').onclick = () => $u('agentFile').click();
 $u('agentFile').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
 
 function newChat() {
-  chatGen++; chatMsgs = []; chatPending = []; chatBusy = false; saveChat();
+  chatCtl?.abort(); chatCtl = null; chatGen++; chatMsgs = []; chatPending = []; chatBusy = false; saveChat();
   renderPending(); renderChat(); syncSend();
   const t = $u('agentInput'); t.value = ''; fitComposer(); t.focus();
 }
@@ -6943,12 +7521,39 @@ $u('agentInput').addEventListener('keydown', e => {
 });
 $u('agentForm').onsubmit = e => {
   e.preventDefault();
+  if (chatBusy) return stopChat();
   const t = $u('agentInput'), text = t.value.trim();
-  if (chatBusy || (!text && !chatPending.length)) return;
+  if (!text && !chatPending.length) return;
   const files = chatPending; chatPending = []; renderPending();
   t.value = ''; fitComposer(); sendChat(text, files);
 };
 renderChat();
+
+// ---------- Plan check: what's wrong with this house, for everyone who can edit it (not just the agent) ----------
+// The agent's layout checks plus the editor's own stair warnings, after every rebuild. Hidden when the plan is clean,
+// on the sample houses, and for customers on a share link.
+let planProblems = [];
+function planCheck() {
+  syncChatDesign(); // a rebuild follows every design switch, so the right conversation is up by then
+  const btn = $u('planChkBtn'); if (!btn) return;
+  planProblems = curHouse === 3 ? [...new Set([...agentIssues(BM, Infinity), ...agentChecks()])] : [];
+  btn.hidden = !planProblems.length || document.body.classList.contains('cl-customer');
+  $u('planChkN').textContent = planProblems.length;
+  btn.dataset.tip = `${planProblems.length} problem${planProblems.length === 1 ? '' : 's'} in this plan`;
+  $u('planChkList').innerHTML = planProblems.map(p => `<li>${escH(p)}</li>`).join('');
+  $u('planChkFix').hidden = !document.body.classList.contains('agent-on');
+  $u('planChkStairs').hidden = !planProblems.some(p => /^Stairs? \d/.test(p)); // code can place stairs on its own, no agent needed
+}
+$u('planChkStairs').onclick = () => {
+  const snap = snapshot(), done = agentFixStairs(BM);
+  if (!done.length) return toast('No better place for the stairs: the halls need room for them first');
+  PE.redo = []; PE.hist.push(snap); if (PE.hist.length > 80) PE.hist.shift();
+  resetBID(); planChanged(); closePops?.(); toast(done.map(d => d.text).join(' '));
+};
+$u('planChkFix').onclick = () => {
+  closePops?.(); openPanel('agent');
+  if (!chatBusy) sendChat('Fix the problems the plan check lists.', []);
+};
 
 
 // =====================================================================
@@ -7123,26 +7728,4 @@ function captureThumb(W = 480, H = 300) {
   G3.trees.visible = trees; renderer.setPixelRatio(keep.pr); renderer.setSize(innerWidth, innerHeight, false); if (curView !== keep.view) { curView = keep.view; applyVisibility(); }
   return cv.toDataURL('image/jpeg', .72);
 }
-
-// TEMP-CAPTURE (removed after use)
-window.__cap = async (name, W, H, kind = '3d', q = .9) => {
-  let url;
-  if (kind === 'plan') {
-    const st = pc.getAttribute('style') || ''; pc.setAttribute('style', `position:fixed;left:0;top:0;width:${W}px;height:${H}px;z-index:9999`);
-    peSize(); peFit(); peDraw(); await new Promise(r => setTimeout(r, 50)); peDraw();
-    const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.imageSmoothingQuality = 'high'; g.drawImage(pc, 0, 0, W, H); url = c.toDataURL('image/jpeg', q);
-    pc.setAttribute('style', st); peSize(); peFit(); peDraw();
-  } else {
-    const tv = G3.trees.visible; if (window.__noTrees) G3.trees.visible = false;
-    const pr = renderer.getPixelRatio(), asp = camera.aspect; renderer.setPixelRatio(1); renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
-    camera.clearViewOffset?.(); renderer.render(scene, camera); url = renderer.domElement.toDataURL('image/jpeg', q);
-    renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight, false); camera.aspect = asp; camera.updateProjectionMatrix(); updateViewOffset?.(); G3.trees.visible = tv;
-  }
-  const r = await fetch(`/api/devshot?name=${name}`, { method: 'POST', body: url, headers: { 'content-type': 'text/plain' } }); return r.status;
-};
-window.__view = (pos, tgt, fov) => { if (fov) { camera.fov = fov; camera.updateProjectionMatrix(); } camera.position.set(...pos); controls.target.set(...tgt); controls.update(); }; // TEMP-CAPTURE
-// TEMP-CAPTURE: recolour the sky gradient and lawn for landing-page renders
-window.__skin = (o = {}) => { const p = skyGeo.attributes.position, top = new THREE.Color(o.top || '#3f7fd0'), hor = new THREE.Color(o.hor || '#bfd8ef'), c = new THREE.Color(), col = [];
-  for (let i = 0; i < p.count; i++) { const t = Math.max(0, p.getY(i) / 1400); c.copy(hor).lerp(top, Math.pow(t, o.k || .35)); col.push(c.r, c.g, c.b); }
-  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); if (o.grass) M.grass.color.set(o.grass); renderer.shadowMap.needsUpdate = true; };
 </script>

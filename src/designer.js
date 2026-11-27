@@ -333,6 +333,10 @@ function peOpPanel() {
 document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Roof pitch <output id="pitchV" class="pop-out"></output></h6><input type="range" id="pitchR" min="2" max="12" step="1" class="pop-range">
   <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
+  <h6>Roof edge</h6>
+  <div class="seg full" id="eaveF"><button type="button" data-eave-f="slim" title="A 1×6 fascia board">Slim</button><button type="button" data-eave-f="standard" title="A 1×8 fascia board">Standard</button><button type="button" data-eave-f="deep" title="A 1×10 fascia board">Deep</button></div>
+  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves, with downspouts">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
+  <div class="fld fld-stack" style="margin-top:6px">Fascia and gutter colour <div class="chips" id="eaveC">${Object.entries(EDGE_COLORS).map(([k, c]) => `<button type="button" data-eave-c="${k}" title="${k[0].toUpperCase() + k.slice(1)}" style="background:${c}"></button>`).join('')}</div></div>
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
@@ -363,9 +367,18 @@ function syncPlanPop() {
   syncLevels();
   const p = BM.pitch || (BM.style === 'batten' ? 7 : 5); document.getElementById('pitchR').value = p; document.getElementById('pitchV').textContent = `${p}:12`;
   document.getElementById('pitchR').disabled = BM.roof === 'flat';
+  { const e = BM.eave || {}, f = ROOF_EDGE[e.fascia] ? e.fascia : 'standard', g = e.gutter ?? ROOF_EDGE[f].gutter, c = EDGE_COLORS[e.color] ? e.color : 'black', flat = BM.roof === 'flat';
+    document.querySelectorAll('[data-eave-f]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.eaveF === f)); b.disabled = flat; });
+    document.querySelectorAll('[data-eave-g]').forEach(b => { b.setAttribute('aria-pressed', String((b.dataset.eaveG === '1') === g)); b.disabled = flat; });
+    document.querySelectorAll('[data-eave-c]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.eaveC === c))); }
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
   const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
+// the roof edge: fascia size, gutters, colour (BM.eave; see ROOF_EDGE in roof.js)
+const setEave = patch => { pushHist(); BM.eave = { ...(BM.eave || {}), ...patch }; syncPlanPop(); planChanged(false); };
+document.querySelectorAll('[data-eave-f]').forEach(b => b.onclick = () => setEave({ fascia: b.dataset.eaveF }));
+document.querySelectorAll('[data-eave-g]').forEach(b => b.onclick = () => setEave({ gutter: b.dataset.eaveG === '1' }));
+document.querySelectorAll('[data-eave-c]').forEach(b => b.onclick = () => setEave({ color: b.dataset.eaveC }));
 document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('ovR').onpointerdown = () => pushHist();
 document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };

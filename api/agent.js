@@ -2,53 +2,81 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
+import { db } from './_lib/db.js';
 import { agentBrief } from './_lib/agentplan.js';
+import { agentProvider, cleanKey } from './_lib/ai.js';
 
-const MODEL = 'nvidia/nemotron-3.5-super-vl';
-const SYSTEM = `You are the design agent inside Walkthru. You answer questions, and you change the house the person is looking at.
+const SYSTEM = `You are the design agent inside Walkthru. You answer questions about the house the person is looking at, and you change it.
 
-The house is rooms: axis-aligned rectangles in feet. x grows to the right, z grows from the front yard toward the back. Rooms on one floor must share edges exactly. They must not overlap and must not leave a gap. The design block lists every room, the neighbour on each side, and the furniture inside it. Read that before you change a size.
+THE HOUSE
+Rooms are rectangles in feet. x grows to the right. z grows from the front yard toward the back, so the front is the smaller z. Floors: B basement, M main, U second. On one floor, rooms share edges exactly: no overlaps, no gaps.
+Room types: living, great, kitchen, dining, foyer, hall, bedroom, primary, bath, ensuite, powder, closet, walkin, pantry, office, laundry, mud, garage, rec, theatre, storage, porch, deck, balcony. Porch and deck go on M, balcony on U.
+Touching living, great, kitchen, dining, foyer, hall, and rec rooms join into one open space. A bedroom touching a hall, bath, or closet gets a door. Any other shared edge is a solid wall. Windows, the front door, and the garage door are added for you.
+A stair is not a room. It sits inside a hall or foyer. One on M reaches U; one on B reaches M.
 
-Floors: B basement, M main, U second. A stair is not a room. It is listed under stairs. Remove it with @@del and its id. If the user did not say which stair, @@ask and list each stair.
+THE DESIGN BLOCK
+The latest user message ends with the design block: every room with its id, position, size, neighbours and furniture, every stair, and the issues. It is the house right now. Trust it over your memory and over your earlier replies. A room in it already exists: never add it again.
 
-Room types: living, great, kitchen, dining, foyer, hall, bedroom, primary, bath, ensuite, powder, closet, walkin, pantry, office, laundry, mud, garage, rec, theatre, storage, porch, deck, balcony. Touching living, great, kitchen, dining, foyer, hall, or rec rooms join into one open space. A bedroom touching a hall, bath, or closet gets a door. Any other shared edge is a solid wall. Windows, the front door, and the garage door are added for you.
+REPLY FORMAT
+Reply in lines only, never markdown or code fences. A line that starts with @@ is a command, with its JSON on that same line. Any other line is spoken to the user, so keep those few and short.
+Commands (the JSON fields are listed; write your own values):
+- @@think, then one sentence on what you are about to do.
+- @@add, then JSON with type, level, name, x, z, w, d. Example: @@add {"type":"living","level":"M","name":"Living","x":0,"z":0,"w":16,"d":18}
+- @@set, then JSON with id and the fields that change (x, z, w, d, type, name). For a stair id: cx, cz, w, l.
+- @@del, then JSON with id.
+- @@wall, then JSON with a and b (room names or ids) and mode.
+- @@stair, then JSON with level, cx, cz (roughly where), w, and l. The code puts it in the nearest hall or foyer that has a hall over it, and moves a stair that would come up through the roof or into a bedroom.
+- @@roof, then hip, gable, shed, or flat.
+- @@clear, alone.
+- @@more, then a short note of what the next pass will do.
+- @@done, then one sentence on what you finished.
+- @@ask, then JSON with q and 2 to 4 options, each naming a room from the design block.
+@@more, @@done, or @@ask is the last line of every reply. Nothing after it is read.
 
-Reply in lines only. A line that starts with @@ is a command. Any other line is spoken to the user. Never use markdown or code fences.
+HOW COMMANDS BEHAVE
+@@set of x or z moves only that room: place it where it fits, then read the issues. @@set of w or d keeps the plan together for you. Growing a room pushes the rooms beyond that edge out; shrinking it pulls them in. Their furniture and stairs go with them, and rooms above and below shift or stretch so the floors stay lined up. Never @@set neighbours just to make space. A room listed with a triangle, round, or drawn outline keeps that shape inside its box.
+@@add refuses a room that sits on a listed one or repeats a name on its floor. Change the listed room with @@set instead.
+@@wall only when the automatic wall is wrong. Its mode is open, door, or wall.
+@@clear only when the user asked to start over or to build a new house from a drawing.
+A failed command comes back to you in a note the user does not see. Fix it, or @@ask. Do not mention the failure.
 
-Commands, one per line, JSON on that same line:
-@@think what you are about to do, in one sentence
-@@add {"type":"living","level":"M","name":"Living","x":0,"z":0,"w":16,"d":18}
-@@set {"id":3,"w":20}
-@@del {"id":3}
-@@wall {"a":"Living","b":"Kitchen","mode":"open"}
-@@stair {"level":"M","cx":8,"cz":20,"w":3.5,"l":13}
-@@roof gable
-@@clear
-@@more what you will do next
-@@done what you finished
-@@ask {"q":"Which foyer?","options":["Foyer 33, main floor, 8×12, beside the playroom","Foyer 41, main floor, 6×8, at the front door"]}
+SMALL CHANGES AND QUESTIONS
+A question: answer in a sentence or two, then @@done, with no commands.
+An edit (resize, remove, move, rename, open a wall): do it in this reply with @@set, @@del, or @@wall, then @@done. When the user says to remove or resize something and the design block shows which rooms those are, change them now, even if several rooms make one open space. @@ask only when two listed rooms share the name the user gave. Offer 2 to 4 options from the design block, and send no command after @@ask.
+Each size the user asks for is applied once. "4 feet narrower" means one @@set to the listed width minus 4.
 
-@@wall mode is open, door, or wall, and only when the automatic wall is wrong. @@clear only when the user asked to start over or to build a new house from a drawing. A @@stair sits inside a hall or foyer: one on M reaches U, one on B reaches M.
+A NEW HOUSE
+Work in passes, one floor per reply, ending with @@more. A reply is cut off after 14 changes, so keep each pass to one floor:
+1. Main floor. Pick a compact footprint first, about 36 to 56 ft wide and 28 to 44 ft deep, and fill it in two or three rows: living and dining at the front, kitchen behind them, foyer at the front door, a hall linking the rest. A garage sits at one side, 20 to 24 ft square.
+2. Second floor, when the user asked for two storeys. Bedrooms, baths, and closets go here, every room over the main floor footprint. Put the upper hall over the main stair.
+3. Basement, when asked: rec, storage, a bedroom and bath, under the main footprint.
+4. Stairs, the roof, then @@done. A stair needs a hall or foyer on its floor with a hall over it on the floor above, overlapping at least 4 × 12 ft: plan the halls for that. One stair per floor: never add a second to fix the first.
+A one-storey house keeps its bedrooms on M, in a back row or wing.
+Typical sizes in feet: bedroom 11×12 to 13×14, primary 14×16, bath 8×10, ensuite 8×12, closet 4×6, walkin 6×8, powder 5×6, hall 4 to 6 wide, foyer 8×10, kitchen 12×14, living 16×18.
+When a drawing is attached, look at it. If it is not a floor plan, elevation, or section, say so and @@done. Otherwise build only the rooms you can see, at the sizes it shows.
 
-@@set of x, z, w, or d keeps the rooms separate for you. The rooms beyond the edge you moved, and the furniture and stairs inside them, shift by the same amount. Do not @@set those neighbours yourself just to make space. Each room stays its own rectangle.
-
-When a file is attached, look at it. If it is not a floor plan, elevation, or section, say so and @@done. Do not invent a house from it. If it is a drawing, build only the rooms you can actually see.
-
-Work in passes, the way an engineer checks a drawing. When the job changes the house, do one floor or one small change, then @@more, so you can read the updated design and its issues before you continue. No more than 12 commands in a reply. When the request is finished, @@done. When the user only asked a question, answer in a sentence or two and @@done, with no @@add.
-
-The back of the house is the rooms with the larger z. The front is the smaller z. An open space is every touching living, great, kitchen, dining, foyer, hall, or rec room in that part of the house. When the user says to remove or resize something, and the design block shows which rooms those are, change them in this reply: one @@del per room you remove, or @@set for a new size. Do that even when several rooms make up one open space. @@ask only when two listed rooms have the same name and the request does not say which. Give 2 to 4 options from the design list, and do not emit any command after @@ask. Never answer a remove or resize with only a question.
-
-A failed command is handed back to you, not shown to the user. Read it against the design, then fix it or @@ask. Do not repeat the failure in your reply.
-
-The design block on the latest user message is the house right now. Trust it over your memory. Never add a room that is already listed. Fix every issue before you add the next floor.`;
+ISSUES
+Every issue in the design block is yours to fix before the next floor and before @@done: overlaps, gaps, rooms touching nothing, upper rooms hanging past the main floor, floors stretched into one long strip, missing stairs.`;
+// Each pass of a reply is one request. A message usually takes 1 to 3 passes, so this is about 50 to 100 messages a day.
+const DAILY_LIMIT = () => Math.max(1, +process.env.AGENT_DAILY_LIMIT || 200);
+const busyUntil = new Map(), BUSY_FOR = 120_000, QUOTA_FOR = 600_000; // a model that was overloaded is skipped for a while (per warm server instance)
+const START_LIMIT = 15_000; // how long one attempt may take to start answering before the next is tried
+const TIME_LIMIT = 52_000; // Vercel stops the function at 60 s (vercel.json maxDuration): finish the reply well before that
+// Count one request for this person today; false when they are over the limit.
+async function spend(w) {
+  const c = await db(), key = w.user?.id || 'studio-key', day = new Date().toISOString().slice(0, 10);
+  await c.execute({ sql: 'INSERT INTO agent_use (who, day, n) VALUES (?, ?, 1) ON CONFLICT (who, day) DO UPDATE SET n = n + 1', args: [key, day] });
+  const n = (await c.execute({ sql: 'SELECT n FROM agent_use WHERE who = ? AND day = ?', args: [key, day] })).rows[0]?.n || 0;
+  return n <= DAILY_LIMIT();
+}
 const FILE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']);
 
 // A data URL the model can see. Anything else is dropped before the request.
-function filePart(f) {
+function filePart(f, google) {
   const m = String(f?.data || '').match(/^data:([^;,]+);base64,([A-Za-z0-9+/=\r\n]+)$/);
   if (!m || !FILE_MIME.has(m[1]) || m[2].length > 12_000_000) return null;
   const url = `data:${m[1]};base64,${m[2].replace(/\s/g, '')}`;
-  if (m[1] === 'application/pdf') return { type: 'file', file: { filename: String(f.name || 'drawing.pdf').slice(0, 120), file_data: url } };
+  if (m[1] === 'application/pdf' && !google) return { type: 'file', file: { filename: String(f.name || 'drawing.pdf').slice(0, 120), file_data: url } };
   return { type: 'image_url', image_url: { url } };
 }
 
@@ -72,13 +100,13 @@ export default route({
     let fileBudget = 4;
     for (let i = picked.length - 1; i >= 0 && fileBudget > 0; i--) for (const f of picked[i].files) {
       if (fileBudget <= 0) break;
-      const part = filePart(f); if (!part) continue;
+      const part = filePart(f, !!cleanKey('GEMINI_API_KEY')); if (!part) continue;
       partsOf[i].push(part); fileBudget--;
     }
     const plan = body(req).plan;
     let brief = '';
     if (plan && typeof plan === 'object' && !Array.isArray(plan)) {
-      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan); } catch { /* a bad plan is ignored */ }
+      try { if (JSON.stringify(plan).length <= 40000) brief = agentBrief(plan, plan.checks); } catch { /* a bad plan is ignored */ }
     }
     let lastUser = -1;
     for (let i = picked.length - 1; i >= 0; i--) if (picked[i].role === 'user') { lastUser = i; break; }
@@ -92,24 +120,55 @@ export default route({
     if (!messages.length || messages[messages.length - 1].role !== 'user') return fail(res, 400, 'Send a message');
     const lastIn = picked[picked.length - 1];
     if (lastIn?.files.length && !partsOf[partsOf.length - 1].length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
-    let key = String(process.env.OPENROUTER_API_KEY || '').trim().replace(/^OPENROUTER_API_KEY=/i, '').replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
-    if (!key) return fail(res, 503, 'The agent is not configured');
+    const ai = agentProvider();
+    if (!ai) return fail(res, 503, 'The agent is not configured');
+    if (!(await spend(w))) return fail(res, 429, 'You’ve used the design agent a lot today. It will be ready again tomorrow.');
 
-    let upstream;
-    try {
-      upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
-        body: JSON.stringify({ model: MODEL, stream: true, max_tokens: 1800, temperature: 0.3, reasoning: { enabled: false }, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
-        signal: AbortSignal.timeout(120_000),
-      });
-    } catch (e) { console.error('agent', e.name || e.message); return fail(res, 502, 'Could not reach the agent'); }
+    // A busy model (503, or 429 that is not the daily quota) gets one retry, then the backup model if there is one.
+    const started = Date.now(), signal = AbortSignal.timeout(TIME_LIMIT); // covers every attempt and reading the stream below
+    const backup = ai.backup && ai.backup !== ai.model ? [ai.backup] : [];
+    const tries = backup.length && busyUntil.get(ai.model) > Date.now() ? backup : [ai.model, ai.model, ...backup]; // recently overloaded: go straight to the backup
+    let upstream, model;
+    for (let i = 0; i < tries.length; i++) {
+      model = tries[i];
+      const ctl = new AbortController(), stop = () => ctl.abort(signal.reason);
+      signal.addEventListener('abort', stop, { once: true });
+      const slow = setTimeout(() => ctl.abort(new Error('slow start')), START_LIMIT); // a hung attempt gives way to the next one
+      try {
+        upstream = await fetch(ai.url, {
+          method: 'POST', signal: ctl.signal,
+          headers: { authorization: `Bearer ${ai.key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
+          body: JSON.stringify({ model, stream: true, temperature: 0.3, ...ai.options, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
+        });
+      } catch (e) {
+        clearTimeout(slow); upstream = null;
+        const slowStart = ctl.signal.reason?.message === 'slow start';
+        if (slowStart) busyUntil.set(model, Date.now() + BUSY_FOR);
+        console.error('agent', ai.name, model, slowStart ? 'did not start in time' : e.name || e.message);
+        if (slowStart && i < tries.length - 1 && !signal.aborted) continue;
+        return fail(res, 504, slowStart ? 'The model is busy right now. Try again in a moment.' : 'Could not reach the agent');
+      }
+      clearTimeout(slow);
+      if (upstream.ok || ![429, 500, 503].includes(upstream.status) || i === tries.length - 1 || Date.now() - started > TIME_LIMIT / 2) break;
+      const peek = await upstream.clone().text().catch(() => '');
+      if (/quota|per day|exhausted/i.test(peek)) { // out of allowance: waiting will not help, but another model has its own quota
+        const other = tries.findIndex((m, k) => k > i && m !== model);
+        if (other < 0) break;
+        busyUntil.set(model, Date.now() + QUOTA_FOR);
+        console.error('agent', ai.name, upstream.status, model, 'out of quota, trying', tries[other]);
+        i = other - 1; continue;
+      }
+      busyUntil.set(model, Date.now() + BUSY_FOR);
+      console.error('agent', ai.name, upstream.status, model, 'busy, trying again');
+      if (tries[i + 1] === model) await new Promise(r => setTimeout(r, 1200));
+    }
     if (!upstream.ok || !upstream.body) {
       let detail = '';
-      try { const j = await upstream.json(); detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ }
-      console.error('agent', upstream.status, String(detail).slice(0, 200));
-      const why = upstream.status === 429 ? 'The model is busy. Try again in a moment.'
-        : upstream.status === 401 || upstream.status === 403 ? 'OpenRouter rejected the API key.'
+      try { let j = await upstream.json(); if (Array.isArray(j)) j = j[0]; detail = j?.error?.message || (typeof j?.error === 'string' ? j.error : ''); } catch { /* empty body */ } // Google can wrap its error in a list
+      console.error('agent', ai.name, upstream.status, String(detail).slice(0, 200));
+      const why = upstream.status === 429 || upstream.status === 503 ? (/quota|per day|exhausted/i.test(detail) ? 'The agent has used its free allowance for now. Try again later.' : 'The model is busy right now. Try again in a moment.')
+        : upstream.status === 401 || upstream.status === 403 || /api key/i.test(detail) ? `${ai.name} rejected the API key.`
+        : upstream.status === 404 ? `${ai.name} has no model called ${model}. Check AGENT_MODEL.`
         : (String(detail || '').trim().slice(0, 180) || 'The agent could not reply');
       return fail(res, 502, why);
     }
@@ -117,6 +176,7 @@ export default route({
     res.statusCode = 200;
     res.setHeader('content-type', 'text/plain; charset=utf-8');
     res.setHeader('cache-control', 'no-store');
+    res.setHeader('x-agent-model', model); // which model answered: the main one or the backup
     let buf = '', wrote = false;
     try {
       const reader = upstream.body.getReader(), dec = new TextDecoder();
@@ -129,12 +189,16 @@ export default route({
           const s = line.trim(); if (!s.startsWith('data:')) continue;
           const data = s.slice(5).trim(); if (!data || data === '[DONE]') continue;
           let j; try { j = JSON.parse(data); } catch { continue; }
-          if (j.error) { if (!wrote) res.write(j.error.message || 'The agent could not reply'); wrote = true; return; }
+          if (Array.isArray(j)) j = j[0];
+          if (j?.error) { if (!wrote) res.write(j.error.message || 'The agent could not reply'); wrote = true; return; }
           const piece = textOf(j.choices?.[0]?.delta);
           if (piece) { res.write(piece); wrote = true; }
         }
       }
-    } catch (e) { console.error('agent stream', e.name || e.message); if (!wrote) res.write('The reply was cut off.'); }
+    } catch (e) { // out of time (or the model hung up): tell the client to carry on in a new pass rather than stop half way
+      console.error('agent stream', e.name || e.message);
+      res.write(wrote ? '\n@@more\n' : 'The agent took too long to answer. Try again.'); // a bare @@more: the chat runs another pass from the house as it stands
+    }
     finally { res.end(); }
   },
 });

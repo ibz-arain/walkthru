@@ -40,12 +40,20 @@ npm install
 npm run dev        # http://localhost:8787  — uses .data/local.db (SQLite) unless .env.local points at Turso
 npm run seed       # optional: a demo studio account (see scripts/seed.mjs for the login)
 npm test           # API tests against a throwaway database
+npm run eval:agent # design agent eval: real model, fixed requests, scored (uses your model quota)
 ```
+
+The agent eval sends 9 fixed requests (two new houses, resizes, a removal, an addition, a question, an ambiguous request, a repair) to the
+model in `.env`, runs them through the chat's own pass loop, and checks each result: the request was done, and no overlaps, gaps,
+or other plan issues were added. Options: `--only full2,narrow`, `--runs 3` (the model varies, so repeat to compare),
+`--model NAME`, `--backup NAME|none`, `--drawing plan.png` (adds a build-from-drawing case). Results are saved to
+`.data/agent-eval/` so a model or prompt change can be compared with the last run.
 
 ## Deploy (Vercel + Turso)
 
 1. `turso db create home-studio` → `turso db show home-studio --url` and `turso db tokens create home-studio`
 2. In Vercel, set `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `ADMIN_KEY` (see `.env.example`).
+   For the design agent, also set `GEMINI_API_KEY` (or `OPENROUTER_API_KEY`); without one, the Chat button stays hidden.
 3. Run `npm install && npm run build`, then deploy (`npx vercel --prod`). Tables (and new columns) are created on the first request.
 
 ## Where things live
@@ -53,7 +61,7 @@ npm test           # API tests against a throwaway database
 - **Turso (metadata)** — `projects`, `versions`, `shares` (customer links), `comments` (with 3D pins), `events` (activity feed).
 - **Object storage (design JSON)** — `api/_lib/blob.js`. Keys: `projects/<id>/v<n>.json` for each version, `shares/<token>.json` for a customer's working copy.
   The default `db` driver keeps them in a Turso `blobs` table. To switch to S3 / R2 / GCS / Vercel Blob, add a driver with `put`, `get`, `del` and set `BLOB_DRIVER`. Nothing else changes.
-- **API** — `api/health`, `api/projects`, `api/project`, `api/share`, `api/comments` (5 functions, inside Vercel's free-tier limit).
+- **API** — `api/agent`, `auth`, `catalog`, `comments`, `designs`, `health`, `log`, `project`, `projects`, `share`, `team` (11 functions; Vercel's Hobby plan allows 12).
 
 ## Not built yet
 
