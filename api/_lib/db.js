@@ -45,6 +45,8 @@ const SCHEMA = [
   // Workspace price list (base price, finish upgrades, add-ons) as one JSON document.
   `CREATE TABLE IF NOT EXISTS catalogs (org_id TEXT PRIMARY KEY, body TEXT NOT NULL, updated_at INTEGER NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS attempts (key TEXT PRIMARY KEY, n INTEGER NOT NULL, first_at INTEGER NOT NULL, locked_until INTEGER)`,
+  // Design agent requests per person per day (UTC), so one account can't run up the model bill.
+  `CREATE TABLE IF NOT EXISTS agent_use (who TEXT NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, PRIMARY KEY (who, day))`,
 ];
 // Columns added after the first release. SQLite has no "ADD COLUMN IF NOT EXISTS", so each one is tried and "duplicate column" is ignored.
 const COLUMNS = [

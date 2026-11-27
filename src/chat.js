@@ -4,7 +4,9 @@
 //  so the 3D model updates while the agent checks its work and continues.
 // =====================================================================
 const CHAT_KEY = 'walkthru-agent';
-const CHAT_MAX_FILES = 4, CHAT_MAX_BYTES = 8 * 1024 * 1024;
+const CHAT_MAX_FILES = 4, CHAT_MAX_BYTES = 8 * 1024 * 1024; // what you can pick; images are shrunk before sending
+const CHAT_SEND_BUDGET = 3_400_000; // all attachments together, as data URLs: the hosting takes request bodies up to 4.5 MB
+const CHAT_IMG_PX = 1800;           // longest side of an image as sent: plenty to read a floor plan
 const CHAT_MIME = { 'image/png': 'image', 'image/jpeg': 'image', 'image/webp': 'image', 'image/gif': 'image', 'application/pdf': 'pdf' };
 let chatMsgs = [];
 let chatPending = [];
@@ -96,12 +98,24 @@ function fitComposer() {
   t.style.height = Math.min(120, t.scrollHeight) + 'px';
   t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden';
 }
-function syncSend() { $u('agentSend').disabled = chatBusy || (!$u('agentInput').value.trim() && !chatPending.length); }
+function syncSend() { // while the agent works, the send button is a Stop button
+  const b = $u('agentSend'), stop = chatBusy;
+  b.disabled = !stop && !$u('agentInput').value.trim() && !chatPending.length;
+  if (b.dataset.stop !== String(stop)) { b.dataset.stop = String(stop); b.classList.toggle('stop', stop); b.setAttribute('aria-label', stop ? 'Stop' : 'Send'); b.innerHTML = `<svg class="ic"><use href="#${stop ? 'i-stop' : 'i-send'}"/></svg>`; }
+}
 
 let chatDraw = 0;
 function paintChat() { cancelAnimationFrame(chatDraw); chatDraw = requestAnimationFrame(() => { chatDraw = 0; renderChat(); }); }
 
 function readFile(file) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(file); }); }
+// A photo or scan of a drawing, shrunk to CHAT_IMG_PX on its longest side and re-encoded, so it fits the upload budget.
+async function shrinkImage(file) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, CHAT_IMG_PX / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(bmp, 0, 0, c.width, c.height); bmp.close?.();
+  return { data: c.toDataURL('image/jpeg', .85), mime: 'image/jpeg' };
+}
+const pendingBytes = () => chatPending.reduce((n, f) => n + f.data.length, 0);
 async function addFiles(list) {
   const files = [...list || []];
   for (const file of files) {
@@ -111,8 +125,9 @@ async function addFiles(list) {
     if (!kind) { toast('Use a PDF, PNG, JPEG, WebP, or GIF.'); continue; }
     if (file.size > CHAT_MAX_BYTES) { toast(`${file.name} is over 8 MB.`); continue; }
     try {
-      const data = await readFile(file);
-      chatPending.push({ id: Math.random().toString(36).slice(2), name: file.name || (kind === 'pdf' ? 'drawing.pdf' : 'drawing'), kind, mime, data });
+      const got = kind === 'image' && mime !== 'image/gif' ? await shrinkImage(file) : { data: await readFile(file), mime };
+      if (pendingBytes() + got.data.length > CHAT_SEND_BUDGET) { toast(kind === 'pdf' ? `${file.name} is too large to send. Try a PDF under 2.5 MB, or a screenshot of the plan.` : 'That’s more than one message can carry. Send fewer drawings.'); continue; }
+      chatPending.push({ id: Math.random().toString(36).slice(2), name: file.name || (kind === 'pdf' ? 'drawing.pdf' : 'drawing'), kind, mime: got.mime, data: got.data });
     } catch { toast(`Couldn’t read ${file.name}.`); }
   }
   renderPending(); syncSend();
@@ -128,14 +143,16 @@ function agentPlan() {
     items: (BM.items || []).map(it => ({ id: it.id, kind: it.kind, name: (typeof CATALOG !== 'undefined' && CATALOG[it.kind]?.[0]) || it.kind, level: it.level, x: it.x, z: it.z })),
   };
 }
-let agentUndo = false;
+// Undo: the house as it was before this message, pushed once when the first edit lands (so one ⌘Z undoes the whole reply).
+let agentUndoSnap = null, agentViewed = false;
 function agentShow() {
   if (typeof H3P !== 'undefined' && H3P) usePreset(false);
   if (curHouse !== 3) setHouse(3);
-  if (!agentUndo) { pushHist(); agentUndo = true; }
-  resetBID(); planChanged(); clearTimeout(peTimer); rebuildHouse3();
-  if (HOUSES?.[3]?.views?.aerial) goView('aerial', true);
+  if (agentUndoSnap) { PE.redo = []; PE.hist.push(agentUndoSnap); if (PE.hist.length > 80) PE.hist.shift(); agentUndoSnap = null; }
+  resetBID(); planChanged(); // saves, redraws the plan, and rebuilds the 3D a moment after the edits stop arriving
+  if (!agentViewed && mode !== 'walk' && !PE.open && HOUSES?.[3]?.views?.aerial) { agentViewed = true; goView('aerial'); } // one look from above per message, not a jump per edit
 }
+function agentSettle() { clearTimeout(peTimer); rebuildHouse3(); } // end of a pass: the 3D catches up at once
 function agentApiMessages(extra) {
   const list = chatMsgs.filter(m => m.text || m.raw || m.files?.some(f => f.data)).slice(-10).map(m => ({
     role: m.role,
@@ -147,7 +164,7 @@ function agentApiMessages(extra) {
 }
 function agentNote(reply, res) {
   if (!reply.steps) reply.steps = [];
-  if (res.kind === 'err') return;
+  if (res.kind === 'err') { reply.steps.push({ k: 'err', t: res.text }); if (!chatMsgs.includes(reply)) chatMsgs.push(reply); paintChat(); return; } // shown in the steps, and handed back to the model
   if (res.kind === 'ask') {
     reply.ask = { q: res.text, options: (res.options || []).slice(0, 6) };
     if (res.text) reply.steps.push({ k: 'say', t: res.text });
@@ -158,9 +175,10 @@ function agentNote(reply, res) {
   paintChat();
 }
 // One pass: stream the model's lines, and apply each edit as it arrives.
+let chatCtl = null; // aborts the request in flight (Stop, or New chat)
 async function agentTurn(gen, reply, extra) {
   const r = await fetch('/api/agent', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
+    method: 'POST', headers: { 'content-type': 'application/json' }, signal: chatCtl?.signal,
     body: JSON.stringify({ messages: agentApiMessages(extra), plan: agentPlan() }),
   });
   if (gen !== chatGen) return { stop: true };
@@ -197,6 +215,7 @@ async function agentTurn(gen, reply, extra) {
   }
   if (pending) await take(feedAgentLine(buf, pending));
   await take(flushAgentLine(buf));
+  if (out.edited) agentSettle();
   out.raw = raw;
   return out;
 }
@@ -206,7 +225,7 @@ async function sendChat(text, files) {
   if (pendingAsk?.ask) delete pendingAsk.ask;
   if (!text && files.length) text = 'Build the house from this drawing.';
   chatMsgs.push({ role: 'user', text, files });
-  chatBusy = true; agentUndo = false; saveChat(); renderChat(); syncSend();
+  chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
   const build = files.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(text);
   try {
@@ -232,15 +251,26 @@ async function sendChat(text, files) {
       if (!turn.edited) break;
       extra = 'Continue the same request. The design block is the house as it stands now. Do not add a room that is already listed. If the request is already done, @@done with no new rooms.';
     }
+    const lastErr = reply.steps?.at(-1)?.k === 'err';
     if (!finished && step >= 5 && reply.steps?.some(s => s.k === 'act')) agentNote(reply, { kind: 'say', text: 'I paused here so you can look. Tell me what to change, or say continue.' });
+    else if (!finished && lastErr) agentNote(reply, { kind: 'say', text: 'Some of that didn’t go through. Open the steps to see what, and tell me how to fix it.' });
     else if (!finished && review && !reply.ask && !reply.text) agentNote(reply, { kind: 'say', text: 'I need you to tell me which room or stair you mean.' });
     if (!reply.text && !reply.steps?.length) agentNote(reply, { kind: 'say', text: 'The agent returned an empty reply.' });
   } catch (e) {
     if (gen !== chatGen) return;
     if (!reply.text) agentNote(reply, { kind: 'say', text: 'Couldn’t reach the agent.' });
   } finally {
-    if (gen === chatGen) { chatBusy = false; saveChat(); renderChat(); syncSend(); $u('agentInput').focus(); }
+    if (gen === chatGen) { chatBusy = false; chatCtl = null; saveChat(); renderChat(); syncSend(); $u('agentInput').focus(); }
   }
+}
+// Stop: cancel the request; whatever was already built stays (one ⌘Z undoes it).
+function stopChat() {
+  if (!chatBusy) return;
+  chatCtl?.abort(); chatGen++; chatBusy = false; chatCtl = null;
+  const last = chatMsgs.at(-1);
+  if (last?.role === 'assistant') agentNote(last, { kind: 'say', text: 'Stopped.' }); else chatMsgs.push({ role: 'assistant', text: 'Stopped.', steps: [{ k: 'say', t: 'Stopped.' }] });
+  if (PE.hist.length || BM.rooms.length) agentSettle();
+  saveChat(); renderChat(); syncSend();
 }
 
 // Drop a drawing on the open chat only. A counter keeps the highlight up while the pointer crosses child elements.
@@ -268,7 +298,7 @@ $u('agentPick').onclick = () => $u('agentFile').click();
 $u('agentFile').onchange = e => { addFiles(e.target.files); e.target.value = ''; };
 
 function newChat() {
-  chatGen++; chatMsgs = []; chatPending = []; chatBusy = false; saveChat();
+  chatCtl?.abort(); chatCtl = null; chatGen++; chatMsgs = []; chatPending = []; chatBusy = false; saveChat();
   renderPending(); renderChat(); syncSend();
   const t = $u('agentInput'); t.value = ''; fitComposer(); t.focus();
 }
@@ -304,8 +334,9 @@ $u('agentInput').addEventListener('keydown', e => {
 });
 $u('agentForm').onsubmit = e => {
   e.preventDefault();
+  if (chatBusy) return stopChat();
   const t = $u('agentInput'), text = t.value.trim();
-  if (chatBusy || (!text && !chatPending.length)) return;
+  if (!text && !chatPending.length) return;
   const files = chatPending; chatPending = []; renderPending();
   t.value = ''; fitComposer(); sendChat(text, files);
 };

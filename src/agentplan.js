@@ -208,8 +208,9 @@ export function applyAgentLine(plan, line, types) {
     if (!options.length) return say('say', q);
     return { kind: 'ask', text: q, options };
   }
-  if (cmd === 'clear') {
-    plan.rooms = []; plan.stairs = []; plan.walls = {};
+  if (cmd === 'clear') { // a fresh house: nothing tied to the old rooms may land on the new ones (ids start over)
+    plan.rooms = []; plan.stairs = []; plan.walls = {}; plan.items = [];
+    for (const k of ROOM_KEYED) if (plan[k]) plan[k] = {};
     return say('act', 'Cleared the rooms and started over.', true);
   }
   if (cmd === 'roof') {
@@ -304,9 +305,13 @@ function removeStair(plan, stair) {
   plan.stairs = (plan.stairs || []).filter(s => s !== stair);
   return { kind: 'act', text: `Removed the stair on the ${AGENT_LV[stair.level] || stair.level}.`, edit: true };
 }
+// Settings stored per room id: walls "a-b", outside walls and openings "id:side" or "a-b", railings "id:side:at" / "id:*".
+const ROOM_KEYED = ['walls', 'ext', 'ops', 'rails'];
+const keyHasRoom = (key, id) => String(key).split(':')[0].split('-').includes(String(id));
 function removeRoom(plan, room) {
   plan.rooms = plan.rooms.filter(r => r !== room);
-  if (plan.walls) for (const k of Object.keys(plan.walls)) if (k.split('-').includes(String(room.id))) delete plan.walls[k];
+  for (const k of ROOM_KEYED) if (plan[k]) for (const key of Object.keys(plan[k])) if (keyHasRoom(key, room.id)) delete plan[k][key];
+  if (Array.isArray(plan.items)) plan.items = plan.items.filter(it => !agentInside(room, it)); // its placed furniture goes with it
   return { kind: 'act', text: `Removed ${agentLabel(room)}.`, edit: true };
 }
 

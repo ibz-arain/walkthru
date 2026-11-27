@@ -170,4 +170,30 @@ test('agent chat requires a signed-in user and a real drawing', async () => {
   assert.equal(bad.code, 400);
 });
 
+test('agent streams the reply and stops at the daily limit', async () => {
+  const ann = client(); let cookie = '';
+  const su = { method: 'POST', query: { action: 'signup' }, headers: { host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' }, body: { email: 'limit@example.com', password: 'longpassword', workspace: 'L' } };
+  const sres = { headers: {}, setHeader(k, v) { this.headers[k.toLowerCase()] = v; }, getHeader(k) { return this.headers[k.toLowerCase()]; }, status() { return sres; }, json() { } };
+  await H.auth(su, sres); cookie = String(sres.headers['set-cookie']).split(';')[0];
+  const realFetch = globalThis.fetch, oldKey = process.env.OPENROUTER_API_KEY, oldLimit = process.env.AGENT_DAILY_LIMIT;
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; const sse = 'data: {"choices":[{"delta":{"content":"Hi\\n@@done\\n"}}]}\n\ndata: [DONE]\n\n'; return new Response(sse, { status: 200 }); };
+  process.env.OPENROUTER_API_KEY = 'test-key'; process.env.AGENT_DAILY_LIMIT = '2';
+  const ask = async () => {
+    const out = { code: 200, text: '', headers: {} };
+    const res = { set statusCode(c) { out.code = c; }, get statusCode() { return out.code; }, setHeader(k, v) { out.headers[k.toLowerCase()] = v; }, getHeader(k) { return out.headers[k.toLowerCase()]; }, status(c) { out.code = c; return res; }, json(b) { out.body = b; }, write(t) { out.text += t; }, end() { } };
+    await H.agent({ method: 'POST', query: {}, headers: { cookie, host: 'test.local', 'content-type': 'application/json', 'x-forwarded-for': '10.9.9.9' }, body: { messages: [{ role: 'user', text: 'hello' }], bm } }, res);
+    return out;
+  };
+  try {
+    const a = await ask(); assert.equal(a.code, 200); assert.equal(a.text, 'Hi\n@@done\n');
+    assert.equal((await ask()).code, 200);
+    const c = await ask(); assert.equal(c.code, 429, 'the third message of the day is refused'); assert.equal(calls, 2, 'a refused message never reaches the paid model');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (oldKey === undefined) delete process.env.OPENROUTER_API_KEY; else process.env.OPENROUTER_API_KEY = oldKey;
+    if (oldLimit === undefined) delete process.env.AGENT_DAILY_LIMIT; else process.env.AGENT_DAILY_LIMIT = oldLimit;
+  }
+});
+
 test.after(() => { try { rmSync(file); } catch (e) { } });

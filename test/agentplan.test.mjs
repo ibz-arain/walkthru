@@ -110,3 +110,18 @@ test('agent notices a gap and a missing stair', () => {
   up.stairs.push({ id: 2, level: 'M', cx: 6, cz: 6, W: 3.5, L: 12 });
   assert.equal(agentIssues(up).some(i => /stair/.test(i)), false);
 });
+
+test('deleting or clearing rooms drops their walls, openings, rails and furniture', () => {
+  const plan = { roof: 'hip', rooms: [], stairs: [], walls: {}, ext: {}, ops: {}, rails: {}, items: [] };
+  applyAgentLine(plan, '@@add {"type":"living","level":"M","name":"Living","x":0,"z":0,"w":16,"d":18}');
+  applyAgentLine(plan, '@@add {"type":"kitchen","level":"M","name":"Kitchen","x":16,"z":0,"w":14,"d":14}');
+  const [a, b] = plan.rooms.map(r => r.id);
+  plan.walls[`${a}-${b}`] = 'door'; plan.ext[`${b}:out`] = 'x'; plan.ops[`${a}-${b}`] = ['o']; plan.rails[`${b}:out:3`] = 1; plan.rails[`${a}:*`] = 1;
+  plan.items.push({ x: 20, z: 5, level: 'M' }, { x: 5, z: 5, level: 'M' });
+  applyAgentLine(plan, '@@del Kitchen');
+  assert.deepEqual(plan.walls, {}); assert.deepEqual(plan.ext, {}); assert.deepEqual(plan.ops, {});
+  assert.deepEqual(Object.keys(plan.rails), [`${a}:*`], 'the living room keeps its own rail');
+  assert.equal(plan.items.length, 1, 'furniture in the kitchen goes with it');
+  applyAgentLine(plan, '@@clear');
+  assert.equal(plan.rooms.length, 0); assert.deepEqual(plan.rails, {}); assert.equal(plan.items.length, 0);
+});

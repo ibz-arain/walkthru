@@ -268,6 +268,6 @@ function showNotice(title, text) { const w = $c('clWelcome'); w.innerHTML = `<h2
   let h = null;
   try { const ctl = new AbortController(); setTimeout(() => ctl.abort(), 3000); const r = await fetch('/api/health', { signal: ctl.signal }); if (r.ok) h = await r.json(); } catch (e) { }
   if (!h?.ok) { if (parseRoute().kind !== 'none') showNotice('This link needs the online version', 'Open it from the website your builder sent you.'); return; }
-  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked;
+  CL.on = true; CL.brand = h.brand; CL.locked = h.adminLocked; document.body.classList.toggle('agent-on', !!h.agent);
   addEventListener('hashchange', cloudRoute); cloudRoute();
 })();

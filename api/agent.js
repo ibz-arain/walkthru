@@ -2,6 +2,7 @@
 // files are data URLs: a PDF or an image. Streams the reply as plain text. The key stays on the server.
 import { route, fail, body } from './_lib/http.js';
 import { who } from './_lib/auth.js';
+import { db } from './_lib/db.js';
 import { agentBrief } from './_lib/agentplan.js';
 
 const MODEL = 'nvidia/nemotron-3.5-super-vl';
@@ -41,6 +42,16 @@ The back of the house is the rooms with the larger z. The front is the smaller z
 A failed command is handed back to you, not shown to the user. Read it against the design, then fix it or @@ask. Do not repeat the failure in your reply.
 
 The design block on the latest user message is the house right now. Trust it over your memory. Never add a room that is already listed. Fix every issue before you add the next floor.`;
+// Each pass of a reply is one request. A message usually takes 1 to 3 passes, so this is about 50 to 100 messages a day.
+const DAILY_LIMIT = () => Math.max(1, +process.env.AGENT_DAILY_LIMIT || 200);
+const TIME_LIMIT = 52_000; // Vercel stops the function at 60 s (vercel.json maxDuration): finish the reply well before that
+// Count one request for this person today; false when they are over the limit.
+async function spend(w) {
+  const c = await db(), key = w.user?.id || 'studio-key', day = new Date().toISOString().slice(0, 10);
+  await c.execute({ sql: 'INSERT INTO agent_use (who, day, n) VALUES (?, ?, 1) ON CONFLICT (who, day) DO UPDATE SET n = n + 1', args: [key, day] });
+  const n = (await c.execute({ sql: 'SELECT n FROM agent_use WHERE who = ? AND day = ?', args: [key, day] })).rows[0]?.n || 0;
+  return n <= DAILY_LIMIT();
+}
 const FILE_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']);
 
 // A data URL the model can see. Anything else is dropped before the request.
@@ -94,14 +105,15 @@ export default route({
     if (lastIn?.files.length && !partsOf[partsOf.length - 1].length) return fail(res, 400, 'Use a PDF, PNG, JPEG, WebP, or GIF.');
     let key = String(process.env.OPENROUTER_API_KEY || '').trim().replace(/^OPENROUTER_API_KEY=/i, '').replace(/^['"]|['"]$/g, '').replace(/\s+/g, '');
     if (!key) return fail(res, 503, 'The agent is not configured');
+    if (!(await spend(w))) return fail(res, 429, 'You’ve used the design agent a lot today. It will be ready again tomorrow.');
 
     let upstream;
     try {
       upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json', 'http-referer': 'https://walkthru.app', 'x-title': 'Walkthru' },
-        body: JSON.stringify({ model: MODEL, stream: true, max_tokens: 1800, temperature: 0.3, reasoning: { enabled: false }, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
-        signal: AbortSignal.timeout(120_000),
+        body: JSON.stringify({ model: MODEL, stream: true, max_tokens: 3000, temperature: 0.3, reasoning: { enabled: false }, messages: [{ role: 'system', content: SYSTEM }, ...messages] }),
+        signal: AbortSignal.timeout(TIME_LIMIT), // covers reading the stream below too
       });
     } catch (e) { console.error('agent', e.name || e.message); return fail(res, 502, 'Could not reach the agent'); }
     if (!upstream.ok || !upstream.body) {
@@ -134,7 +146,10 @@ export default route({
           if (piece) { res.write(piece); wrote = true; }
         }
       }
-    } catch (e) { console.error('agent stream', e.name || e.message); if (!wrote) res.write('The reply was cut off.'); }
+    } catch (e) { // out of time (or the model hung up): tell the client to carry on in a new pass rather than stop half way
+      console.error('agent stream', e.name || e.message);
+      res.write(wrote ? '\n@@more\n' : 'The agent took too long to answer. Try again.'); // a bare @@more: the chat runs another pass from the house as it stands
+    }
     finally { res.end(); }
   },
 });
