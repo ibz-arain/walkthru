@@ -212,7 +212,7 @@ export function agentStairOk(plan, s) {
 }
 // The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
 // above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
-export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
+export function agentStairSpot(plan, level, W, L, nx, nz, skip, below) { // below: {W, L} of a basement flight that must fit underneath
   const inside = agentInsideRooms(plan), up = agentUp(level);
   const lows = inside.filter(r => r.level === level && AGENT_LANDING.has(r.type));
   const highs = up && inside.some(r => r.level === up) ? inside.filter(r => r.level === up && AGENT_LANDING.has(r.type)) : null;
@@ -224,16 +224,24 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip) {
       return { cx: mx, cz: mz, dist: 0, low, high: agentAt(inside, 'M', mx, mz) || null, stacked: m };
   }
   let best = null;
-  for (const low of lows) for (const high of highs || [low]) {
-    const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
-    const w = x1 - x0, d = z1 - z0; if (w <= 0 || d <= 0) continue;
-    const alongX = w >= L && d >= W && low.w >= L + 2, alongZ = d >= L && w >= W && low.d >= L + 2;
-    if (!alongX && !alongZ) continue;
-    const cx = +((x0 + x1) / 2).toFixed(2), cz = +((z0 + z1) / 2).toFixed(2);
-    if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) continue;
-    if (stairClash(plan, { level, cx, cz, W, L }, skip)) continue;
+  const tryAt = (cx, cz, low, high) => {
+    cx = +cx.toFixed(2); cz = +cz.toFixed(2);
+    if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) return;
+    if (!flightFits(inside, { level, cx, cz, W, L })) return;
+    if (highs && !flightFits(inside, { level: up, cx, cz, W, L })) return; // the opening above lands in halls too
+    if (stairClash(plan, { level, cx, cz, W, L }, skip)) return;
+    if (below && !flightFits(inside, { level: 'B', cx, cz, W: below.W, L: below.L })) return;
     const dist = Math.hypot(cx - nx, cz - nz);
     if (!best || dist < best.dist) best = { cx, cz, dist, low, high: highs ? high : null };
+  };
+  for (const low of lows) for (const high of highs || [low]) {
+    const x0 = Math.max(low.x, high.x), x1 = Math.min(low.x + low.w, high.x + high.w), z0 = Math.max(low.z, high.z), z1 = Math.min(low.z + low.d, high.z + high.d);
+    if (x1 - x0 <= 0 || z1 - z0 <= 0) continue;
+    // slide along the flight a foot at a time (centred across it) wherever it fits in the overlap, one way round or the
+    // other; its foot needs 2 ft more in the room
+    const mx = (x0 + x1) / 2, mz = (z0 + z1) / 2;
+    if (x1 - x0 >= L && z1 - z0 >= W && low.w >= L + 2) { for (let cx = x0 + L / 2; cx <= x1 - L / 2 + .01; cx += 1) tryAt(cx, mz, low, high); tryAt(mx, mz, low, high); }
+    if (z1 - z0 >= L && x1 - x0 >= W && low.d >= L + 2) { for (let cz = z0 + L / 2; cz <= z1 - L / 2 + .01; cz += 1) tryAt(mx, cz, low, high); tryAt(mx, mz, low, high); }
   }
   return best;
 }
@@ -260,6 +268,15 @@ export function agentFixStairs(plan) {
   for (const s of [...(plan.stairs || [])].sort((a, b) => (a.level === 'B' ? 0 : 1) - (b.level === 'B' ? 0 : 1))) { // the basement flight gives way to the main one
     if (agentStairOk(plan, s) && !stairClash(plan, s)) continue;
     const [cx, cz] = stairXY(s), spot = agentStairSpot(plan, s.level, s.W ?? 3.5, s.L ?? 12, cx, cz, s);
+    if (!spot && s.level === 'B') { // nowhere for the basement flight: move the main stair to where both fit, one over the other
+      const m = (plan.stairs || []).find(o => o.level === 'M'), [mx, mz] = m ? stairXY(m) : [0, 0];
+      const both = m && agentStairSpot({ ...plan, stairs: plan.stairs.filter(o => o !== s) }, 'M', m.W ?? 3.5, m.L ?? 12, mx, mz, m, { W: s.W ?? 3.5, L: s.L ?? 12 });
+      if (both) {
+        m.cx = both.cx; m.cz = both.cz; s.cx = both.cx; s.cz = both.cz; delete m.x; delete m.z; delete s.x; delete s.z;
+        out.push({ kind: 'act', text: `Moved stairs ${m.id} and ${s.id} ${spotWords(both, 'M')}, with the basement flight under it as one stairwell.`, edit: true });
+      }
+      continue;
+    }
     if (!spot) continue; // nowhere better: the issue list says what is wrong
     s.cx = spot.cx; s.cz = spot.cz; delete s.x; delete s.z;
     out.push({ kind: 'act', text: `Moved stair ${s.id} ${spotWords(spot, s.level)}, so it reaches the next floor.`, edit: true });

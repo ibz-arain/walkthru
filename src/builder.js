@@ -377,7 +377,11 @@ function planLevel(lv) {
   addShapeWalls(lv, walls);
   // openings
   let frontDone = lv !== 'M';
-  const frontCands = walls.filter(w => !w.angled && w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4).sort((p, q) => (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
+  // the front door faces the street with nothing in the way: a wall set back in a notch behind other rooms would send the
+  // walk to the street straight under the house, so a wall with a clear run to the street comes first
+  const clearToStreet = w => { const mid = (w.a + w.b) / 2; return !BM.rooms.some(r => r.level === w.room.level && r !== w.room && !isOut(r) && r.z < w.c - .6 && r.x < mid + 2.5 && r.x + r.w > mid - 2.5); };
+  const frontCands = walls.filter(w => !w.angled && w.ext && w.out === '-z' && extMode(w.room, w.out) === 'auto' && (RT[w.room.type]?.entry || w.room.type === 'living' || w.room.type === 'great') && w.b - w.a >= 4)
+    .sort((p, q) => (clearToStreet(q) ? 1 : 0) - (clearToStreet(p) ? 1 : 0) || (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
   if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
   walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
@@ -894,7 +898,10 @@ function buildHouse3() {
     fence('x', fz1, fx0, fx1); fence('z', fx0, fz0, fz1); fence('z', fx1, fz0, fz1); fence('x', fz0, fx0, wallAtZ(fz0, -1)); fence('x', fz0, wallAtZ(fz0, 1), fx1);
     const sx = fx1 - 12, sz = fz1 - 10; box(G3.site, sx, sx + 10, 0, .3, sz, sz + 8, M.concrete, { walk: true }); box(G3.site, sx, sx + 10, .3, 7.5, sz, sz + 8, M.batten, { solid: true });
     box(G3.site, sx + 3.5, sx + 6.5, .3, 6.8, sz - .05, sz, M.trim); hipRoof(G3.site, { x0: sx, x1: sx + 10, z0: sz, z1: sz + 8, plate: 7.5, pitch: 4 / 12, ov: .6, slopes: { n: true, e: true, s: true, w: true } }); }
-  if (fd) { const op = fd.ops[0]; box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, fd.c - .4, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+  if (fd) { const op = fd.ops[0];
+    const inWay = rooms.filter(r => r.level === 'M' && !isOut(r) && r.z < fd.c - .6 && r.x < op.c + 2 && r.x + r.w > op.c - 2); // only if no clear wall was left
+    const walkEnd = inWay.length ? Math.min(...inWay.map(r => r.z)) - .6 : fd.c - .4;
+    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
     { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
   const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];

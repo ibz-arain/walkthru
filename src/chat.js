@@ -377,7 +377,14 @@ function planCheck() {
   btn.dataset.tip = `${planProblems.length} problem${planProblems.length === 1 ? '' : 's'} in this plan`;
   $u('planChkList').innerHTML = planProblems.map(p => `<li>${escH(p)}</li>`).join('');
   $u('planChkFix').hidden = !document.body.classList.contains('agent-on');
+  $u('planChkStairs').hidden = !planProblems.some(p => /^Stairs? \d/.test(p)); // code can place stairs on its own, no agent needed
 }
+$u('planChkStairs').onclick = () => {
+  const snap = snapshot(), done = agentFixStairs(BM);
+  if (!done.length) return toast('No better place for the stairs: the halls need room for them first');
+  PE.redo = []; PE.hist.push(snap); if (PE.hist.length > 80) PE.hist.shift();
+  resetBID(); planChanged(); closePops?.(); toast(done.map(d => d.text).join(' '));
+};
 $u('planChkFix').onclick = () => {
   closePops?.(); openPanel('agent');
   if (!chatBusy) sendChat('Fix the problems the plan check lists.', []);

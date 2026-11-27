@@ -409,3 +409,4 @@ body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="a
 .plan-chk-list li{position:relative;padding-left:14px;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
 .plan-chk-list li::before{content:"";position:absolute;left:2px;top:.55em;width:5px;height:5px;border-radius:50%;background:#d97706}
 .plan-chk-fix{width:100%;justify-content:center}
+.plan-chk-fix + .plan-chk-fix{margin-top:6px}

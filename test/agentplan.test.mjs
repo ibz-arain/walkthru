@@ -307,7 +307,7 @@ test('stairs through the roof move under the upper hall, and a stacked twin goes
   const notes = agentFixStairs(plan).map(n => n.text).join(' ');
   assert.equal(plan.stairs.length, 1); assert.match(notes, /Removed stair 16/);
   assert.match(notes, /Moved stair 15 in Living, under UpperHall/);
-  assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz], [6, 11]);
+  assert.deepEqual([plan.stairs[0].cx, plan.stairs[0].cz], [5, 11], 'the nearest place that works');
   assert.equal(agentIssues(plan).some(i => /Stair/.test(i)), false);
 });
 
@@ -346,4 +346,13 @@ test('a stair whose flight pokes out of its room is caught, and one across open 
   assert.match(agentIssues(plan).join(' '), /Stair 3 does not fit inside Rec: its 4 × 10 ft flight runs out through the walls into the ground/);
   const open = plan2([[1, 'Hall', 'hall', 'M', 0, 0, 6, 10], [2, 'Living', 'living', 'M', 6, 0, 14, 10]], [{ id: 3, level: 'M', cx: 7, cz: 5, W: 3.5, L: 12 }]);
   assert.equal(agentIssues(open).some(i => /Stair 3/.test(i)), false, 'a flight from the hall into the open living room is fine');
+});
+
+test('when the basement flight has nowhere to go, both stairs move to where they stack', () => {
+  const R = [[1, 'Kitchen', 'kitchen', 'M', 16, 0, 14, 14], [2, 'Hall', 'hall', 'M', 30, 0, 6, 28], [3, 'Hall 2', 'hall', 'U', 32, 0, 6, 26], [4, 'Rec', 'rec', 'B', 20, 0, 16, 14], [5, 'Storage', 'storage', 'B', 12, 14, 8, 10]];
+  const plan = plan2(R, [{ id: 22, level: 'M', cx: 33, cz: 14, W: 4, L: 10 }, { id: 23, level: 'B', cx: 33, cz: 14, W: 4, L: 10 }]);
+  assert.ok(agentIssues(plan).some(i => /Stair 23/.test(i)));
+  assert.match(agentFixStairs(plan).map(n => n.text).join(' '), /Moved stairs 22 and 23/);
+  assert.deepEqual(plan.stairs.map(s => [s.cx, s.cz]), [[34, 9], [34, 9]]);
+  assert.equal(agentIssues(plan).some(i => /Stair/.test(i)), false);
 });
