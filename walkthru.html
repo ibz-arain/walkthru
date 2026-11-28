@@ -252,8 +252,13 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 @keyframes chatdot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-2px)}}
 .chat-compose{display:flex;flex-direction:column;gap:8px;padding:0;border-top:1px solid var(--rule);flex:none}
 .chat-line{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 6px 14px}
+/* past two lines of text, the attach button stacks over send, so the text keeps the full width */
+.chat-line.tall{display:grid;grid-template-columns:1fr auto;grid-template-rows:1fr auto;column-gap:2px;row-gap:4px}
+.chat-line.tall #agentInput{grid-row:1 / 3;grid-column:1}
+.chat-line.tall .chat-pick{grid-row:1;grid-column:2;align-self:end}
+.chat-line.tall .chat-send{grid-row:2;grid-column:2}
 .chat-compose textarea{flex:1;resize:none;overflow:hidden;min-height:36px;max-height:120px;box-sizing:border-box;border:0;border-radius:0;background:transparent;color:var(--ink);font:13px/1.45 var(--f-ui);padding:8px 4px}
-.chat-pick{width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-pick{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-pick:hover{background:var(--paper-2);color:var(--ink)}
 .chat-pick .ic{width:16px;height:16px}
 .chat-pending{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0}
@@ -267,7 +272,7 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .chat-drop b{font-size:14px;font-weight:600}
 .chat-drop span{color:var(--ink-2);font-size:12px}
 .chat-compose textarea:focus{outline:none}
-.chat-send{width:32px;height:32px;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-send{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-send:disabled{opacity:.35;cursor:default}
 .chat-send .ic{width:15px;height:15px}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
@@ -405,7 +410,7 @@ body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,bo
 
 /* the design agent: only where the server has it set up, never on a shared link (viewers can't sign in) */
 body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
-.chat-send.stop .ic{width:12px;height:12px}
+.chat-send.stop .ic{width:16px;height:16px}
 
 /* plan check: a quiet warning button in the bar, and the list of problems */
 .tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}
@@ -745,7 +750,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-clip" viewBox="0 0 24 24"><path d="m16.5 7.5-7.8 7.8a3 3 0 0 1-4.2-4.2l8-8a4.2 4.2 0 0 1 6 6l-8 8a5.5 5.5 0 0 1-7.8-7.8l7.3-7.3"/></symbol>
   </defs>
@@ -6824,10 +6829,13 @@ function flightFitsBoth(inside, s, up) {
   const fits = (lv, a, b) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => { const r = agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); return !!r && AGENT_LANDING.has(r.type); });
   return [[L, W], [W, L]].some(([a, b]) => fits(s.level, a, b) && (!up || fits(up, a, b)));
 }
-// the first room that isn't a hall or open room under the corners of the opening above, either way round
+// the first room that isn't a hall or open room under the corners of the opening above, looking first at the way round that fits
+// its own floor (the way the builder will run it)
 function openingHits(inside, s, up) {
-  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
-  for (const [a, b] of [[L, W], [W, L]]) for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const r = agentAt(inside, up, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); if (r && !AGENT_LANDING.has(r.type)) return r; }
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, C = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const at = (lv, a, b, i, j) => agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3));
+  const ways = [[L, W], [W, L]].sort(([a, b], [c, d]) => C.every(([i, j]) => AGENT_LANDING.has(at(s.level, c, d, i, j)?.type)) - C.every(([i, j]) => AGENT_LANDING.has(at(s.level, a, b, i, j)?.type)));
+  for (const [a, b] of ways) for (const [i, j] of C) { const r = at(up, a, b, i, j); if (r && !AGENT_LANDING.has(r.type)) return r; }
   return null;
 }
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
@@ -7021,6 +7029,23 @@ export function agentIssues(plan, limit = 10) {
   return out.slice(0, limit);
 }
 
+// The finishes the agent may set: the Finishes panel's parts and their materials (app.js FIN), stored as plan.finishes[part] =
+// "material:#rrggbb" (or "material:index" for one of the panel's swatches).
+export const AGENT_FINISH = {
+  stucco: ['Main walls', ['stucco', 'lap', 'brick', 'lime', 'panel']], siding: ['Accent siding', ['batten', 'lap', 'panel', 'brick', 'metal']],
+  stone: ['Stone veneer', ['ledge', 'field', 'slate', 'brick']], roof: ['Roofing', ['shingle', 'metal', 'clay', 'cedar', 'slate']],
+  trim: ['Windows & fascia', ['paint', 'metal']], gdoor: ['Garage door', ['flat', 'wood', 'glass']], deck: ['Decking', ['wood', 'composite']],
+  floor: ['Main flooring', ['plank', 'herring', 'tile', 'bigtile', 'marble', 'slate', 'terrazzo', 'concrete', 'carpet']],
+  paint: ['Interior walls', ['paint', 'lime', 'panel', 'brick']], door: ['Doors', ['paint', 'wood', 'gloss']], cab: ['Cabinets', ['paint', 'wood', 'gloss']],
+  counter: ['Countertops', ['quartz', 'marble', 'granite', 'butcher', 'concrete']], tile: ['Bath & mud tile', ['square', 'subway', 'mosaic', 'bigtile', 'marble', 'slate']],
+  steel: ['Fixtures & appliances', ['metal', 'enamel']],
+};
+const AGENT_COLORS = { green: '#6f8f63', sage: '#9aa58f', forest: '#3f5244', olive: '#7d7f55', navy: '#3d4a63', blue: '#5b7a9a', red: '#8e3b32', white: '#f0efeb',
+  black: '#2d2f33', grey: '#9ea3a8', gray: '#9ea3a8', charcoal: '#55585c', beige: '#d8c8ad', cream: '#ebe3d4', brown: '#7a563c', tan: '#c8ad8a', yellow: '#d9c27a', terracotta: '#c9744a' };
+function finishText(plan) {
+  const f = plan?.finishes && typeof plan.finishes === 'object' ? plan.finishes : {};
+  return 'finishes (part: material:colour; parts not listed are the defaults): ' + (Object.keys(f).filter(k => AGENT_FINISH[k]).map(k => `${k}=${String(f[k]).slice(0, 24)}`).join(' ') || 'all defaults');
+}
 // `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
 export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
@@ -7041,6 +7066,7 @@ export function agentBrief(plan, checks) {
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
+  lines.push(finishText(plan));
   const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
   const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
@@ -7083,6 +7109,19 @@ export function applyAgentLine(plan, line, types) {
     return say('act', `Set the roof to ${roof}.`, true);
   }
   const body = rest.startsWith('{') ? agentJson(rest) : null;
+  if (cmd === 'finish') { // a material and colour for one part of the house, as the Finishes panel sets them
+    if (!body) return say('err', 'Could not read that finish command.');
+    const part = String(body.part || '').toLowerCase(), F = AGENT_FINISH[part];
+    if (!F) return say('err', `Unknown part "${part}". Parts: ${Object.keys(AGENT_FINISH).join(', ')}.`);
+    const mats = F[1], cur = String(plan.finishes?.[part] || '').split(':')[0];
+    const material = String(body.material || cur || mats[0]).toLowerCase();
+    if (!mats.includes(material)) return say('err', `${F[0]} can be ${mats.join(', ')}, not "${material}".`);
+    let color = String(body.color ?? body.colour ?? '').trim().toLowerCase();
+    color = AGENT_COLORS[color] || color;
+    if (color && !/^#[0-9a-f]{6}$/.test(color)) return say('err', 'A colour is #rrggbb, or a plain name like green, navy, or white.');
+    plan.finishes = { ...(plan.finishes && typeof plan.finishes === 'object' ? plan.finishes : {}), [part]: `${material}:${color || 0}` };
+    return say('act', `Set ${F[0].toLowerCase()} to ${material}${color ? ` ${color}` : ''}.`, true);
+  }
   if (cmd === 'add') {
     if (!body) return say('err', 'Could not read that add command.');
     const type = String(body.type || '').toLowerCase();
@@ -7236,6 +7275,29 @@ function keepAgent(res) {
 // ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
 export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
 // A request to repair the plan: then every problem counts, not only the ones this message made.
+// Keyboard mash ("pieruhpiuh regiuhireuhgpiuhearp"): most of its letters are in words no language has: 17+ letters, or long runs of consonants.
+// Such a message asks for nothing, so the chat answers it without the model and never touches the house.
+export function agentUnclear(text, files) {
+  if (files?.length) return false;
+  const w = String(text || '').toLowerCase().match(/[a-z]+/g) || [];
+  if (!w.length) return !/\d/.test(String(text || ''));
+  const odd = w.filter(x => x.length >= 17 || /[bcdfghjklmnpqrstvwxz]{6,}/.test(x) || (x.length >= 5 && !/[aeiouy]/.test(x)));
+  return odd.join('').length / w.join('').length >= .5; // by letters: one huge run of mash outweighs a few short words
+}
+export const AGENT_UNCLEAR = 'I didn’t catch that. Tell me what to build or change, like “make the kitchen 2 feet deeper”, or ask me about the house.';
+// A question ("can you build a house?", "what if the kitchen were bigger?"): the model may still act on it, but the chat never
+// pushes it to change the house when it answered instead.
+export const agentAsks = text => /^\s*(can|could|would|will|do|does|did|is|are|was|should|how|what|whats|why|where|which|who|when)\b/i.test(String(text || '')) || /\?\s*$/.test(String(text || ''));
+// "Build me a 3 bedroom house" while a house is already here: ask, in code, whether to start over or change this one, rather than
+// trusting the model to ask before it bulldozes the plan. Each option carries the exact message it sends.
+export function agentNewHouseAsk(text, plan, files) {
+  const t = String(text || '').trim();
+  if (files?.length || !plan?.rooms?.length || agentAsks(t)) return null;
+  if (/\b(start over|start again|from scratch)\b|^change this house:/i.test(t)) return null;
+  if (!/\b(build|design|create|draw|make|give)\s+(me\s+|us\s+)?(a|an|another|new)\b[^.?!]*\b(house|home|bungalow|ranch|cottage|duplex)\b/i.test(t)) return null;
+  const q = 'You already have a house here. Start a new one, or change this one?';
+  return { kind: 'ask', text: q, options: [{ id: 'new', label: 'Start over with a new house', send: `Start over and build a new house: ${t}` }, { id: 'change', label: 'Change this house', send: `Change this house: ${t}` }] };
+}
 export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
 export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
 // Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
@@ -7269,7 +7331,7 @@ export function agentNext(turn, s) {
   if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
     const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
     if (!fresh.length) return { finish: true };
-    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. Keep what the user asked for: never undo it or set a size back. Fix around it (grow or move a neighbour). If a problem cannot be fixed without undoing the request, leave it and say so in a sentence.` };
   }
   if (!turn.edited && !turn.more) {
     if (!s.build || s.step > 1) return { stop: true };
@@ -7392,7 +7454,7 @@ function pickAsk(n) {
   const m = chatMsgs.at(-1), o = m?.ask?.options?.[n];
   if (!o || chatBusy) return;
   delete m.ask;
-  sendChat(/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label, []);
+  sendChat(o.send || (/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label), []);
 }
 function renderPending() {
   const box = $u('agentPending');
@@ -7402,10 +7464,13 @@ function renderPending() {
 }
 
 function fitComposer() {
-  const t = $u('agentInput');
-  t.style.height = 'auto';
-  t.style.height = Math.min(120, t.scrollHeight) + 'px';
-  t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden';
+  const t = $u('agentInput'), line = t.closest('.chat-line');
+  const size = () => { t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden'; };
+  size();
+  // past two lines, attach stacks over send; it goes back only at one line, so the wider text box rewrapping can't make it flicker
+  const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 1.45 * parseFloat(cs.fontSize), lines = (t.scrollHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh;
+  const tall = line?.classList.contains('tall');
+  if (line && (tall ? lines < 1.5 : lines > 2.5)) { line.classList.toggle('tall', !tall); size(); }
 }
 function syncSend() { // while the agent works, the send button is a Stop button
   const b = $u('agentSend'), stop = chatBusy;
@@ -7476,7 +7541,15 @@ function agentShow() {
   resetBID(); planChanged(); // saves, redraws the plan, and rebuilds the 3D a moment after the edits stop arriving
   if (!agentViewed && mode !== 'walk' && !PE.open && HOUSES?.[3]?.views?.aerial) { agentViewed = true; goView('aerial'); } // one look from above per message, not a jump per edit
 }
-function agentSettle() { clearTimeout(peTimer); rebuildHouse3(); } // end of a pass: the 3D catches up at once
+// End of a pass: the 3D catches up at once, and so do the finishes the plan sets. A part painted this session that the plan no
+// longer lists (the message was undone) goes back to its default.
+const agentFinTouched = new Set();
+function agentSettle() {
+  clearTimeout(peTimer); rebuildHouse3();
+  const f = BM.finishes || {};
+  for (const k of agentFinTouched) if (!(k in f)) FIN_PICK[k]?.(0);
+  for (const [k, v] of Object.entries(f)) { FIN_PICK[k]?.(v); agentFinTouched.add(k); }
+}
 function agentApiMessages(extra) {
   const list = chatMsgs.filter(m => m.text || m.raw || m.files?.some(f => f.data)).slice(-10).map(m => ({
     role: m.role,
@@ -7543,11 +7616,14 @@ async function sendChat(text, files) {
   if (pendingAsk?.ask) delete pendingAsk.ask;
   if (!text && files.length) text = 'Build the house from this drawing.';
   chatMsgs.push({ role: 'user', text, files });
+  const nh = agentNewHouseAsk(text, BM, files); // a new house over this one: ask first, without the model
+  if (nh) { chatMsgs.push({ role: 'assistant', text: nh.text, steps: [{ k: 'say', t: nh.text }], ask: { q: nh.text, options: nh.options } }); saveChat(); renderChat(); syncSend(); return; }
+  if (agentUnclear(text, files)) { chatMsgs.push({ role: 'assistant', text: AGENT_UNCLEAR, steps: [{ k: 'say', t: AGENT_UNCLEAR }] }); saveChat(); renderChat(); syncSend(); return; } // nothing asked: no model, no edits
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
   const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
   const startSnap = agentUndoSnap, startCount = agentBadness(BM);
-  const build = agentWantsEdit(text, files);
+  const build = agentWantsEdit(text, files) && !agentAsks(text);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
     while (step < AGENT_PASSES) {

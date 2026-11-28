@@ -207,10 +207,13 @@ function flightFitsBoth(inside, s, up) {
   const fits = (lv, a, b) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => { const r = agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); return !!r && AGENT_LANDING.has(r.type); });
   return [[L, W], [W, L]].some(([a, b]) => fits(s.level, a, b) && (!up || fits(up, a, b)));
 }
-// the first room that isn't a hall or open room under the corners of the opening above, either way round
+// the first room that isn't a hall or open room under the corners of the opening above, looking first at the way round that fits
+// its own floor (the way the builder will run it)
 function openingHits(inside, s, up) {
-  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
-  for (const [a, b] of [[L, W], [W, L]]) for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const r = agentAt(inside, up, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); if (r && !AGENT_LANDING.has(r.type)) return r; }
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, C = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const at = (lv, a, b, i, j) => agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3));
+  const ways = [[L, W], [W, L]].sort(([a, b], [c, d]) => C.every(([i, j]) => AGENT_LANDING.has(at(s.level, c, d, i, j)?.type)) - C.every(([i, j]) => AGENT_LANDING.has(at(s.level, a, b, i, j)?.type)));
+  for (const [a, b] of ways) for (const [i, j] of C) { const r = at(up, a, b, i, j); if (r && !AGENT_LANDING.has(r.type)) return r; }
   return null;
 }
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
@@ -404,6 +407,23 @@ export function agentIssues(plan, limit = 10) {
   return out.slice(0, limit);
 }
 
+// The finishes the agent may set: the Finishes panel's parts and their materials (app.js FIN), stored as plan.finishes[part] =
+// "material:#rrggbb" (or "material:index" for one of the panel's swatches).
+export const AGENT_FINISH = {
+  stucco: ['Main walls', ['stucco', 'lap', 'brick', 'lime', 'panel']], siding: ['Accent siding', ['batten', 'lap', 'panel', 'brick', 'metal']],
+  stone: ['Stone veneer', ['ledge', 'field', 'slate', 'brick']], roof: ['Roofing', ['shingle', 'metal', 'clay', 'cedar', 'slate']],
+  trim: ['Windows & fascia', ['paint', 'metal']], gdoor: ['Garage door', ['flat', 'wood', 'glass']], deck: ['Decking', ['wood', 'composite']],
+  floor: ['Main flooring', ['plank', 'herring', 'tile', 'bigtile', 'marble', 'slate', 'terrazzo', 'concrete', 'carpet']],
+  paint: ['Interior walls', ['paint', 'lime', 'panel', 'brick']], door: ['Doors', ['paint', 'wood', 'gloss']], cab: ['Cabinets', ['paint', 'wood', 'gloss']],
+  counter: ['Countertops', ['quartz', 'marble', 'granite', 'butcher', 'concrete']], tile: ['Bath & mud tile', ['square', 'subway', 'mosaic', 'bigtile', 'marble', 'slate']],
+  steel: ['Fixtures & appliances', ['metal', 'enamel']],
+};
+const AGENT_COLORS = { green: '#6f8f63', sage: '#9aa58f', forest: '#3f5244', olive: '#7d7f55', navy: '#3d4a63', blue: '#5b7a9a', red: '#8e3b32', white: '#f0efeb',
+  black: '#2d2f33', grey: '#9ea3a8', gray: '#9ea3a8', charcoal: '#55585c', beige: '#d8c8ad', cream: '#ebe3d4', brown: '#7a563c', tan: '#c8ad8a', yellow: '#d9c27a', terracotta: '#c9744a' };
+function finishText(plan) {
+  const f = plan?.finishes && typeof plan.finishes === 'object' ? plan.finishes : {};
+  return 'finishes (part: material:colour; parts not listed are the defaults): ' + (Object.keys(f).filter(k => AGENT_FINISH[k]).map(k => `${k}=${String(f[k]).slice(0, 24)}`).join(' ') || 'all defaults');
+}
 // `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
 export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
@@ -424,6 +444,7 @@ export function agentBrief(plan, checks) {
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
+  lines.push(finishText(plan));
   const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
   const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
@@ -466,6 +487,19 @@ export function applyAgentLine(plan, line, types) {
     return say('act', `Set the roof to ${roof}.`, true);
   }
   const body = rest.startsWith('{') ? agentJson(rest) : null;
+  if (cmd === 'finish') { // a material and colour for one part of the house, as the Finishes panel sets them
+    if (!body) return say('err', 'Could not read that finish command.');
+    const part = String(body.part || '').toLowerCase(), F = AGENT_FINISH[part];
+    if (!F) return say('err', `Unknown part "${part}". Parts: ${Object.keys(AGENT_FINISH).join(', ')}.`);
+    const mats = F[1], cur = String(plan.finishes?.[part] || '').split(':')[0];
+    const material = String(body.material || cur || mats[0]).toLowerCase();
+    if (!mats.includes(material)) return say('err', `${F[0]} can be ${mats.join(', ')}, not "${material}".`);
+    let color = String(body.color ?? body.colour ?? '').trim().toLowerCase();
+    color = AGENT_COLORS[color] || color;
+    if (color && !/^#[0-9a-f]{6}$/.test(color)) return say('err', 'A colour is #rrggbb, or a plain name like green, navy, or white.');
+    plan.finishes = { ...(plan.finishes && typeof plan.finishes === 'object' ? plan.finishes : {}), [part]: `${material}:${color || 0}` };
+    return say('act', `Set ${F[0].toLowerCase()} to ${material}${color ? ` ${color}` : ''}.`, true);
+  }
   if (cmd === 'add') {
     if (!body) return say('err', 'Could not read that add command.');
     const type = String(body.type || '').toLowerCase();
@@ -619,6 +653,29 @@ function keepAgent(res) {
 // ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
 export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
 // A request to repair the plan: then every problem counts, not only the ones this message made.
+// Keyboard mash ("pieruhpiuh regiuhireuhgpiuhearp"): most of its letters are in words no language has: 17+ letters, or long runs of consonants.
+// Such a message asks for nothing, so the chat answers it without the model and never touches the house.
+export function agentUnclear(text, files) {
+  if (files?.length) return false;
+  const w = String(text || '').toLowerCase().match(/[a-z]+/g) || [];
+  if (!w.length) return !/\d/.test(String(text || ''));
+  const odd = w.filter(x => x.length >= 17 || /[bcdfghjklmnpqrstvwxz]{6,}/.test(x) || (x.length >= 5 && !/[aeiouy]/.test(x)));
+  return odd.join('').length / w.join('').length >= .5; // by letters: one huge run of mash outweighs a few short words
+}
+export const AGENT_UNCLEAR = 'I didn’t catch that. Tell me what to build or change, like “make the kitchen 2 feet deeper”, or ask me about the house.';
+// A question ("can you build a house?", "what if the kitchen were bigger?"): the model may still act on it, but the chat never
+// pushes it to change the house when it answered instead.
+export const agentAsks = text => /^\s*(can|could|would|will|do|does|did|is|are|was|should|how|what|whats|why|where|which|who|when)\b/i.test(String(text || '')) || /\?\s*$/.test(String(text || ''));
+// "Build me a 3 bedroom house" while a house is already here: ask, in code, whether to start over or change this one, rather than
+// trusting the model to ask before it bulldozes the plan. Each option carries the exact message it sends.
+export function agentNewHouseAsk(text, plan, files) {
+  const t = String(text || '').trim();
+  if (files?.length || !plan?.rooms?.length || agentAsks(t)) return null;
+  if (/\b(start over|start again|from scratch)\b|^change this house:/i.test(t)) return null;
+  if (!/\b(build|design|create|draw|make|give)\s+(me\s+|us\s+)?(a|an|another|new)\b[^.?!]*\b(house|home|bungalow|ranch|cottage|duplex)\b/i.test(t)) return null;
+  const q = 'You already have a house here. Start a new one, or change this one?';
+  return { kind: 'ask', text: q, options: [{ id: 'new', label: 'Start over with a new house', send: `Start over and build a new house: ${t}` }, { id: 'change', label: 'Change this house', send: `Change this house: ${t}` }] };
+}
 export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
 export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
 // Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
@@ -652,7 +709,7 @@ export function agentNext(turn, s) {
   if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
     const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
     if (!fresh.length) return { finish: true };
-    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. Keep what the user asked for: never undo it or set a size back. Fix around it (grow or move a neighbour). If a problem cannot be fixed without undoing the request, leave it and say so in a sentence.` };
   }
   if (!turn.edited && !turn.more) {
     if (!s.build || s.step > 1) return { stop: true };

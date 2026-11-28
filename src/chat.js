@@ -100,7 +100,7 @@ function pickAsk(n) {
   const m = chatMsgs.at(-1), o = m?.ask?.options?.[n];
   if (!o || chatBusy) return;
   delete m.ask;
-  sendChat(/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label, []);
+  sendChat(o.send || (/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label), []);
 }
 function renderPending() {
   const box = $u('agentPending');
@@ -110,10 +110,13 @@ function renderPending() {
 }
 
 function fitComposer() {
-  const t = $u('agentInput');
-  t.style.height = 'auto';
-  t.style.height = Math.min(120, t.scrollHeight) + 'px';
-  t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden';
+  const t = $u('agentInput'), line = t.closest('.chat-line');
+  const size = () => { t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden'; };
+  size();
+  // past two lines, attach stacks over send; it goes back only at one line, so the wider text box rewrapping can't make it flicker
+  const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 1.45 * parseFloat(cs.fontSize), lines = (t.scrollHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh;
+  const tall = line?.classList.contains('tall');
+  if (line && (tall ? lines < 1.5 : lines > 2.5)) { line.classList.toggle('tall', !tall); size(); }
 }
 function syncSend() { // while the agent works, the send button is a Stop button
   const b = $u('agentSend'), stop = chatBusy;
@@ -184,7 +187,15 @@ function agentShow() {
   resetBID(); planChanged(); // saves, redraws the plan, and rebuilds the 3D a moment after the edits stop arriving
   if (!agentViewed && mode !== 'walk' && !PE.open && HOUSES?.[3]?.views?.aerial) { agentViewed = true; goView('aerial'); } // one look from above per message, not a jump per edit
 }
-function agentSettle() { clearTimeout(peTimer); rebuildHouse3(); } // end of a pass: the 3D catches up at once
+// End of a pass: the 3D catches up at once, and so do the finishes the plan sets. A part painted this session that the plan no
+// longer lists (the message was undone) goes back to its default.
+const agentFinTouched = new Set();
+function agentSettle() {
+  clearTimeout(peTimer); rebuildHouse3();
+  const f = BM.finishes || {};
+  for (const k of agentFinTouched) if (!(k in f)) FIN_PICK[k]?.(0);
+  for (const [k, v] of Object.entries(f)) { FIN_PICK[k]?.(v); agentFinTouched.add(k); }
+}
 function agentApiMessages(extra) {
   const list = chatMsgs.filter(m => m.text || m.raw || m.files?.some(f => f.data)).slice(-10).map(m => ({
     role: m.role,
@@ -251,11 +262,14 @@ async function sendChat(text, files) {
   if (pendingAsk?.ask) delete pendingAsk.ask;
   if (!text && files.length) text = 'Build the house from this drawing.';
   chatMsgs.push({ role: 'user', text, files });
+  const nh = agentNewHouseAsk(text, BM, files); // a new house over this one: ask first, without the model
+  if (nh) { chatMsgs.push({ role: 'assistant', text: nh.text, steps: [{ k: 'say', t: nh.text }], ask: { q: nh.text, options: nh.options } }); saveChat(); renderChat(); syncSend(); return; }
+  if (agentUnclear(text, files)) { chatMsgs.push({ role: 'assistant', text: AGENT_UNCLEAR, steps: [{ k: 'say', t: AGENT_UNCLEAR }] }); saveChat(); renderChat(); syncSend(); return; } // nothing asked: no model, no edits
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
   const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
   const startSnap = agentUndoSnap, startCount = agentBadness(BM);
-  const build = agentWantsEdit(text, files);
+  const build = agentWantsEdit(text, files) && !agentAsks(text);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
     while (step < AGENT_PASSES) {

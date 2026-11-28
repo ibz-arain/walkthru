@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 460" fill="none">
-  <rect width="640" height="460" fill="#16161a"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="49 -10 473 340" fill="none">
+  <rect x="-200" y="-200" width="1000" height="800" fill="#16161a"/>
   <!-- walls -->
   <path fill="#e8e8ee" d="
     M72 52h392v8H72z
@@ -38,11 +38,5 @@
     <text x="268" y="28" stroke="none">36'-0"</text>
     <path d="M484 52v248M478 52h12M478 300h12"/>
     <text x="500" y="180" stroke="none" transform="rotate(90 500 180)">26'-0"</text>
-  </g>
-  <g fill="#e8e8ee" font-family="ui-sans-serif, system-ui, sans-serif">
-    <text x="36" y="390" font-size="11" letter-spacing="1.5">MAIN FLOOR</text>
-    <text x="36" y="408" font-size="11" fill="#9b9ba6">Sheet A-1</text>
-    <path d="M520 404h80" stroke="#e8e8ee" stroke-width="2.4"/>
-    <text x="560" y="396" font-size="10" fill="#9b9ba6" text-anchor="middle">10'</text>
   </g>
 </svg>
