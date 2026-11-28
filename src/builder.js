@@ -182,17 +182,21 @@ Object.assign(M, { cedar: std({ map: TX.cedar, color: '#ffffff', roughness: .7, 
 const CLAD = () => ({ cedar: M.cedar, dark: M.panel, render: M.render, stone: M.limeW, fstone: M.fstone });
 let BM;
 let SITE2D = null; // the site as last built (streets, paths, trees, lot), for the plan editor
-// Where a house's starting trees go: round the outside, clear of a corner lot's side street. SITE.trees of them (4 by default).
+// Where a house's starting trees go, if you ask for some (SITE.trees; none by default): round the outside, clear of a corner lot's side street.
 function autoTreeSpots(m = BM) {
   const all = (m.rooms || []).filter(r => !belowGrade(r.level)), S = m.site || {};
   const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
   const gap = S.sideSetback ?? 24, sideX = S.corner === 'right' ? minX - gap : S.corner === 'left' ? maxX + gap : null;
   const spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
-  return spots.filter(([x]) => sideX == null || (S.corner === 'right' ? x > sideX + 6 || x < sideX - 40 : x < sideX - 6 || x > sideX + 40)).slice(0, S.trees ?? 4);
+  return spots.filter(([x]) => sideX == null || (S.corner === 'right' ? x > sideX + 6 || x < sideX - 40 : x < sideX - 6 || x > sideX + 40)).slice(0, S.trees ?? 0); // none unless asked for: a property never starts with trees
 }
 // Give a design its starting trees as yard trees you can move and delete (once; marked auto so the Trees count can redo them).
 function seedTrees(m = BM) {
-  if (!m?.rooms?.length || m.site?.treesPlaced) return false;
+  if (!m?.rooms?.length) return false;
+  if (m.site?.treesPlaced) { // trees once added for you by default: taken away again, unless you asked for a number of them
+    if (m.site.trees == null && (m.items || []).some(i => i.auto)) { m.items = m.items.filter(i => !i.auto); return true; }
+    return false;
+  }
   m.items = m.items || []; m.site = { ...(m.site || {}), treesPlaced: true };
   for (const [x, z, sc] of autoTreeSpots(m)) { const w = Math.round(14 * sc); m.items.push({ id: BID++, kind: 'treeL', level: 'M', x: +x.toFixed(1), z: +z.toFixed(1), rot: 0, w, d: w, auto: true }); }
   return true;
