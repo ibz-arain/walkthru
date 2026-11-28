@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAgentLine, agentIssues, agentBrief, feedAgentLine, agentRepairFailed, agentWantsFix, agentBadness, agentFixStairs, agentPass } from '../src/agentplan.js';
+import { applyAgentLine, agentIssues, agentBrief, feedAgentLine, agentRepairFailed, agentWantsFix, agentBadness, agentFixStairs, agentPass, agentUnclear, agentAsks, agentNewHouseAsk, agentStairOk } from '../src/agentplan.js';
 
 test('agent commands build a floor, then a bad command is refused', () => {
   const plan = { roof: 'hip', rooms: [], stairs: [], walls: {} };
@@ -64,7 +64,7 @@ test('widening a room shifts the neighbours and their furniture', () => {
   assert.match(res.text, /Kitchen/);
   assert.equal(agentIssues(plan).some(i => /overlaps/.test(i)), false);
   const brief = agentBrief(plan);
-  assert.match(brief, /right: Dining #2/);
+  assert.match(brief, /left: Dining #2/, 'east is the left as seen from the street');
   assert.match(brief, /Dining table/);
 });
 
@@ -355,4 +355,47 @@ test('when the basement flight has nowhere to go, both stairs move to where they
   assert.match(agentFixStairs(plan).map(n => n.text).join(' '), /Moved stairs 22 and 23/);
   assert.deepEqual(plan.stairs.map(s => [s.cx, s.cz]), [[34, 9], [34, 9]]);
   assert.equal(agentIssues(plan).some(i => /Stair/.test(i)), false);
+});
+
+test('keyboard mash is caught before the model; real messages are not', () => {
+  for (const t of ['Helloshurepifvhu pieruhpiuh regiuhireuhgpiuhearp fgiuh preaiguhpi ehrgpi uheapiurhgiuehsrgpiuhpeiusrhgviuehsrgviuheiua', 'asdfghjkl', '???'])
+    assert.equal(agentUnclear(t, []), true, t);
+  for (const t of ['hello', 'strengths', 'accommodations?', 'Make the kitchen 2 feet deeper', 'Build a 3 story home, raised ranch, with 5 beds and 3 bathrooms', '12'])
+    assert.equal(agentUnclear(t, []), false, t);
+  assert.equal(agentUnclear('', [{ name: 'plan.png', kind: 'image' }]), false); // a drawing alone is a request
+});
+
+test('questions are told apart from requests, and a new house over an old one asks first', () => {
+  assert.equal(agentAsks('can u build a house?'), true);
+  assert.equal(agentAsks('whats 2 + 2'), true);
+  assert.equal(agentAsks('Make the house green.'), false);
+  const plan = { rooms: [{ id: 1, type: 'living', level: 'M', x: 0, z: 0, w: 16, d: 16 }] };
+  const ask = agentNewHouseAsk('Build a two storey 3 bedroom house.', plan, []);
+  assert.equal(ask.kind, 'ask'); assert.equal(ask.options.length, 2);
+  assert.match(ask.options[0].send, /^Start over and build a new house: Build a two storey/);
+  assert.equal(agentNewHouseAsk(ask.options[0].send, plan, []), null); // the answer goes through
+  assert.equal(agentNewHouseAsk('Make the house green.', plan, []), null);
+  assert.equal(agentNewHouseAsk('Build a two storey 3 bedroom house.', { rooms: [] }, []), null); // an empty lot just builds
+});
+
+test('finishes: the agent paints the house, and refuses parts or materials that do not exist', () => {
+  const plan = { roof: 'hip', rooms: [], stairs: [] };
+  const ok = applyAgentLine(plan, '@@finish {"part":"stucco","material":"lap","color":"#6f8f63"}');
+  assert.equal(ok.kind, 'act'); assert.equal(plan.finishes.stucco, 'lap:#6f8f63');
+  applyAgentLine(plan, '@@finish {"part":"roof","color":"green"}'); // a plain colour name, the material kept
+  assert.equal(plan.finishes.roof, 'shingle:#6f8f63');
+  assert.equal(applyAgentLine(plan, '@@finish {"part":"shader","color":"#000000"}').kind, 'err');
+  assert.equal(applyAgentLine(plan, '@@finish {"part":"roof","material":"glass"}').kind, 'err');
+  assert.equal(applyAgentLine(plan, '@@finish {"part":"roof","color":"blurple"}').kind, 'err');
+  assert.match(agentBrief(plan), /finishes .*stucco=lap:#6f8f63/);
+});
+
+test('a stair whose opening upstairs cuts into a bedroom is caught, even when its centre lands in the hall', () => {
+  const R = (id, type, level, name, x, z, w, d) => ({ id, type, level, name, x, z, w, d });
+  const plan = { rooms: [R(1, 'hall', 'M', 'Hall', 16, 0, 8, 32), R(2, 'living', 'M', 'Living', 0, 0, 16, 32), R(3, 'hall', 'U', 'Upper Hall', 16, 6, 8, 20),
+    R(4, 'bath', 'U', 'Bath', 16, 0, 8, 6), R(5, 'bedroom', 'U', 'Bed', 0, 0, 16, 32)], stairs: [{ id: 9, level: 'M', cx: 20, cz: 8, W: 4, L: 12 }] };
+  assert.equal(agentStairOk(plan, plan.stairs[0]), false);
+  assert.ok(agentIssues(plan, 20).some(i => /opening on the second floor cuts into Bath/.test(i)));
+  plan.stairs[0].cz = 16; // fully under the upper hall
+  assert.equal(agentStairOk(plan, plan.stairs[0]), true);
 });

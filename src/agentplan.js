@@ -199,6 +199,22 @@ function flightFits(inside, s) {
   const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
   return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
 }
+// One way round, the flight stands in stair rooms on its own floor AND its opening on the floor above lands in them too (the
+// builder cuts the whole W × L box out of the floor above, so a flight whose centre is in a hall can still open into a bedroom).
+function flightFitsBoth(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
+  const fits = (lv, a, b) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => { const r = agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); return !!r && AGENT_LANDING.has(r.type); });
+  return [[L, W], [W, L]].some(([a, b]) => fits(s.level, a, b) && (!up || fits(up, a, b)));
+}
+// the first room that isn't a hall or open room under the corners of the opening above, looking first at the way round that fits
+// its own floor (the way the builder will run it)
+function openingHits(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, C = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const at = (lv, a, b, i, j) => agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3));
+  const ways = [[L, W], [W, L]].sort(([a, b], [c, d]) => C.every(([i, j]) => AGENT_LANDING.has(at(s.level, c, d, i, j)?.type)) - C.every(([i, j]) => AGENT_LANDING.has(at(s.level, a, b, i, j)?.type)));
+  for (const [a, b] of ways) for (const [i, j] of C) { const r = at(up, a, b, i, j); if (r && !AGENT_LANDING.has(r.type)) return r; }
+  return null;
+}
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
 export function agentStairOk(plan, s) {
   const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
@@ -207,7 +223,7 @@ export function agentStairOk(plan, s) {
   if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
   if (!up || !inside.some(r => r.level === up)) return true;
   const above = agentAt(inside, up, cx, cz);
-  return !!above && AGENT_LANDING.has(above.type);
+  return !!above && AGENT_LANDING.has(above.type) && flightFitsBoth(inside, s, up);
 }
 // The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
 // above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
@@ -227,7 +243,7 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip, below) { // belo
     cx = +cx.toFixed(2); cz = +cz.toFixed(2);
     if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) return;
     if (!flightFits(inside, { level, cx, cz, W, L })) return;
-    if (highs && !flightFits(inside, { level: up, cx, cz, W, L })) return; // the opening above lands in halls too
+    if (highs && !flightFitsBoth(inside, { level, cx, cz, W, L }, up)) return; // the opening above lands in halls too, the same way round
     if (stairClash(plan, { level, cx, cz, W, L }, skip)) return;
     if (below && !flightFits(inside, { level: 'B', cx, cz, W: below.W, L: below.L })) return;
     const dist = Math.hypot(cx - nx, cz - nz);
@@ -326,7 +342,7 @@ function agentEmpty(on, where) {
 
 // How each floor reads as a house: no empty space, upper rooms over the floor below, no long strips, no loose rooms,
 // and stairs that start and arrive in a hall or open room.
-function agentLayout(rooms, stairs) {
+function agentLayout(rooms, stairs, site) {
   const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
   for (const lv of new Set(inside.map(r => r.level))) {
     const on = inside.filter(r => r.level === lv), where = AGENT_LV[lv] || lv;
@@ -356,6 +372,21 @@ function agentLayout(rooms, stairs) {
     const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
     if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
     else if (!AGENT_LANDING.has(above.type)) out.push(`Stair ${s.id} comes up inside ${agentLabel(above)} on the ${there}. Put a hall over it.`);
+    else if (here && AGENT_LANDING.has(here.type) && flightFits(inside, s) && !flightFitsBoth(inside, s, up)) {
+      const hit = openingHits(inside, s, up);
+      out.push(`Stair ${s.id}'s opening on the ${there} cuts into ${hit ? agentLabel(hit) : 'a room'}: the whole ${W} × ${L} ft flight needs a hall above it. Move the stair, or make the hall above cover it.`);
+    }
+  }
+  // last, as it matters least: a garage faces the street (the front, smaller z): its front wall is outside and at the front of the house, so the garage door
+  // and the driveway reach the road. A corner lot with the driveway on the side street is the exception.
+  if (main.length >= 2 && !(site?.corner && site?.drive === 'side')) {
+    const frontZ = Math.min(...main.map(r => r.z));
+    for (const g of main.filter(r => r.type === 'garage')) {
+      let open = [[g.x, g.x + g.w]]; // the parts of its front edge with no room in front
+      for (const o of main) if (o !== g && o.z < g.z - .3 && o.z + o.d > g.z - .3) open = open.flatMap(([a, b]) => { const c = Math.max(a, o.x), d = Math.min(b, o.x + o.w); return d - c < .05 ? [[a, b]] : [[a, c], [d, b]].filter(([p, q]) => q - p > .05); });
+      const free = Math.max(0, ...open.map(([a, b]) => b - a));
+      if (free < 10 || g.z - frontZ > 8) out.push(`${agentLabel(g)} does not face the street: a garage goes at the front of the main floor, at one side, with its front edge on the street side (z ${ft(frontZ)}) so its door and driveway reach the road. Move it there.`);
+    }
   }
   return out;
 }
@@ -369,22 +400,39 @@ export function agentIssues(plan, limit = 10) {
     const a = rooms[i], b = rooms[j];
     if (a.level === b.level && agentOverlap(a, b)) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
   }
-  out.push(...agentLayout(rooms, stairs));
+  out.push(...agentLayout(rooms, stairs, plan?.site));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
   return out.slice(0, limit);
 }
 
+// The finishes the agent may set: the Finishes panel's parts and their materials (app.js FIN), stored as plan.finishes[part] =
+// "material:#rrggbb" (or "material:index" for one of the panel's swatches).
+export const AGENT_FINISH = {
+  stucco: ['Main walls', ['stucco', 'lap', 'brick', 'lime', 'panel']], siding: ['Accent siding', ['batten', 'lap', 'panel', 'brick', 'metal']],
+  stone: ['Stone veneer', ['ledge', 'field', 'slate', 'brick']], roof: ['Roofing', ['shingle', 'metal', 'clay', 'cedar', 'slate']],
+  trim: ['Windows & fascia', ['paint', 'metal']], gdoor: ['Garage door', ['flat', 'wood', 'glass']], deck: ['Decking', ['wood', 'composite']],
+  floor: ['Main flooring', ['plank', 'herring', 'tile', 'bigtile', 'marble', 'slate', 'terrazzo', 'concrete', 'carpet']],
+  paint: ['Interior walls', ['paint', 'lime', 'panel', 'brick']], door: ['Doors', ['paint', 'wood', 'gloss']], cab: ['Cabinets', ['paint', 'wood', 'gloss']],
+  counter: ['Countertops', ['quartz', 'marble', 'granite', 'butcher', 'concrete']], tile: ['Bath & mud tile', ['square', 'subway', 'mosaic', 'bigtile', 'marble', 'slate']],
+  steel: ['Fixtures & appliances', ['metal', 'enamel']],
+};
+const AGENT_COLORS = { green: '#6f8f63', sage: '#9aa58f', forest: '#3f5244', olive: '#7d7f55', navy: '#3d4a63', blue: '#5b7a9a', red: '#8e3b32', white: '#f0efeb',
+  black: '#2d2f33', grey: '#9ea3a8', gray: '#9ea3a8', charcoal: '#55585c', beige: '#d8c8ad', cream: '#ebe3d4', brown: '#7a563c', tan: '#c8ad8a', yellow: '#d9c27a', terracotta: '#c9744a' };
+function finishText(plan) {
+  const f = plan?.finishes && typeof plan.finishes === 'object' ? plan.finishes : {};
+  return 'finishes (part: material:colour; parts not listed are the defaults): ' + (Object.keys(f).filter(k => AGENT_FINISH[k]).map(k => `${k}=${String(f[k]).slice(0, 24)}`).join(' ') || 'all defaults');
+}
 // `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
 export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left and right are as seen from the street, as the plan shows them: left is the larger x, right is the smaller x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
-  const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
+  const sideWord = { east: 'left', west: 'right', south: 'back', north: 'front' }; // as seen from the street (the plan is drawn that way)
   for (const r of rooms) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
       .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
@@ -395,6 +443,7 @@ export function agentBrief(plan, checks) {
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
+  lines.push(finishText(plan));
   const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
   const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
@@ -437,6 +486,19 @@ export function applyAgentLine(plan, line, types) {
     return say('act', `Set the roof to ${roof}.`, true);
   }
   const body = rest.startsWith('{') ? agentJson(rest) : null;
+  if (cmd === 'finish') { // a material and colour for one part of the house, as the Finishes panel sets them
+    if (!body) return say('err', 'Could not read that finish command.');
+    const part = String(body.part || '').toLowerCase(), F = AGENT_FINISH[part];
+    if (!F) return say('err', `Unknown part "${part}". Parts: ${Object.keys(AGENT_FINISH).join(', ')}.`);
+    const mats = F[1], cur = String(plan.finishes?.[part] || '').split(':')[0];
+    const material = String(body.material || cur || mats[0]).toLowerCase();
+    if (!mats.includes(material)) return say('err', `${F[0]} can be ${mats.join(', ')}, not "${material}".`);
+    let color = String(body.color ?? body.colour ?? '').trim().toLowerCase();
+    color = AGENT_COLORS[color] || color;
+    if (color && !/^#[0-9a-f]{6}$/.test(color)) return say('err', 'A colour is #rrggbb, or a plain name like green, navy, or white.');
+    plan.finishes = { ...(plan.finishes && typeof plan.finishes === 'object' ? plan.finishes : {}), [part]: `${material}:${color || 0}` };
+    return say('act', `Set ${F[0].toLowerCase()} to ${material}${color ? ` ${color}` : ''}.`, true);
+  }
   if (cmd === 'add') {
     if (!body) return say('err', 'Could not read that add command.');
     const type = String(body.type || '').toLowerCase();
@@ -590,6 +652,29 @@ function keepAgent(res) {
 // ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
 export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
 // A request to repair the plan: then every problem counts, not only the ones this message made.
+// Keyboard mash ("pieruhpiuh regiuhireuhgpiuhearp"): most of its letters are in words no language has: 17+ letters, or long runs of consonants.
+// Such a message asks for nothing, so the chat answers it without the model and never touches the house.
+export function agentUnclear(text, files) {
+  if (files?.length) return false;
+  const w = String(text || '').toLowerCase().match(/[a-z]+/g) || [];
+  if (!w.length) return !/\d/.test(String(text || ''));
+  const odd = w.filter(x => x.length >= 17 || /[bcdfghjklmnpqrstvwxz]{6,}/.test(x) || (x.length >= 5 && !/[aeiouy]/.test(x)));
+  return odd.join('').length / w.join('').length >= .5; // by letters: one huge run of mash outweighs a few short words
+}
+export const AGENT_UNCLEAR = 'I didn’t catch that. Tell me what to build or change, like “make the kitchen 2 feet deeper”, or ask me about the house.';
+// A question ("can you build a house?", "what if the kitchen were bigger?"): the model may still act on it, but the chat never
+// pushes it to change the house when it answered instead.
+export const agentAsks = text => /^\s*(can|could|would|will|do|does|did|is|are|was|should|how|what|whats|why|where|which|who|when)\b/i.test(String(text || '')) || /\?\s*$/.test(String(text || ''));
+// "Build me a 3 bedroom house" while a house is already here: ask, in code, whether to start over or change this one, rather than
+// trusting the model to ask before it bulldozes the plan. Each option carries the exact message it sends.
+export function agentNewHouseAsk(text, plan, files) {
+  const t = String(text || '').trim();
+  if (files?.length || !plan?.rooms?.length || agentAsks(t)) return null;
+  if (/\b(start over|start again|from scratch)\b|^change this house:/i.test(t)) return null;
+  if (!/\b(build|design|create|draw|make|give)\s+(me\s+|us\s+)?(a|an|another|new)\b[^.?!]*\b(house|home|bungalow|ranch|cottage|duplex)\b/i.test(t)) return null;
+  const q = 'You already have a house here. Start a new one, or change this one?';
+  return { kind: 'ask', text: q, options: [{ id: 'new', label: 'Start over with a new house', send: `Start over and build a new house: ${t}` }, { id: 'change', label: 'Change this house', send: `Change this house: ${t}` }] };
+}
 export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
 export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
 // Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
@@ -623,7 +708,7 @@ export function agentNext(turn, s) {
   if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
     const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
     if (!fresh.length) return { finish: true };
-    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. Keep what the user asked for: never undo it or set a size back. Fix around it (grow or move a neighbour). If a problem cannot be fixed without undoing the request, leave it and say so in a sentence.` };
   }
   if (!turn.edited && !turn.more) {
     if (!s.build || s.step > 1) return { stop: true };
@@ -639,7 +724,7 @@ export function agentApplied(steps) {
 }
 // A repair that left the plan with as many problems as before (or more) is undone: a failed fix must not make things worse.
 // How bad a plan is: overlaps weigh most, then rooms over nothing and stair problems, then gaps, notches, and loose rooms.
-export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair/.test(i) ? 2 : 1), 0);
+export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair|cuts into|face the street/.test(i) ? 2 : 1), 0);
 export const agentRepairFailed = (fixing, acted, before, plan) => fixing && acted && agentBadness(plan) >= before;
 export const AGENT_REVERTED = 'I couldn’t improve the plan this time, so I put it back the way it was. Try one fix at a time, like “close the gap between Living and Hall”.';
 export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;

@@ -11,7 +11,7 @@
 //  the corner), and the triangle under it is filled with wall.
 // =====================================================================
 const RG = 1 / 8; // grid step, feet (1½")
-// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters and downspouts.
+// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters.
 const ROOF_EDGE = { slim: { fascia: .46, gutter: false }, standard: { fascia: .6, gutter: true }, deep: { fascia: .77, gutter: true } };
 const EDGE_COLORS = { black: '#1e1f22', white: '#eeeeea', bronze: '#4a3b2e', grey: '#8a8d90' };
 const edgeMats = {};
@@ -127,10 +127,9 @@ function roofLevel(parent, o) {
 
   // ---------- the roof edge, built like a real one (level at the eaves, sloped up the rakes) ----------
   //  a shingle lip that overhangs the board by ¾" and casts a fine shadow line, a 1" fascia board (5½"–9¼" tall, see
-  //  ROOF_EDGE), and on the level eaves an optional K-style gutter with downspouts (drawn by the builder, which knows
-  //  what lies below each one)
+  //  ROOF_EDGE), and on the level eaves an optional K-style gutter
   const E = o.edge || roofEdge(), FT = .08, FH = E.fascia, LIP = .06;
-  const fas = [], lip = [], gut = [], spouts = [];
+  const fas = [], lip = [], gut = [];
   // each face is wound to face `want` (out, up, down): the materials are one-sided, so a face wound the other way is
   // culled and the board vanishes but for a thin edge (it did on every north and east eave)
   const q = (arr, a, b, c, d, want) => {
@@ -160,14 +159,6 @@ function roofLevel(parent, o) {
     q(gut, W(ax, az, .02, top - .07), W(bx, bz, .02, top - .07), W(bx, bz, GW - .05, top - .07), W(ax, az, GW - .05, top - .07), [0, 1, 0]); // the channel
     for (const [ex, ez, s] of [[ax, az, -1], [bx, bz, 1]]) { const ring = prof.slice(0, 5).map(([u, y]) => W(ex, ez, u, y)); // end caps
       for (let k = 1; k < ring.length - 1; k++) q(gut, ring[0], ring[k], ring[k + 1], ring[k + 1], [tx * s, 0, tz * s]); }
-    // downspouts: near an end of each run, just inside the wall's corner (the last `ov` of a run is overhang, with no wall
-    // under it), both ends on a long run, and never a second one beside a corner that already has one
-    const inset = ov + .7; if (len < 2 * inset + 1) return;
-    const spot = t => { const sx = x0 + tx * t, sz = z0 + tz * t; return { ox: sx + nx * (FT + GW / 2), oz: sz + nz * (FT + GW / 2), wx: sx - nx * (ov - .2), wz: sz - nz * (ov - .2), top: bot, nx, nz }; };
-    const taken = c => spouts.some(o => Math.hypot(o.wx - c.wx, o.wz - c.wz) < 2 * ov + 2);
-    const ends = [spot(len - inset), spot(inset)];
-    if (len > 34) { for (const c of ends) if (!taken(c)) spouts.push(c); }
-    else { const c = ends.find(e => !taken(e)); if (c) spouts.push(c); }
   };
   const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => {
     strip(fas, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT, -FH, -.04);         // the fascia board
@@ -207,22 +198,9 @@ function roofLevel(parent, o) {
   if (gw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gw, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, o.wallMat || M.stucco); m.castShadow = true; m.receiveShadow = true; parent.add(m); }
 
-  const info = { spouts, edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
+  const info = { edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
     heightAt: (x, z) => { const fi = (x - X0) / RG, fj = (z - Z0) / RG, i = Math.floor(fi), j = Math.floor(fj); if (i < 0 || j < 0 || i >= NX || j >= NZ || !occ[j * NX + i]) return null;
       const u = fi - i, v = fj - j; return (hAt(i, j) * (1 - u) + hAt(i + 1, j) * u) * (1 - v) + (hAt(i, j + 1) * (1 - u) + hAt(i + 1, j + 1) * u) * v; } };
   ROOF3.push(info); return info;
-}
-// Downspouts, once every roof is built: from under each gutter outlet, an elbow back to the wall, then down the wall to
-// the ground, or to a lower roof when one lies below (an upper gutter drains onto the roof under it, as real ones do).
-function roofSpouts(parent) {
-  for (const info of ROOF3) for (const sp of info.spouts || []) {
-    let land = 0;
-    for (const r of ROOF3) if (r !== info) { const h = r.heightAt?.(sp.wx, sp.wz); if (h != null && h < sp.top - .5 && h > land) land = h; }
-    const S = .11, mat = info.edge?.gutterMat || M.trim, y1 = sp.top, y2 = sp.top - .45, y3 = sp.top - .8;
-    if (y3 - land < .5) continue;
-    box(parent, sp.ox - S, sp.ox + S, y2, y1, sp.oz - S, sp.oz + S, mat);
-    box(parent, Math.min(sp.ox, sp.wx) - S, Math.max(sp.ox, sp.wx) + S, y3, y2, Math.min(sp.oz, sp.wz) - S, Math.max(sp.oz, sp.wz) + S, mat);
-    box(parent, sp.wx - S, sp.wx + S, land, y3, sp.wz - S, sp.wz + S, mat);
-  }
 }
 window.wtRoofs = () => ROOF3.map(r => ({ name: r.name, style: r.style, pitch: +(r.pitch * 12).toFixed(2), asked: +(r.asked * 12).toFixed(2), eave: +r.eaveH.toFixed(2), top: +r.maxH.toFixed(2) })); // for checking roofs from the console

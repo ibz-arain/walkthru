@@ -134,11 +134,15 @@ function applyVisibility() {
   uiSync();
 }
 function goView(v, instant) {
-  if (mode === 'walk') exitWalk();
+  const walking = mode === 'walk'; if (walking) exitWalk();
   if (curHouse === 2 && v === 'B') v = 'M';
   curView = v; applyVisibility();
   const V = HOUSES[curHouse].views[v] ?? VIEWS[v] ?? autoView(v); const from = { p: camera.position.clone(), t: controls.target.clone() };
   const to = { p: new THREE.Vector3(...V.pos), t: new THREE.Vector3(...V.tgt) };
+  // Changing the floor you look at keeps your angle and zoom: the camera only rises or drops to that floor while the floors
+  // above are cut away. (The named views, Front, Top and the rest, still go to their angle; so does leaving a walk.)
+  const isFloor = curHouse === 3 ? !!lvOf(v) : ['B', 'M', 'U'].includes(v);
+  if (isFloor && !walking && !instant) { const dy = V.tgt[1] - from.t.y; to.p.copy(from.p).setY(from.p.y + dy); to.t.copy(from.t).setY(from.t.y + dy); }
   if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); return; }
   anim = { from, to, t: 0 };
 }
@@ -153,7 +157,7 @@ function autoView(v) {
 //  WALK MODE
 // =====================================================================
 const player = { x: 15.9, z: -18, feet: 0, yaw: Math.PI, pitch: -0.05, vy: 0 };
-const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
+const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, camera, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), bm: () => BM, setBM: b => { BM = b; resetBID(); normalizeStairs(BM); rebuildHouse3(); }, draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
 function buildColliders() {
   scene.updateMatrixWorld(true); colliders = [];
   scene.traverse(o => {
@@ -547,28 +551,6 @@ function setHouse(n, fromHash) { setTimeout(planCheck, 0);
 }
 document.querySelectorAll('[data-house]').forEach(b => b.onclick = () => { if (+b.dataset.house !== tabHouse()) setHouse(+b.dataset.house); });
 addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabHouse()) setHouse(n, true); });
-{
-  const peg = document.getElementById('peg'), ghost = document.getElementById('pegGhost'), ndc = new THREE.Vector2(), pr = new THREE.Raycaster();
-  let st = null;
-  peg.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, moved: false }; peg.setPointerCapture(e.pointerId); e.preventDefault(); });
-  peg.addEventListener('pointermove', e => {
-    if (!st) return; if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 6) st.moved = true;
-    if (st.moved) { ghost.hidden = false; ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
-  });
-  peg.addEventListener('pointerup', e => {
-    const s0 = st; st = null; ghost.hidden = true; if (!s0) return;
-    if (!s0.moved) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
-    if (document.elementFromPoint(e.clientX, e.clientY) !== renderer.domElement) return;
-    if (mode === 'walk') exitWalk();
-    ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); pr.setFromCamera(ndc, camera);
-    const h = pr.intersectObjects(walkables, false).find(i => shown(i.object));
-    if (!h) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
-    const yaw = Math.atan2(-(h.point.x - camera.position.x), -(h.point.z - camera.position.z));
-    // From outside the drop usually hits a roof or wall: stand on the main floor (or the ground) under that spot instead.
-    const outside = !(curHouse === 3 ? lvOf(curView) : ['B', 'M', 'U'].includes(curView)), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
-    curView = 'front'; fadeCut(() => enterWalk([h.point.x, h.point.z, yaw, feet], false));
-  });
-}
 const tod = document.getElementById('tod'); tod.oninput = () => setSun(+tod.value);
 document.getElementById('optLabels').onchange = e => { showLabels = e.target.checked; applyVisibility(); };
 document.getElementById('optFurn').onchange = e => { showFurn = e.target.checked; applyVisibility(); };
@@ -610,6 +592,8 @@ setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
 const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
+  // a design you can edit gets its starting trees as yard trees, once (a customer's link and the sample houses are left alone)
+  if (curHouse === 3 && !H3P && !(typeof CL !== 'undefined' && CL.route?.kind === 'customer') && seedTrees(BM)) { resetBID(); saveBM(); }
   setTimeout(planCheck, 0); // the plan changed: recount its problems once this rebuild is done
   buildHouse3();
   scene.updateMatrixWorld(true);

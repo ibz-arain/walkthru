@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="49 -10 473 340" fill="none">
+  <rect x="-200" y="-200" width="1000" height="800" fill="#16161a"/>
+  <!-- walls -->
+  <path fill="#e8e8ee" d="
+    M72 52h392v8H72z
+    M72 292h392v8H72z
+    M72 52h8v248H72z
+    M456 52h8v248h-8z
+    M248 60h6v112h-6z
+    M254 168h210v6H254z
+    M352 174h6v118h-6z
+    M78 176h170v6H78z
+  "/>
+  <!-- door swings -->
+  <g stroke="#e8e8ee" stroke-width="1.1" fill="none">
+    <path d="M248 148h-28"/><path d="M220 148a28 28 0 0 1 28-28"/>
+    <path d="M300 174v28"/><path d="M300 202a28 28 0 0 1 28-28"/>
+    <path d="M352 230h28"/><path d="M380 230a28 28 0 0 0-28 28"/>
+    <path d="M110 292v-26"/><path d="M110 266a26 26 0 0 0-26 26"/>
+  </g>
+  <!-- windows -->
+  <g stroke="#e8e8ee" stroke-width="1.2">
+    <path d="M150 56h70M330 56h80M76 100v50M460 200v50M160 296h70"/>
+  </g>
+  <g fill="#e8e8ee" font-family="ui-sans-serif, system-ui, sans-serif" text-anchor="middle">
+    <text x="160" y="128" font-size="13" font-weight="600" letter-spacing="1.2">LIVING</text>
+    <text x="160" y="146" font-size="11" fill="#9b9ba6">18' × 12'</text>
+    <text x="160" y="244" font-size="13" font-weight="600" letter-spacing="1.2">KITCHEN</text>
+    <text x="160" y="262" font-size="11" fill="#9b9ba6">18' × 11'</text>
+    <text x="356" y="122" font-size="13" font-weight="600" letter-spacing="1.2">BEDROOM</text>
+    <text x="356" y="140" font-size="11" fill="#9b9ba6">20' × 11'</text>
+    <text x="304" y="240" font-size="12" font-weight="600" letter-spacing="1">BATH</text>
+    <text x="408" y="240" font-size="12" font-weight="600" letter-spacing="1">BED</text>
+    <text x="408" y="256" font-size="11" fill="#9b9ba6">10' × 11'</text>
+  </g>
+  <g stroke="#e8e8ee" fill="#e8e8ee" stroke-width="0.8" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" text-anchor="middle">
+    <path d="M72 36h392M72 30v12M464 30v12"/>
+    <text x="268" y="28" stroke="none">36'-0"</text>
+    <path d="M484 52v248M478 52h12M478 300h12"/>
+    <text x="500" y="180" stroke="none" transform="rotate(90 500 180)">26'-0"</text>
+  </g>
+</svg>

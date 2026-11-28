@@ -114,10 +114,6 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .pop h6{display:flex;align-items:center;justify-content:space-between;margin:8px 6px 6px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 .pop h6:first-child{margin-top:4px}
 .pop .seg{margin:0 0 4px}
-.drop-tile{display:flex;align-items:center;gap:10px;width:calc(100% - 12px);margin:0 6px;padding:10px;border:1px dashed var(--rule-2);border-radius:10px;background:var(--paper-2);color:var(--ink);cursor:grab;text-align:left;font:inherit;touch-action:none}
-.drop-tile:hover{border-color:var(--ink-3)}.drop-tile:active{cursor:grabbing}
-.drop-tile .ic{width:22px;height:22px;flex:none;color:var(--ink-2)}
-.drop-tile span{display:flex;flex-direction:column;gap:1px}.drop-tile b{font-weight:500;font-size:13px}.drop-tile small{font-size:11.5px;color:var(--ink-3)}
 .pop-range{width:calc(100% - 12px);margin:0 6px 6px;accent-color:var(--primary)}
 .pop-out{font:500 11.5px var(--f-mono);color:var(--ink)}
 .pop-note{margin:6px 6px 2px;font-size:11.5px;color:var(--ink-3)}
@@ -246,8 +242,13 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 @keyframes chatdot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-2px)}}
 .chat-compose{display:flex;flex-direction:column;gap:8px;padding:0;border-top:1px solid var(--rule);flex:none}
 .chat-line{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 6px 14px}
+/* past two lines of text, the attach button stacks over send, so the text keeps the full width */
+.chat-line.tall{display:grid;grid-template-columns:1fr auto;grid-template-rows:1fr auto;column-gap:2px;row-gap:4px}
+.chat-line.tall #agentInput{grid-row:1 / 3;grid-column:1}
+.chat-line.tall .chat-pick{grid-row:1;grid-column:2;align-self:end}
+.chat-line.tall .chat-send{grid-row:2;grid-column:2}
 .chat-compose textarea{flex:1;resize:none;overflow:hidden;min-height:36px;max-height:120px;box-sizing:border-box;border:0;border-radius:0;background:transparent;color:var(--ink);font:13px/1.45 var(--f-ui);padding:8px 4px}
-.chat-pick{width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-pick{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-pick:hover{background:var(--paper-2);color:var(--ink)}
 .chat-pick .ic{width:16px;height:16px}
 .chat-pending{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0}
@@ -261,7 +262,7 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .chat-drop b{font-size:14px;font-weight:600}
 .chat-drop span{color:var(--ink-2);font-size:12px}
 .chat-compose textarea:focus{outline:none}
-.chat-send{width:32px;height:32px;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-send{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-send:disabled{opacity:.35;cursor:default}
 .chat-send .ic{width:15px;height:15px}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
@@ -317,7 +318,6 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 #mini canvas{display:block;width:190px;height:150px;border-radius:6px}
 #pad{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:6px;display:grid;grid-template-columns:repeat(3,44px);gap:4px}
 #pad button{height:44px;font-size:14px;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sm);color:var(--ink)}
-#pegGhost{position:fixed;z-index:90;pointer-events:none;transform:translate(-50%,-90%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
 #pegDrop{position:fixed;z-index:90;pointer-events:none;padding:4px 8px;border-radius:6px;font:500 12px var(--f-ui);color:#111114;box-shadow:var(--shadow);transform:translate(-50%,-50%)}
 #measureBar{left:50%;transform:translateX(-50%);top:calc(var(--it) + 12px);padding:5px 5px 5px 12px;display:flex;align-items:center;gap:9px;font-size:12.5px;z-index:8}
 body.measuring #stage{cursor:crosshair}
@@ -400,7 +400,7 @@ body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,bo
 
 /* the design agent: only where the server has it set up, never on a shared link (viewers can't sign in) */
 body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
-.chat-send.stop .ic{width:12px;height:12px}
+.chat-send.stop .ic{width:16px;height:16px}
 
 /* plan check: a quiet warning button in the bar, and the list of problems */
 .tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}

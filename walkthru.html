@@ -124,10 +124,6 @@ body.dock-left .tb-primary,body.dock-right .tb-primary{width:36px;height:34px;pa
 .pop h6{display:flex;align-items:center;justify-content:space-between;margin:8px 6px 6px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
 .pop h6:first-child{margin-top:4px}
 .pop .seg{margin:0 0 4px}
-.drop-tile{display:flex;align-items:center;gap:10px;width:calc(100% - 12px);margin:0 6px;padding:10px;border:1px dashed var(--rule-2);border-radius:10px;background:var(--paper-2);color:var(--ink);cursor:grab;text-align:left;font:inherit;touch-action:none}
-.drop-tile:hover{border-color:var(--ink-3)}.drop-tile:active{cursor:grabbing}
-.drop-tile .ic{width:22px;height:22px;flex:none;color:var(--ink-2)}
-.drop-tile span{display:flex;flex-direction:column;gap:1px}.drop-tile b{font-weight:500;font-size:13px}.drop-tile small{font-size:11.5px;color:var(--ink-3)}
 .pop-range{width:calc(100% - 12px);margin:0 6px 6px;accent-color:var(--primary)}
 .pop-out{font:500 11.5px var(--f-mono);color:var(--ink)}
 .pop-note{margin:6px 6px 2px;font-size:11.5px;color:var(--ink-3)}
@@ -256,8 +252,13 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 @keyframes chatdot{0%,60%,100%{opacity:.25;transform:none}30%{opacity:1;transform:translateY(-2px)}}
 .chat-compose{display:flex;flex-direction:column;gap:8px;padding:0;border-top:1px solid var(--rule);flex:none}
 .chat-line{display:flex;align-items:flex-end;gap:2px;padding:6px 8px 6px 14px}
+/* past two lines of text, the attach button stacks over send, so the text keeps the full width */
+.chat-line.tall{display:grid;grid-template-columns:1fr auto;grid-template-rows:1fr auto;column-gap:2px;row-gap:4px}
+.chat-line.tall #agentInput{grid-row:1 / 3;grid-column:1}
+.chat-line.tall .chat-pick{grid-row:1;grid-column:2;align-self:end}
+.chat-line.tall .chat-send{grid-row:2;grid-column:2}
 .chat-compose textarea{flex:1;resize:none;overflow:hidden;min-height:36px;max-height:120px;box-sizing:border-box;border:0;border-radius:0;background:transparent;color:var(--ink);font:13px/1.45 var(--f-ui);padding:8px 4px}
-.chat-pick{width:32px;height:32px;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-pick{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:none;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-pick:hover{background:var(--paper-2);color:var(--ink)}
 .chat-pick .ic{width:16px;height:16px}
 .chat-pending{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px 0}
@@ -271,7 +272,7 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 .chat-drop b{font-size:14px;font-weight:600}
 .chat-drop span{color:var(--ink-2);font-size:12px}
 .chat-compose textarea:focus{outline:none}
-.chat-send{width:32px;height:32px;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
+.chat-send{width:32px;height:32px;padding:0;border:0;border-radius:8px;background:var(--primary);color:var(--primary-ink);display:grid;place-items:center;cursor:pointer;flex:none}
 .chat-send:disabled{opacity:.35;cursor:default}
 .chat-send .ic{width:15px;height:15px}
 .sp-b h3{margin:16px 6px 8px;font:500 11.5px var(--f-ui);color:var(--ink-3)}
@@ -327,7 +328,6 @@ body.agent-open #side{width:min(400px,calc(100vw - var(--il) - var(--ir) - 28px)
 #mini canvas{display:block;width:190px;height:150px;border-radius:6px}
 #pad{left:calc(var(--il) + 12px);bottom:calc(var(--ib) + 12px);padding:6px;display:grid;grid-template-columns:repeat(3,44px);gap:4px}
 #pad button{height:44px;font-size:14px;background:var(--paper);border:1px solid var(--rule);border-radius:var(--r-sm);color:var(--ink)}
-#pegGhost{position:fixed;z-index:90;pointer-events:none;transform:translate(-50%,-90%);filter:drop-shadow(0 4px 6px rgba(0,0,0,.35))}
 #pegDrop{position:fixed;z-index:90;pointer-events:none;padding:4px 8px;border-radius:6px;font:500 12px var(--f-ui);color:#111114;box-shadow:var(--shadow);transform:translate(-50%,-50%)}
 #measureBar{left:50%;transform:translateX(-50%);top:calc(var(--it) + 12px);padding:5px 5px 5px 12px;display:flex;align-items:center;gap:9px;font-size:12.5px;z-index:8}
 body.measuring #stage{cursor:crosshair}
@@ -410,7 +410,7 @@ body.cl-customer #acctBtn,body.cl-customer #exJson,body.cl-customer #exImport,bo
 
 /* the design agent: only where the server has it set up, never on a shared link (viewers can't sign in) */
 body:not(.agent-on) [data-panel-btn="agent"],body.cl-customer [data-panel-btn="agent"]{display:none!important}
-.chat-send.stop .ic{width:12px;height:12px}
+.chat-send.stop .ic{width:16px;height:16px}
 
 /* plan check: a quiet warning button in the bar, and the list of problems */
 .tb-b.plan-chk{color:#d97706;gap:4px}.plan-chk-n{font:600 11.5px/1 var(--f-ui);font-variant-numeric:tabular-nums}
@@ -750,7 +750,7 @@ body.editing .cl-save{display:none}
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-clip" viewBox="0 0 24 24"><path d="m16.5 7.5-7.8 7.8a3 3 0 0 1-4.2-4.2l8-8a4.2 4.2 0 0 1 6 6l-8 8a5.5 5.5 0 0 1-7.8-7.8l7.3-7.3"/></symbol>
   </defs>
@@ -878,8 +878,7 @@ body.editing .cl-save{display:none}
   <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
   <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
   <h6>Start walking</h6>
-  <button class="drop-tile" id="peg" type="button" aria-label="Drag onto the house to start walking there"><svg class="ic"><use href="#i-drop"/></svg><span><b>Drag onto the house</b><small>Start walking where you drop it</small></span></button>
-  <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">From the front door</button>
+  <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">Restart from the entrance</button>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -1129,7 +1128,6 @@ body.editing .cl-save{display:none}
 <div class="panel" id="room" hidden><b id="roomName">Outside</b><span id="roomDim"></span></div>
 <div class="panel" id="measureBar" hidden><svg class="ic"><use href="#i-ruler"/></svg><span id="measureMsg">Click two points to measure</span><button class="btn" id="measureClear" type="button">Clear</button><button class="btn btn-primary" id="measureDone" type="button">Done</button></div>
 <div class="panel" id="mini" hidden><canvas id="miniC" width="380" height="300"></canvas></div>
-<div id="pegGhost" hidden><svg viewBox="0 0 24 32" width="26" height="34" aria-hidden="true"><path d="M12 31s10-10.2 10-18A10 10 0 0 0 2 13c0 7.8 10 18 10 18z" fill="#3b5bfd" stroke="#fff" stroke-width="2"/><circle cx="12" cy="13" r="4" fill="#fff"/></svg></div>
 <div class="panel" id="pad" hidden>
   <span></span><button data-k="f" aria-label="Forward">▲</button><span></span>
   <button data-k="l" aria-label="Step left">◀</button><button data-k="b" aria-label="Back">▼</button><button data-k="r" aria-label="Step right">▶</button>
@@ -2532,7 +2530,7 @@ parkSedan(G2.site, 41.5, -34, -Math.PI / 2);
 //  the corner), and the triangle under it is filled with wall.
 // =====================================================================
 const RG = 1 / 8; // grid step, feet (1½")
-// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters and downspouts.
+// Roof edge choices (BM.eave): how tall the fascia board is, and whether the level eaves carry gutters.
 const ROOF_EDGE = { slim: { fascia: .46, gutter: false }, standard: { fascia: .6, gutter: true }, deep: { fascia: .77, gutter: true } };
 const EDGE_COLORS = { black: '#1e1f22', white: '#eeeeea', bronze: '#4a3b2e', grey: '#8a8d90' };
 const edgeMats = {};
@@ -2648,10 +2646,9 @@ function roofLevel(parent, o) {
 
   // ---------- the roof edge, built like a real one (level at the eaves, sloped up the rakes) ----------
   //  a shingle lip that overhangs the board by ¾" and casts a fine shadow line, a 1" fascia board (5½"–9¼" tall, see
-  //  ROOF_EDGE), and on the level eaves an optional K-style gutter with downspouts (drawn by the builder, which knows
-  //  what lies below each one)
+  //  ROOF_EDGE), and on the level eaves an optional K-style gutter
   const E = o.edge || roofEdge(), FT = .08, FH = E.fascia, LIP = .06;
-  const fas = [], lip = [], gut = [], spouts = [];
+  const fas = [], lip = [], gut = [];
   // each face is wound to face `want` (out, up, down): the materials are one-sided, so a face wound the other way is
   // culled and the board vanishes but for a thin edge (it did on every north and east eave)
   const q = (arr, a, b, c, d, want) => {
@@ -2681,14 +2678,6 @@ function roofLevel(parent, o) {
     q(gut, W(ax, az, .02, top - .07), W(bx, bz, .02, top - .07), W(bx, bz, GW - .05, top - .07), W(ax, az, GW - .05, top - .07), [0, 1, 0]); // the channel
     for (const [ex, ez, s] of [[ax, az, -1], [bx, bz, 1]]) { const ring = prof.slice(0, 5).map(([u, y]) => W(ex, ez, u, y)); // end caps
       for (let k = 1; k < ring.length - 1; k++) q(gut, ring[0], ring[k], ring[k + 1], ring[k + 1], [tx * s, 0, tz * s]); }
-    // downspouts: near an end of each run, just inside the wall's corner (the last `ov` of a run is overhang, with no wall
-    // under it), both ends on a long run, and never a second one beside a corner that already has one
-    const inset = ov + .7; if (len < 2 * inset + 1) return;
-    const spot = t => { const sx = x0 + tx * t, sz = z0 + tz * t; return { ox: sx + nx * (FT + GW / 2), oz: sz + nz * (FT + GW / 2), wx: sx - nx * (ov - .2), wz: sz - nz * (ov - .2), top: bot, nx, nz }; };
-    const taken = c => spouts.some(o => Math.hypot(o.wx - c.wx, o.wz - c.wz) < 2 * ov + 2);
-    const ends = [spot(len - inset), spot(inset)];
-    if (len > 34) { for (const c of ends) if (!taken(c)) spouts.push(c); }
-    else { const c = ends.find(e => !taken(e)); if (c) spouts.push(c); }
   };
   const ribbon = (x0, z0, x1, z1, h0, h1, nx, nz) => {
     strip(fas, x0, z0, x1, z1, h0, h1, nx, nz, 0, FT, -FH, -.04);         // the fascia board
@@ -2728,23 +2717,10 @@ function roofLevel(parent, o) {
   if (gw.length) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(gw, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(gu, 2)); g.computeVertexNormals();
     const m = new THREE.Mesh(g, o.wallMat || M.stucco); m.castShadow = true; m.receiveShadow = true; parent.add(m); }
 
-  const info = { spouts, edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
+  const info = { edge: E, name: o.name, plate: o.plate, pitch: P, asked: o.pitch, eaveH, maxH, style, bounds: [Math.min(...drawn.map(r => r[0])), Math.max(...drawn.map(r => r[1])), Math.min(...drawn.map(r => r[2])), Math.max(...drawn.map(r => r[3]))],
     heightAt: (x, z) => { const fi = (x - X0) / RG, fj = (z - Z0) / RG, i = Math.floor(fi), j = Math.floor(fj); if (i < 0 || j < 0 || i >= NX || j >= NZ || !occ[j * NX + i]) return null;
       const u = fi - i, v = fj - j; return (hAt(i, j) * (1 - u) + hAt(i + 1, j) * u) * (1 - v) + (hAt(i, j + 1) * (1 - u) + hAt(i + 1, j + 1) * u) * v; } };
   ROOF3.push(info); return info;
-}
-// Downspouts, once every roof is built: from under each gutter outlet, an elbow back to the wall, then down the wall to
-// the ground, or to a lower roof when one lies below (an upper gutter drains onto the roof under it, as real ones do).
-function roofSpouts(parent) {
-  for (const info of ROOF3) for (const sp of info.spouts || []) {
-    let land = 0;
-    for (const r of ROOF3) if (r !== info) { const h = r.heightAt?.(sp.wx, sp.wz); if (h != null && h < sp.top - .5 && h > land) land = h; }
-    const S = .11, mat = info.edge?.gutterMat || M.trim, y1 = sp.top, y2 = sp.top - .45, y3 = sp.top - .8;
-    if (y3 - land < .5) continue;
-    box(parent, sp.ox - S, sp.ox + S, y2, y1, sp.oz - S, sp.oz + S, mat);
-    box(parent, Math.min(sp.ox, sp.wx) - S, Math.max(sp.ox, sp.wx) + S, y3, y2, Math.min(sp.oz, sp.wz) - S, Math.max(sp.oz, sp.wz) + S, mat);
-    box(parent, sp.wx - S, sp.wx + S, land, y3, sp.wz - S, sp.wz + S, mat);
-  }
 }
 window.wtRoofs = () => ROOF3.map(r => ({ name: r.name, style: r.style, pitch: +(r.pitch * 12).toFixed(2), asked: +(r.asked * 12).toFixed(2), eave: +r.eaveH.toFixed(2), top: +r.maxH.toFixed(2) })); // for checking roofs from the console
 
@@ -2931,6 +2907,26 @@ Object.assign(M, { cedar: std({ map: TX.cedar, color: '#ffffff', roughness: .7, 
   limeW: std({ map: TX.limestone, color: '#efebe3', roughness: .9, ...DS2 }), wood2: std({ map: TX.cedar, color: '#ffffff', roughness: .7 }), poolTile: std({ color: '#2f7fa3', roughness: .3 }), soffitM: std({ color: '#ecebe7', roughness: .8, side: THREE.DoubleSide }), panelSlat: std({ color: '#33363a', roughness: .6 }), gdoorDark: std({ color: '#5a5e63', roughness: .55, metalness: .1 }), seamRoof: std({ map: TX.seam, color: '#26282b', roughness: .75, metalness: .1, side: THREE.DoubleSide }) });
 const CLAD = () => ({ cedar: M.cedar, dark: M.panel, render: M.render, stone: M.limeW, fstone: M.fstone });
 let BM;
+let SITE2D = null; // the site as last built (streets, paths, trees, lot), for the plan editor
+// Where a house's starting trees go, if you ask for some (SITE.trees; none by default): round the outside, clear of a corner lot's side street.
+function autoTreeSpots(m = BM) {
+  const all = (m.rooms || []).filter(r => !belowGrade(r.level)), S = m.site || {};
+  const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
+  const gap = S.sideSetback ?? 24, sideX = S.corner === 'right' ? minX - gap : S.corner === 'left' ? maxX + gap : null;
+  const spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
+  return spots.filter(([x]) => sideX == null || (S.corner === 'right' ? x > sideX + 6 || x < sideX - 40 : x < sideX - 6 || x > sideX + 40)).slice(0, S.trees ?? 0); // none unless asked for: a property never starts with trees
+}
+// Give a design its starting trees as yard trees you can move and delete (once; marked auto so the Trees count can redo them).
+function seedTrees(m = BM) {
+  if (!m?.rooms?.length) return false;
+  if (m.site?.treesPlaced) { // trees once added for you by default: taken away again, unless you asked for a number of them
+    if (m.site.trees == null && (m.items || []).some(i => i.auto)) { m.items = m.items.filter(i => !i.auto); return true; }
+    return false;
+  }
+  m.items = m.items || []; m.site = { ...(m.site || {}), treesPlaced: true };
+  for (const [x, z, sc] of autoTreeSpots(m)) { const w = Math.round(14 * sc); m.items.push({ id: BID++, kind: 'treeL', level: 'M', x: +x.toFixed(1), z: +z.toFixed(1), rot: 0, w, d: w, auto: true }); }
+  return true;
+}
 try { BM = JSON.parse(localStorage.getItem('walkthru-builder-v1') || 'null'); } catch (e) { }
 if (!BM || !Array.isArray(BM.rooms)) BM = starterPlan();
 
@@ -3134,7 +3130,10 @@ function planLevel(lv) {
     .sort((p, q) => (clearToStreet(q) ? 1 : 0) - (clearToStreet(p) ? 1 : 0) || (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
   if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
-  walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
+  // a corner lot can put the garage door, and the driveway, on the side street (BM.site.corner left|right, drive: 'side')
+  const gOut = BM.site?.corner && BM.site.drive === 'side' ? (BM.site.corner === 'left' ? '+x' : '-x') : null; // left as seen from the street is +x
+  const sideGarage = w => gOut && w.ext && w.out === gOut && RT[w.room.type]?.garage && w.b - w.a >= 10;
+  walls.sort((p, q) => (sideGarage(q) ? 2 : 0) + (q.out === '-z') - (sideGarage(p) ? 2 : 0) - (p.out === '-z'));
   for (const w of walls) {
     if (w.angled) continue;
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
@@ -3154,7 +3153,7 @@ function planLevel(lv) {
       w.ops.push({ c: w.a + L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }, { c: w.b - L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
-    if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
+    if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || w.out === gOut || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
     if (belowGrade(lv)) { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L, lv)); continue; }
     if (T.small) { if (L >= 4) w.ops.push({ c: mid, w: 2.5, b: y + 4.2, h: 3 }); continue; }
     if (T.win && L >= 4.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.6);
@@ -3231,9 +3230,16 @@ function stairFits(S, dir) { // the flight stays inside one room (or rooms open 
   const rs = pts.map(p => roomAt3(S.level, ...p)); if (rs.some(q => !q)) return 0;
   return rs.every(q => q === rs[0] || wallMode(q, rs[0]) === 'open') ? 2 : 1;
 }
+// the whole opening cut in the floor above lands in a hall or open room (not a bedroom or bath), or there is nothing above yet
+const STAIR_ROOMS = new Set(['hall', 'foyer', 'open', 'great', 'living', 'rec', 'mud']);
+function openingClear(S, dir) {
+  const up = stairUp(S); if (!up || !BM.rooms.some(o => o.level === up && !isOut(o))) return true;
+  const r = stairRect(S, dir);
+  return [[r.x + .3, r.z + .3], [r.x + r.w - .3, r.z + .3], [r.x + .3, r.z + r.d - .3], [r.x + r.w - .3, r.z + r.d - .3]].every(p => { const q = roomAt3(up, ...p); return !q || STAIR_ROOMS.has(q.type); });
+}
 function stairScore(S, dir) {
   const e = stairEnds(S, dir), a = roomAt3(S.level, ...e.start), b = roomAt3(S.level, ...e.startIn), t = roomAt3(stairUp(S), ...e.top);
-  return stairFits(S, dir) * 4 + (a ? 2 : 0) + (a && b && (a === b || wallMode(a, b) === 'open') ? 2 : 0) + (t ? 3 : 0);
+  return stairFits(S, dir) * 4 + (a ? 2 : 0) + (a && b && (a === b || wallMode(a, b) === 'open') ? 2 : 0) + (t ? 3 : 0) + (openingClear(S, dir) ? 5 : 0);
 }
 const OPP_DIR = { '+x': '-x', '-x': '+x', '+z': '-z', '-z': '+z' };
 function stairDirOf(S) { if (S.dir) return S.dir;
@@ -3600,7 +3606,6 @@ function buildHouse3() {
     } }
   for (const r of ownRoof) { const x0 = r.x - e, x1 = r.x + r.w + e, z0 = r.z - e, z1 = r.z + r.d + e; // ridge runs front to back: a gable end faces the street
     hipRoof(G3.roof, { x0, x1, z0: z0 - 1.4, z1, plate: MC + .03, pitch, ov: 1.4, slopes: { e: true, w: true }, mat: rmo.roofMat, soffit: rmo.soffitMat, wall: CLAD()[r.clad] || gw, gables: [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] }); }
-  roofSpouts(G3.roof);
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: (gb.pitch || 7) / 12, ov: gb.ov ?? 1.2, slopes: { e: true, w: true }, wall: gb.wall === 'siding' ? M.dsiding : gb.wall === 'stone' ? M.fstone : M.batten,
     gables: [{ edge: 'n', at: gb.z0 + (gb.at ?? 1.05) }, ...(gb.back ? [{ edge: 's', at: gb.z1 }] : [])] });
@@ -3613,7 +3618,7 @@ function buildHouse3() {
   // landscaping for the stone house: shrubs and a gravel bed along the front, flower pots by the steps
   for (const sb of BM.extras?.shrubs || []) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(sb[2], 1), sb[3] === 'f' ? M.flowers[(sb[0] * 7 | 0) % 3] : (sb[0] * 3 | 0) % 2 ? M.leaf : M.leaf2);
     m.position.set(sb[0], (sb[4] || 0) + sb[2] * .8, sb[1]); m.scale.y = .8; m.castShadow = true; G3.site.add(m); }
-  for (const t of BM.extras?.trees || []) tree(t[0], t[1], t[2], G3.trees);
+  for (const t of BM.extras?.trees || []) tree(t[0], t[1], t[2], G3.trees); const extraTrees = (BM.extras?.trees || []).map(t => [t[0], t[1], 7 * t[2]]);
   for (const pl of BM.extras?.pools || []) { const [x0, x1, z0, z1] = pl; // pool: paver deck, coping and water
     flat(G3.site, rect(x0 - 5, x1 + 5, z0 - 5, z1 + 5), [rect(x0 - 1, x1 + 1, z0 - 1, z1 + 1)], .05, M.pavers, { walk: true });
     for (const [a0, a1, b0, b1] of [[x0 - 1, x1 + 1, z0 - 1, z0], [x0 - 1, x1 + 1, z1, z1 + 1], [x0 - 1, x0, z0, z1], [x1, x1 + 1, z0, z1]]) box(G3.site, a0, a1, 0, .25, b0, b1, M.white, { walk: true });
@@ -3632,11 +3637,25 @@ function buildHouse3() {
     for (const [a0, a1, b0, b1] of rectCells([bb], .5, bsm)) flat(G3.site, rect(a0, a1, b0, b1), [], 0, M.grass, { walk: true });
   }
   const SITE = BM.site || {}, roadZ = minZ - (SITE.setback ?? 48);
+  // what the plan editor draws round the house: the same streets, paths and trees as here, in plan feet ([x0, x1, z0, z1])
+  SITE2D = { roads: [[-420, 420, roadZ - 26, roadZ]], walks: [], drives: [], paths: [], steps: [], lot: null, trees: [...extraTrees] };
   flat(G3.site, rect(-420, 420, roadZ - 26, roadZ), [], .03, M.asphalt, { walk: true });
-  flat(G3.site, rect(-420, 420, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true });
+  // corner lot: a second street and sidewalk down one side
+  const corner = SITE.corner === 'left' || SITE.corner === 'right' ? SITE.corner : null, sideGap = SITE.sideSetback ?? 24;
+  const sideX = corner === 'right' ? minX - sideGap : corner === 'left' ? maxX + sideGap : null; // the sidewalk's house-side edge; left and right as seen from the street
+  if (corner === 'right') { flat(G3.site, rect(sideX - 31, sideX - 5, roadZ - 26, 420), [], .031, M.asphalt, { walk: true }); flat(G3.site, rect(sideX - 5, sideX, roadZ + 5, 420), [], .051, M.concrete, { walk: true }); SITE2D.roads.push([sideX - 31, sideX - 5, roadZ - 26, 420]); SITE2D.walks.push([sideX - 5, sideX, roadZ + 5, 420]); }
+  if (corner === 'left') { flat(G3.site, rect(sideX + 5, sideX + 31, roadZ - 26, 420), [], .031, M.asphalt, { walk: true }); flat(G3.site, rect(sideX, sideX + 5, roadZ + 5, 420), [], .051, M.concrete, { walk: true }); SITE2D.roads.push([sideX + 5, sideX + 31, roadZ - 26, 420]); SITE2D.walks.push([sideX, sideX + 5, roadZ + 5, 420]); }
+  // the front sidewalk stops at the side street instead of running across it
+  const cut = corner === 'right' ? [sideX - 31, sideX - 5] : corner === 'left' ? [sideX + 5, sideX + 31] : null;
+  for (const [x0, x1] of cut ? [[-420, cut[0]], [cut[1], 420]] : [[-420, 420]]) { flat(G3.site, rect(x0, x1, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true }); SITE2D.walks.push([x0, x1, roadZ, roadZ + 5]); }
   const mw = planLevel('M'), fd = mw.find(w => w.front), gd = mw.find(w => w.garageDoor);
+  if (gd && corner && (gd.out === '-x' || gd.out === '+x')) { // the driveway runs out to the side street
+    const gops = gd.ops.filter(o => o.k === 'garage'), d0 = Math.min(...gops.map(o => o.c - o.w / 2)) - 1, d1 = Math.max(...gops.map(o => o.c + o.w / 2)) + 1;
+    const streetX = gd.out === '-x' ? sideX - 5 : sideX + 5;
+    box(G3.site, Math.min(streetX, gd.c), Math.max(streetX, gd.c), 0, .12, d0, d1, M.concrete, { walk: true }); SITE2D.drives.push([Math.min(streetX, gd.c), Math.max(streetX, gd.c), d0, d1]);
+    H3_DRIVE = [(streetX + gd.c) / 2, (d0 + d1) / 2, gd.out === '-x' ? Math.PI / 2 : -Math.PI / 2, 1]; }
   if (gd && gd.axis === 'x' && gd.out === '-z') { const gops = gd.ops.filter(o => o.k === 'garage'), d0 = Math.min(...gops.map(o => o.c - o.w / 2)) - 1, d1 = Math.max(...gops.map(o => o.c + o.w / 2)) + 1;
-    box(G3.site, d0, d1, 0, .12, roadZ, gd.c, M.concrete, { walk: true }); H3_DRIVE = [(d0 + d1) / 2, (roadZ + gd.c) / 2, Math.PI, 1];
+    box(G3.site, d0, d1, 0, .12, roadZ, gd.c, M.concrete, { walk: true }); SITE2D.drives.push([d0, d1, roadZ, gd.c]); H3_DRIVE = [(d0 + d1) / 2, (roadZ + gd.c) / 2, Math.PI, 1];
     if (BM.style === 'batten') for (const lx of [d0 + .4, ...gops.slice(1).map((o, i) => (gops[i].c + gops[i].w / 2 + o.c - o.w / 2) / 2), d1 - .4]) { // coach lights
       box(G3.site, lx - .3, lx + .3, 6.2, 7.4, gd.c - EXT / 2 - .45, gd.c - EXT / 2, M.trim); box(G3.site, lx - .2, lx + .2, 6.4, 7.2, gd.c - EXT / 2 - .5, gd.c - EXT / 2 - .4, M.lamp); } }
   if (BM.style === 'batten') { // wood privacy fence round the back yard and a dark garden shed
@@ -3651,14 +3670,13 @@ function buildHouse3() {
   if (fd) { const op = fd.ops[0];
     const inWay = rooms.filter(r => r.level === 'M' && !isOut(r) && r.z < fd.c - .6 && r.x < op.c + 2 && r.x + r.w > op.c - 2); // only if no clear wall was left
     const walkEnd = inWay.length ? Math.min(...inWay.map(r => r.z)) - .6 : fd.c - .4;
-    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); SITE2D.paths.push([op.c - 2, op.c + 2, roadZ + 5, walkEnd]); SITE2D.steps.push([op.c - 3.5, op.c + 3.5, fd.c - 4 - Math.ceil((MF - .35) / .62) * 1.05, fd.c - .3]); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
     { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
-  const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
-  for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
+  if (!SITE.treesPlaced) for (const [x, z, sc] of autoTreeSpots(BM)) { tree(x, z, sc, G3.trees); SITE2D.trees.push([x, z, 7 * sc]); } // until the design has its own (see seedTrees)
   H3_LOT = null;
   if (SITE.lotW && SITE.lotD) { // property line: low hedge around the lot, front edge at the sidewalk
-    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1];
+    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1]; SITE2D.lot = H3_LOT;
     for (const [a0, a1, b0, b1] of [[lx0, lx1, lz1 - .6, lz1], [lx0, lx0 + .6, lz0 + 3, lz1], [lx1 - .6, lx1, lz0 + 3, lz1]]) box(G3.site, a0, a1, 0, 2.2, b0, b1, M.leaf2, { solid: true });
   }
   placeItems();
@@ -3801,6 +3819,7 @@ function furnishRoom(F, r, y) {
     for (let p = x0 + .8; p < Math.min(x1 - .5, x0 + 5.7); p += 1.1) cyl(F, p, z0 + .5, .06, y + 4.3, y + 4.5, M.black, 6); rug(F, [x0 + 1, x1 - 1, cz, z1 - .8], y, rugM); return; }
   if (t === 'theatre' && W >= 10) { for (const [row, hh] of [[cz - 1, 0], [cz + 2.6, .6]]) { if (hh) box(F, x0 + .3, x1 - .3, y, y + hh, row - .2, z1 - .3, M.carpet, { walk: true }); for (let k = 0; k < Math.floor((W - 2) / 2.8); k++) sofa(F, [x0 + 1 + k * 2.8, x0 + 3.4 + k * 2.8, row, row + 2.6], y + hh, 's', M.leather); }
     box(F, cx - Math.min(5, W / 2 - 1), cx + Math.min(5, W / 2 - 1), y + 1.5, y + 7, z0 + .1, z0 + .2, M.white); return; }
+  if (t === 'foyer') return; // the way in stays clear
   if (t === 'hall' || t === 'foyer') { if (W >= 6 && D >= 6) { bx(F, [cx - 2, cx + 2, z0 + .3, z0 + 1.4], y, y + 2.8, pick(R, WOODS), { solid: true }); art(F, cx, z0 + .02, y + 4.6, 3, 2, R); plant(F, cx + 2.8, z0 + .9, y, R, false);
       rug(F, [cx - Math.min(3, W / 2 - 1), cx + Math.min(3, W / 2 - 1), z0 + 2.5, z1 - 1], y, rugM); } else if (D >= 10 && W >= 3.5) rug(F, [x0 + .8, x1 - .8, z0 + 1.5, z1 - 1.5], y, rugM); return; }
   if (t === 'storage') { shelving(F, [x0 + .3, x1 - .3, z0 + .2, z0 + 1.9], y, 's'); return; }
@@ -3822,13 +3841,29 @@ function conflicts(g, zones, y) { // how many furniture pieces sit in a keep-cle
     for (const z of zones) if (_fb.max.x > z.x0 && _fb.min.x < z.x1 && _fb.max.z > z.z0 && _fb.min.z < z.z1 && _fb.max.y > z.yMin) { n++; break; } });
   return n;
 }
-// Furnish a room: if you haven't turned it yourself, try each orientation (and a second layout) and keep the one that blocks the fewest doors, openings and windows.
+// Every layout stands its cabinets, beds, sofas and vanities against its "back" wall (local z0). Which side of the room that is
+// for each quarter turn (layoutGroup turns the group by -rot × 90°): north (smaller z), east, south, west.
+const BACK_SIDE = ['-z', '+x', '+z', '-x'];
+// How much of that side has no wall: the share of it open to a neighbouring room (a kitchen open to the dining room, say).
+function sideOpen(r, side) {
+  const ax = side[1] === 'z', c = side === '-z' ? r.z : side === '+z' ? r.z + r.d : side === '-x' ? r.x : r.x + r.w;
+  const a0 = ax ? r.x : r.z, a1 = ax ? r.x + r.w : r.z + r.d; let open = 0;
+  for (const o of BM.rooms) {
+    if (o === r || o.id === r.id || o.level !== r.level || isOut(o)) continue;
+    const o0 = ax ? o.z : o.x, o1 = ax ? o.z + o.d : o.x + o.w; if (Math.abs(o0 - c) > .3 && Math.abs(o1 - c) > .3) continue;
+    const s0 = Math.max(a0, ax ? o.x : o.z), s1 = Math.min(a1, ax ? o.x + o.w : o.z + o.d); if (s1 - s0 > .05 && wallMode(r, o) === 'open') open += s1 - s0;
+  }
+  return open / Math.max(.1, a1 - a0);
+}
+// Furnish a room: if you haven't turned it yourself, try each orientation (and a second layout) and keep the one that blocks the
+// fewest doors, openings and windows, never one that stands its back-wall pieces along an open side, where there is no wall.
 function furnish(F, r, y, zones = []) {
   const near = zones.filter(z => z.x1 > r.x - .5 && z.x0 < r.x + r.w + .5 && z.z1 > r.z - .5 && z.z0 < r.z + r.d + .5);
+  const noWall = BACK_SIDE.map(sd => sideOpen(r, sd) > .3 ? 100 : 0);
   const tries = r.rot !== undefined ? [[r.rot, r.var || 0]] : [0, 1, 2, 3].map(k => [k, r.var || 0]).concat([0, 1, 2, 3].map(k => [k, (r.var || 0) + 1]));
   let best = null;
   for (const [rot, vr] of tries) {
-    const g = layoutGroup(r, y, rot, vr), sc = near.length ? conflicts(g, near, y) : 0;
+    const g = layoutGroup(r, y, rot, vr), sc = (r.rot !== undefined ? 0 : noWall[((rot % 4) + 4) % 4]) + (near.length ? conflicts(g, near, y) : 0);
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
@@ -3859,10 +3894,19 @@ function dropLayout(g) { g.traverse(o => { if (o.isMesh) o.geometry?.dispose(); 
 // =====================================================================
 const PE = { guide: {}, lv: 'M', sel: null, selWall: null, selStair: null, s: 10, ox: 40, oy: 40, drag: null, hover: null, hist: [], redo: [], open: false, grid: true, dims: true, areas: false };
 const pc = document.getElementById('peCanvas'), px = pc.getContext('2d');
+{ const fill = px.fillText.bind(px), SWAP = { left: 'right', right: 'left', start: 'end', end: 'start', top: 'bottom', bottom: 'top' };
+  // text on the turned canvas: turned back about its own anchor so it reads normally, its alignment swapped so it still
+  // runs the same way across the plan as it was laid out
+  px.fillText = (t, x, y, mw) => { const a = px.textAlign, b = px.textBaseline; px.save(); px.translate(x, y); px.scale(-1, -1); px.textAlign = SWAP[a] || a; px.textBaseline = SWAP[b] || b;
+    if (mw === undefined) fill(t, 0, 0); else fill(t, 0, 0, mw); px.restore(); }; }
 const snapH = v => Math.round(v * 2) / 2; // 6" grid
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const lvRooms = () => BM.rooms.filter(r => r.level === PE.lv);
+// The plan is drawn as you'd see the house standing in the street: front at the bottom, its left on your left. That is the
+// old top-down view turned half way round, so the canvas is rotated 180° (see peSize) and these keep working in "plan
+// space" (x and y measured from the far corner). Pointer positions come in through planX / planY, and text is turned back.
 const W2S = (x, z) => [x * PE.s + PE.ox, z * PE.s + PE.oy];
+const planX = (e, r = pc.getBoundingClientRect()) => r.right - e.clientX, planY = (e, r = pc.getBoundingClientRect()) => r.bottom - e.clientY;
 const S2W = (sx, sy) => [(sx - PE.ox) / PE.s, (sy - PE.oy) / PE.s];
 function peFit() {
   const rs = BM.rooms.length ? BM.rooms : [{ x: 0, z: 0, w: 40, d: 40 }], r = pc.getBoundingClientRect();
@@ -3874,7 +3918,7 @@ function peSize() {
   const r = pc.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2), w = Math.round(r.width * d), h = Math.round(r.height * d);
   if (!w || !h) return;
   if (pc.width !== w || pc.height !== h) { pc.width = w; pc.height = h; }
-  px.setTransform(d, 0, 0, d, 0, 0); peDraw();
+  px.setTransform(-d, 0, 0, -d, w, h); peDraw(); // turned half way round: the street at the bottom, the house's left on your left
 }
 // The plan area changes height when the bottom strip grows or shrinks (e.g. a room gets selected): keep the canvas in step.
 if (window.ResizeObserver) new ResizeObserver(() => { if (PE.open) peSize(); }).observe(pc.parentElement);
@@ -3911,6 +3955,36 @@ function warnText(t, x, y) {
   warnBoxes.push([x, y, w]); px.fillStyle = 'rgba(255,255,255,.85)'; px.fillRect(x - w / 2, y - 7, w, 14); px.fillStyle = '#e5484d'; px.fillText(t, x, y + .5);
 }
 function warnBadge(x, y) { px.fillStyle = '#e5484d'; px.beginPath(); px.arc(x - 7, y + 7, 7, 0, Math.PI * 2); px.fill(); px.fillStyle = '#fff'; px.font = '700 10px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText('!', x - 7, y + 7.5); }
+// '#1d1d21', '#fff' or 'rgb(…)' → [r, g, b]
+function toRGB(c) {
+  c = String(c).trim(); if (c[0] === '#') { const h = c.length === 4 ? c.slice(1).split('').map(x => x + x).join('') : c.slice(1, 7); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+  const m = c.match(/[\d.]+/g); return m ? m.slice(0, 3).map(Number) : [255, 255, 255];
+}
+// The site as the 3D builder last laid it out, under the main floor: you see the house where it sits on the lot.
+function drawSite(s, W, H) {
+  // solid colours, each a tint of the plan's own background: where shapes meet (a crossing, a drive over the sidewalk) the
+  // later one simply covers the earlier, instead of two see-through layers doubling up
+  const bg = toRGB(css('--paper')), tint = (rgb, a) => `rgb(${rgb.map((c, i) => Math.round(c * a + bg[i] * (1 - a))).join(',')})`;
+  const R = ([x0, x1, z0, z1], fill) => { const [a, b] = W2S(x0, z0); px.fillStyle = fill; px.fillRect(a, b, (x1 - x0) * s, (z1 - z0) * s); };
+  px.save();
+  for (const r of SITE2D.roads) R(r, tint([70, 72, 78], .55));
+  for (const r of SITE2D.walks) R(r, tint([196, 196, 202], .32));
+  for (const r of SITE2D.drives) R(r, tint([196, 196, 202], .38));
+  for (const r of SITE2D.paths) R(r, tint([212, 196, 160], .42));
+  for (const r of SITE2D.steps) R(r, tint([196, 196, 202], .5));
+  if (SITE2D.lot) { const [x0, x1, z0, z1] = SITE2D.lot, [a, b] = W2S(x0, z0); px.strokeStyle = 'rgba(92,160,80,.85)'; px.lineWidth = 1.5; px.setLineDash([6, 4]); px.strokeRect(a, b, (x1 - x0) * s, (z1 - z0) * s); px.setLineDash([]); }
+  for (const [x, z, r] of SITE2D.trees) { const [a, b] = W2S(x, z); px.beginPath(); px.arc(a, b, r * s, 0, Math.PI * 2); px.fillStyle = 'rgba(79,122,55,.38)'; px.fill(); px.strokeStyle = 'rgba(79,122,55,.75)'; px.lineWidth = 1; px.stroke();
+    px.beginPath(); px.arc(a, b, Math.max(1.5, .5 * s), 0, Math.PI * 2); px.fillStyle = 'rgba(96,72,48,.9)'; px.fill(); }
+  // name each street where it shows, along its length
+  px.font = '600 11px Inter, system-ui, sans-serif'; px.fillStyle = 'rgba(255,255,255,.7)'; px.textAlign = 'center'; px.textBaseline = 'middle';
+  const [vx0, vz0] = S2W(0, 0), [vx1, vz1] = S2W(W, H);
+  for (const [x0, x1, z0, z1] of SITE2D.roads) {
+    const cx = (Math.max(x0, Math.min(vx0, vx1)) + Math.min(x1, Math.max(vx0, vx1))) / 2, cz = (Math.max(z0, Math.min(vz0, vz1)) + Math.min(z1, Math.max(vz0, vz1))) / 2;
+    if (x1 - x0 > z1 - z0) { const [a, b] = W2S(cx, (z0 + z1) / 2); px.fillText('Street', a, b); }
+    else { const [a, b] = W2S((x0 + x1) / 2, cz); px.save(); px.translate(a, b); px.rotate(Math.PI / 2); px.fillText('Side street', 0, 0); px.restore(); }
+  }
+  px.restore();
+}
 function peDraw() {
   warnBoxes = [];
   const r = pc.getBoundingClientRect(), W = r.width, H = r.height, s = PE.s;
@@ -3920,6 +3994,7 @@ function peDraw() {
   for (const [step, a] of PE.grid ? [[1, .07], [5, .16]] : []) { if (step * s < 5) continue; px.strokeStyle = `rgba(31,63,209,${a})`; px.lineWidth = 1; px.beginPath();
     for (let x = Math.floor(gx0 / step) * step; x <= gx1; x += step) { const X = Math.round(x * s + PE.ox) + .5; px.moveTo(X, 0); px.lineTo(X, H); }
     for (let z = Math.floor(gz0 / step) * step; z <= gz1; z += step) { const Y = Math.round(z * s + PE.oy) + .5; px.moveTo(0, Y); px.lineTo(W, Y); } px.stroke(); }
+  if (PE.lv === 'M' && SITE2D) drawSite(s, W, H); // the street, sidewalks, driveway, front walk, lot and trees round the house
   // the floor below, dashed, to line things up
   const gm = guideMode(), guideLv = gm === 'none' ? null : gm === 'above' ? levelAbove(PE.lv) : levelBelow(PE.lv);
   const guide = guideLv ? BM.rooms.filter(q => q.level === guideLv) : [];
@@ -3943,7 +4018,7 @@ function peDraw() {
       for (let i = 1; i < n; i++) { if (alongX) { const x = a + q.w * s * i / n; px.moveTo(x, b + 2); px.lineTo(x, b + q.d * s - 2); } else { const y = b + q.d * s * i / n; px.moveTo(a + 2, y); px.lineTo(a + q.w * s - 2, y); } }
       px.stroke();
       const lab = st.msg ? '' : st.opening ? 'OPEN TO BELOW' : [st.up && 'UP', st.down && 'DOWN'].filter(Boolean).join(' / ');
-      if (lab) { px.fillStyle = '#18181b'; px.font = '600 10px "JetBrains Mono", monospace'; px.fillText(({ '+x': '→ ', '-x': '← ', '+z': '↓ ', '-z': '↑ ' })[sd] + lab, a + q.w * s / 2, b + q.d * s - 9); }
+      if (lab) { px.fillStyle = '#18181b'; px.font = '600 10px "JetBrains Mono", monospace'; px.fillText(({ '+x': '← ', '-x': '→ ', '+z': '↑ ', '-z': '↓ ' })[sd] + lab, a + q.w * s / 2, b + q.d * s - 9); }
       if (st.msg) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2);
         if (q.id === PE.sel) warnText(st.msg, a + q.w * s / 2, b + q.d * s + 13); else warnBadge(a + q.w * s - 2, b + 2); }
     }
@@ -3955,10 +4030,10 @@ function peDraw() {
       let [tw, th] = measure(), [lx, ly] = labelSpot(q, tw + 10, th + 6, s);
       if (lx === null && (sub || tallTxt)) { const keep = [sub, tallTxt]; sub = ''; tallTxt = ''; [tw, th] = measure(); [lx, ly] = labelSpot(q, tw + 10, th + 6, s); if (lx === null) [sub, tallTxt] = keep, [tw, th] = measure(); } // squeezed: the name alone
       if (lx === null) { px.fillStyle = 'rgba(255,255,255,.88)'; px.fillRect(a + q.w * s / 2 - tw / 2 - 5, b + q.d * s / 2 - th / 2 - 3, tw + 10, th + 6); } // nowhere free: keep it readable on top
-      const X = lx ?? a + q.w * s / 2, Y0 = (ly ?? b + q.d * s / 2) - th / 2 + 8;
+      const X = lx ?? a + q.w * s / 2, Y0 = (ly ?? b + q.d * s / 2) + th / 2 - 8; // the top line: up the mirrored canvas is +y
       px.fillStyle = '#18181b'; px.font = nameF; px.fillText(rname(q), X, Y0);
-      px.font = subF; px.fillStyle = '#5b5b66'; if (sub) px.fillText(sub, X, Y0 + 15);
-      if (tallTxt) { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(tallTxt, X, Y0 + (sub ? 28 : 15)); } });
+      px.font = subF; px.fillStyle = '#5b5b66'; if (sub) px.fillText(sub, X, Y0 - 15);
+      if (tallTxt) { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(tallTxt, X, Y0 - (sub ? 28 : 15)); } });
   }
   // walls + openings from the same generator the 3D uses
   for (const w of planLevel(PE.lv)) {
@@ -3975,7 +4050,7 @@ function peDraw() {
     }
   }
   // staircases: their own layer, drawn over the rooms
-  const ARW = { '+x': '→', '-x': '←', '+z': '↓', '-z': '↑' };
+  const ARW = { '+x': '←', '-x': '→', '+z': '↑', '-z': '↓' }; // the plan is turned half way round: toward the back is up, +x is left
   for (const S of (BM.stairs || [])) {
     const here = S.level === PE.lv, above = stairUp(S) === PE.lv; if (!here && !above) continue;
     const dir = stairDirOf(S), r = stairRect(S, dir), [a, b] = W2S(r.x, r.z), st = stairStatus(S), ax = dir[1] === 'x', n = 14;
@@ -3996,7 +4071,7 @@ function peDraw() {
     { const fromBelow = (BM.stairs || []).some(o => o !== S && stairUp(o) === PE.lv && ovl(stairRect(o, stairDirOf(o)), r)), t = (turns(S) ? `${ARW[dir]} UP ↺` : `${ARW[dir]} UP`) + (fromBelow ? ' · ↓' : '');
       px.font = '700 12px "JetBrains Mono", monospace'; px.textAlign = 'center'; let tt = t, tw = px.measureText(tt).width + 10; const across = ax ? r.d * s : r.w * s, along = ax ? r.w * s : r.d * s;
       const rot = tw > across && tw <= along ? 1 : 0; if (tw > Math.max(across, along)) { tt = ARW[dir]; tw = px.measureText(tt).width + 10; } // too narrow either way: just the arrow
-      if (rot && !ax) tt = tt.replace(/[↑↓]/g, c => c === '↓' ? '←' : '→'); // the text turns a quarter, so pre-turn the arrows to still point the way the stairs go
+      if (rot && !ax) tt = tt.replace(/[↑↓]/g, c => c === '↑' ? '→' : '←'); // the text turns a quarter, so pre-turn the arrows to still point the way the stairs go
       px.save(); px.translate(a + r.w * s / 2, b + r.d * s / 2); if (rot && !ax) px.rotate(-Math.PI / 2); // runs along the flight when it doesn't fit across it
       px.fillStyle = 'rgba(255,255,255,.9)'; px.fillRect(-tw / 2, -9, tw, 18); px.fillStyle = '#18181b'; px.fillText(tt, 0, .5); px.restore(); }
     if (!turns(S) && stairRail(S) !== 'none') { const sd = flightSides(S, r, dir, PE.lv); px.strokeStyle = '#4c7fd6'; px.lineWidth = 2.5; px.beginPath(); // railings along the flight
@@ -4091,7 +4166,7 @@ let peTimer = 0;
 function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); }, 260); }
 
 pc.addEventListener('pointerdown', e => {
-  const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
+  const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy);
   try { pc.setPointerCapture(e.pointerId); } catch (er) { }
   if (e.button === 2) { peMenuAt(sx, sy, wx, wz); return; }
   PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
@@ -4121,7 +4196,7 @@ pc.addEventListener('pointerdown', e => {
   PE.sel = null; PE.multi.clear(); peInspector(); PE.drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: PE.ox, oy: PE.oy }; peDraw();
 });
 pc.addEventListener('pointermove', e => {
-  const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
+  const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy), D = PE.drag;
   if (peToolMove(e, wx, wz)) return;
   if (!D) { const hd = shapeHandleAt(wx, wz); if (hd) { PE.hover = null; pc.style.cursor = 'grab'; peDraw(); return; }
     const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
@@ -4147,7 +4222,7 @@ pc.addEventListener('pointermove', e => {
     }
     peDraw(); peInspector(); return;
   }
-  if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
+  if (D.kind === 'pan') { PE.ox = D.ox - (e.clientX - D.sx); PE.oy = D.oy - (e.clientY - D.sy); peDraw(); return; }
   if (D.kind === 'wall') {
     let delta = snapH((D.axis === 'x' ? wz : wx) - D.start);
     for (const b of D.base) { const size = D.axis === 'x' ? b.d : b.w; if (b.side === 'w' || b.side === 'n') delta = Math.min(delta, size - 3); else delta = Math.max(delta, 3 - size); }
@@ -4224,7 +4299,7 @@ function pickWall(D) {
   PE.selWall = lo && hi ? { A: lo.q, B: hi.q, axis: D.axis, c: D.c, a: Math.max(lo.e.a, hi.e.a), b: Math.min(lo.e.b, hi.e.b) } : { ext: true, R: (lo || hi).q, out: (lo || hi).e.out, axis: D.axis, c: D.c, a: (lo || hi).e.a, b: (lo || hi).e.b, at };
   const w = PE.selWall; if (w.ext && RT[w.R.type]?.rail) { const seg = railSegments(w.R, w.out).find(([s0, s1]) => at >= s0 - .05 && at <= s1 + .05); if (seg) { w.a = seg[0]; w.b = seg[1]; w.railSeg = seg; } } // a railing stretch: just that part
 }
-pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
+pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy);
   PE.s = Math.max(3, Math.min(40, PE.s * Math.exp(-e.deltaY * .0015))); PE.ox = sx - wx * PE.s; PE.oy = sy - wz * PE.s; peDraw(); }, { passive: false });
 // Pinch with two fingers to zoom (and move) the plan around the point between them. The second finger turns the gesture
 // into a pinch: the plan stops taking those touches (no room moves) until both fingers lift. Mouse and pen are untouched.
@@ -4236,7 +4311,7 @@ pc.addEventListener('pointerdown', e => {
   if (pinch.pts.size === 2) {
     PE.drag = null; PE.menu = false;
     const r = pc.getBoundingClientRect(), m = pinchMid();
-    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(m.x - r.left, m.y - r.top) });
+    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(r.right - m.x, r.bottom - m.y) });
   }
   if (pinch.on) e.stopImmediatePropagation();
 }, true);
@@ -4246,7 +4321,7 @@ pc.addEventListener('pointermove', e => {
   if (!pinch.on) return; e.stopImmediatePropagation();
   if (pinch.pts.size < 2) return;
   const r = pc.getBoundingClientRect(), m = pinchMid();
-  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = m.x - r.left - pinch.w[0] * PE.s; PE.oy = m.y - r.top - pinch.w[1] * PE.s; peDraw();
+  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = r.right - m.x - pinch.w[0] * PE.s; PE.oy = r.bottom - m.y - pinch.w[1] * PE.s; peDraw();
 }, true);
 const pinchUp = e => { if (!pinch.pts.delete(e.pointerId) || !pinch.on) return; e.stopImmediatePropagation(); if (!pinch.pts.size) pinch.on = false; };
 pc.addEventListener('pointerup', pinchUp, true); pc.addEventListener('pointercancel', pinchUp, true);
@@ -4268,7 +4343,7 @@ document.querySelectorAll('[data-add]').forEach(b => {
     const s0 = st; st = null; ghost?.remove(); ghost = null; if (!s0) return;
     if (!s0.moved) return peAdd(b.dataset.add);
     const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-    peAdd(b.dataset.add, S2W(e.clientX - r.left, e.clientY - r.top));
+    peAdd(b.dataset.add, S2W(planX(e, r), planY(e, r)));
   });
 });
 function peAdd(type, at) {
@@ -4465,7 +4540,7 @@ addEventListener('keydown', e => {
 let nudgeT = 0;
 function peNudge(key, step) { // arrows move the selected room or stairs; one undo step per burst of presses
   if (Date.now() - nudgeT > 700) pushHist(); nudgeT = Date.now();
-  const dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0, dz = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
+  const dx = key === 'ArrowLeft' ? step : key === 'ArrowRight' ? -step : 0, dz = key === 'ArrowUp' ? step : key === 'ArrowDown' ? -step : 0; // up the screen is toward the back
   const q = BM.rooms.find(r => r.id === PE.sel), S = (BM.stairs || []).find(o => o.id === PE.selStair);
   if (q) { q.x = +(q.x + dx).toFixed(2); q.z = +(q.z + dz).toFixed(2); } else if (S) { S.cx = +(S.cx + dx).toFixed(2); S.cz = +(S.cz + dz).toFixed(2); }
   planChanged();
@@ -4510,7 +4585,7 @@ function pePlaceSide() {
   if (innerWidth <= 760) { el.style.left = el.style.top = ''; return; }
   const B = body.getBoundingClientRect(), C = pc.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, g = 16, m = 8, sb = peSelBox();
   let L, T, R, Bt; // the selection on screen, relative to the editor body
-  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = a + C.left - B.left; T = b + C.top - B.top; R = c + C.left - B.left; Bt = d + C.top - B.top; }
+  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = C.right - c - B.left; T = C.bottom - d - B.top; R = C.right - a - B.left; Bt = C.bottom - b - B.top; } // plan space → screen: turned half way round
   else if (pePt) { L = R = pePt[0] - B.left; T = Bt = pePt[1] - B.top; } else return;
   const minX = C.left - B.left + m, maxX = B.width - m, clampY = y => Math.max(m, Math.min(y, B.height - h - m)), clampX = x => Math.max(minX, Math.min(x, maxX - w));
   const opts = [ // [x, y, free space on that side]
@@ -4641,21 +4716,39 @@ const CATALOG = {
   walloven: ['Wall ovens', 2.5, 2.2, '#2d2f33', (g, y) => { box(g, -1.25, 1.25, y, y + 7.5, -1.1, 1.1, M.cab, { solid: true }); for (const yy of [2.2, 4.4]) box(g, -1.05, 1.05, y + yy, y + yy + 1.9, 1.1, 1.13, M.tv, { cast: false }); }],
   microwave: ['Microwave, built-in', 2, 1.4, '#2d2f33', (g, y) => { box(g, -1, 1, y + 4.6, y + 6, -.7, .7, M.tv); }],
   hottub: ['Hot tub', 7, 7, '#7cc3dc', (g, y) => { box(g, -3.5, 3.5, y, y + 3, -3.5, 3.5, M.deck, { solid: true }); box(g, -3, 3, y + 2.9, y + 2.95, -3, 3, M.water); }],
+  // ----- the yard: placed on the main-floor plan, built on the ground (see OUTDOOR) -----
+  treeS: ['Tree, small', 8, 8, '#4f7a37', (g, y, it) => { const k = (it?.w || 8) / 8; cyl(g, 0, 0, .35 * k, y, y + 6 * k, M.bark, 8, { solid: true }); crown(g, 0, y + 8.5 * k, 0, 4 * k, M.leaf, 1.15); }],
+  treeL: ['Tree, large', 14, 14, '#3f6a2e', (g, y, it) => { const k = (it?.w || 14) / 14; cyl(g, 0, 0, .5 * k, y, y + 9 * k, M.bark, 8, { solid: true }); crown(g, 0, y + 13 * k, 0, 7 * k, M.leaf2, 1.15); }], // sized by w (starting trees vary)
+  shrub: ['Shrub', 3, 3, '#5b8a3c', (g, y) => crown(g, 0, y + 1.1, 0, 1.4, M.leaf, .8)],
+  pool: ['Pool', 14, 28, '#2f7fa3', (g, y, it) => { const w = (it?.w || 14) / 2, d = (it?.d || 28) / 2; // coping round the edge, tile under the water
+    for (const [a0, a1, b0, b1] of [[-w, w, -d, -d + 1], [-w, w, d - 1, d], [-w, -w + 1, -d + 1, d - 1], [w - 1, w, -d + 1, d - 1]]) box(g, a0, a1, y, y + .25, b0, b1, M.white, { walk: true });
+    flat(g, rect(-w + 1, w - 1, -d + 1, d - 1), [], y + .03, M.poolTile); flat(g, rect(-w + 1, w - 1, -d + 1, d - 1), [], y + .12, M.water); }],
+  patio: ['Patio', 12, 12, '#bdb7ad', (g, y, it) => { const w = (it?.w || 12) / 2, d = (it?.d || 12) / 2; box(g, -w, w, y, y + .15, -d, d, M.pavers, { walk: true }); }],
+  planter: ['Planter', 6, 2, '#6b6f72', (g, y, it) => { const w = (it?.w || 6) / 2, d = (it?.d || 2) / 2; box(g, -w, w, y, y + 1.6, -d, d, M.panel, { solid: true }); flat(g, rect(-w + .2, w - .2, -d + .2, d - .2), [], y + 1.61, M.bark);
+    for (let x = -w + 1; x <= w - .9; x += 1.8) crown(g, x, y + 2.1, 0, .7, M.leaf2, .8); }],
+  bed: ['Garden bed', 8, 3, '#8b7d6b', (g, y, it) => { const w = (it?.w || 8) / 2, d = (it?.d || 3) / 2; flat(g, rect(-w, w, -d, d), [], y + .06, M.bark);
+    for (let x = -w + 1.2; x <= w - 1.1; x += 2.4) crown(g, x, y + .8, 0, Math.min(1, d * .7), M.leaf, .8); }],
   bbq: ['Grill', 4, 2, '#2d2f33', (g, y) => { box(g, -2, 2, y, y + 3, -1, 1, M.metal, { solid: true }); box(g, -1.6, 1.6, y + 3, y + 3.6, -.8, .8, M.black); }],
 };
 const ITEM_GROUPS = [['Living', ['sofa', 'sectional', 'loveseat', 'armchair', 'coffee', 'tvunit', 'walltv', 'fireplace', 'rug', 'art', 'sidetable', 'ottoman', 'console', 'pendant', 'piano']], ['Bedroom', ['queen', 'king', 'single', 'crib', 'dresser', 'wardrobe']],
-  ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Outdoor', ['hottub', 'bbq']]];
+  ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Yard', ['treeS', 'treeL', 'shrub', 'pool', 'patio', 'planter', 'bed', 'hottub', 'bbq']]];
+// Yard pieces: always on the ground, always shown on the main-floor plan, sized by width and depth.
+const OUTDOOR = new Set(['treeS', 'treeL', 'shrub', 'pool', 'patio', 'planter', 'bed']), RESIZE2 = new Set(['pool', 'patio', 'planter', 'bed']);
+function crown(g, x, y, z, r, mat, sy) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat); m.position.set(x, y, z); m.scale.y = sy; m.castShadow = true; g.add(m); return m; }
 const RESIZABLE = new Set(['base', 'sinkbase', 'upper', 'tall']), WALL_ITEMS = new Set(['base', 'sinkbase', 'upper', 'tall', 'corner', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'wardrobe', 'dresser', 'bookcase', 'tvunit', 'vanity', 'toilet', 'washer', 'tub', 'piano', 'desk']);
-const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it.rot % 2 ? [c[2], w] : [w, c[2]]; };
+const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1], d = it.d || c[2]; return it.rot % 2 ? [d, w] : [w, d]; };
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
   const furn = new Proxy({}, { get: (_, k) => lvOf(k) ? LG(k).furn : null });
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
+    // yard pieces, and anything set down outside the main floor's rooms, stand on the ground, not at floor height in mid-air
+    const inRoom = BM.rooms.some(r => r.level === it.level && it.x > r.x && it.x < r.x + r.w && it.z > r.z && it.z < r.z + r.d);
+    const ground = OUTDOOR.has(it.kind) || (it.level === 'M' && !inRoom);
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
-    const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
-    g.userData.item = it.id; furn[it.level].add(g); // tagged so a right-click in 3D finds the piece
+    const before = walkables.length; c[4](g, ground ? 0 : LV_Y[it.level], it); walkables.splice(before);
+    g.userData.item = it.id; (ground ? G3.site : furn[it.level]).add(g); // tagged so a right-click in 3D finds the piece
   }
 }
 
@@ -4667,7 +4760,7 @@ function viewCentre() { const r = pc.getBoundingClientRect(); return S2W(r.width
 function addItem(kind, at) {
   pushHist(); const host = BM.rooms.find(r => r.id === PE.sel && r.level === PE.lv);
   const [x, z] = at || (host ? [host.x + host.w / 2, host.z + host.d / 2] : viewCentre());
-  const it = { id: BID++, kind, level: PE.lv, x: snapH(x), z: snapH(z), rot: 0 };
+  const it = { id: BID++, kind, level: OUTDOOR.has(kind) ? 'M' : PE.lv, x: snapH(x), z: snapH(z), rot: 0 }; // the yard is drawn with the main floor
   (BM.items = BM.items || []).push(it); selectX({ kind: 'item', id: it.id }); planChanged();
 }
 document.querySelectorAll('[data-item]').forEach(b => {
@@ -4676,7 +4769,7 @@ document.querySelectorAll('[data-item]').forEach(b => {
   b.addEventListener('pointermove', e => { if (!st) return; if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 5) { st.moved = true; ghost = document.createElement('div'); ghost.id = 'pegDrop'; ghost.textContent = CATALOG[b.dataset.item][0]; ghost.style.background = CATALOG[b.dataset.item][3]; ghost.style.color = '#111'; document.body.appendChild(ghost); }
     if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; } });
   b.addEventListener('pointerup', e => { const s0 = st; st = null; ghost?.remove(); ghost = null; if (!s0) return; if (!s0.moved) return addItem(b.dataset.item);
-    const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return; addItem(b.dataset.item, S2W(e.clientX - r.left, e.clientY - r.top)); });
+    const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return; addItem(b.dataset.item, S2W(planX(e, r), planY(e, r))); });
 });
 
 // ---------- selection of items / notes / dimensions ----------
@@ -4684,7 +4777,7 @@ function selectX(x) { PE.selX = x; if (x) { PE.sel = null; PE.selStair = null; P
 const curItem = () => PE.selX?.kind === 'item' && (BM.items || []).find(i => i.id === PE.selX.id);
 const curNote = () => PE.selX?.kind === 'note' && (BM.notes || []).find(i => i.id === PE.selX.id);
 // Furniture lives in the 3D view: the plan only shows it with Plan settings → Furniture on, or the piece you're placing right now.
-const itemOnPlan = it => PE.furn || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
+const itemOnPlan = it => PE.furn || OUTDOOR.has(it.kind) || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
 function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i)); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
 function noteAt(sx, sy) { return (BM.notes || []).find(n => { if (n.level !== PE.lv) return false; const [a, b] = W2S(n.x, n.z); return sx > a - 8 && sx < a + 8 + (n._w || 60) && sy > b - 22 && sy < b + 8; }); }
 function dimAt(sx, sy) {
@@ -4722,6 +4815,18 @@ function peDrawExtras(s) {
   px.save(); px.textBaseline = 'middle';
   for (const it of (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i))) {
     const c = CATALOG[it.kind]; if (!c) continue; const [w, d] = itemDims(it), [a, b] = W2S(it.x - w / 2, it.z - d / 2), sel = PE.selX?.kind === 'item' && PE.selX.id === it.id;
+    if (it.kind === 'treeS' || it.kind === 'treeL' || it.kind === 'shrub') { // seen from above: a round crown, the trunk in the middle
+      const [cx, cy] = W2S(it.x, it.z), rr = Math.min(w, d) / 2 * s;
+      px.beginPath(); px.arc(cx, cy, rr, 0, Math.PI * 2); px.fillStyle = c[3] + 'b0'; px.fill(); px.strokeStyle = sel ? css('--accent') : 'rgba(40,70,30,.9)'; px.lineWidth = sel ? 2.2 : 1; px.stroke();
+      if (it.kind !== 'shrub') { px.beginPath(); px.arc(cx, cy, Math.max(1.5, .45 * s), 0, Math.PI * 2); px.fillStyle = '#5e4330'; px.fill(); }
+      continue;
+    }
+    if (it.kind === 'pool') { // coping round the water
+      px.fillStyle = '#e9e7e2'; px.fillRect(a, b, w * s, d * s); px.fillStyle = '#3f9fc6'; px.fillRect(a + s, b + s, (w - 2) * s, (d - 2) * s);
+      px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.strokeRect(a, b, w * s, d * s);
+      if (w * s > 46 && d * s > 16) { px.fillStyle = '#ffffff'; px.font = '600 10px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText('Pool', a + w * s / 2, b + d * s / 2); }
+      continue;
+    }
     px.fillStyle = c[3] + 'cc'; px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.beginPath(); px.roundRect?.(a, b, w * s, d * s, Math.min(4, s * .3)) ?? px.rect(a, b, w * s, d * s); px.fill(); px.stroke();
     const fx = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] }[it.rot % 4]; // front edge marker
     px.strokeStyle = 'rgba(17,17,20,.7)'; px.lineWidth = 2; px.beginPath(); const cx = a + w * s / 2, cy = b + d * s / 2;
@@ -4818,9 +4923,11 @@ function peExtraInspector() {
   if (it) {
     const c = CATALOG[it.kind], [w, d] = itemDims(it); el.hidden = false;
     el.innerHTML = `<h3>${c[0]} <span class="pe-area">${ftin(w)} × ${ftin(d)}</span></h3><label class="fld">Swap for <select id="ixKind">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}" ${k === it.kind ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-      ${RESIZABLE.has(it.kind) ? `<label class="fld"><span>Width (${U_LEN()})</span> <input id="ixW" type="number" step="any" value="${toDisp(it.w || c[1])}"></label>` : ''}<div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
+      ${RESIZABLE.has(it.kind) || RESIZE2.has(it.kind) ? `<label class="fld"><span>Width (${U_LEN()})</span> <input id="ixW" type="number" step="any" value="${toDisp(it.w || c[1])}"></label>` : ''}${RESIZE2.has(it.kind) ? `<label class="fld"><span>Depth (${U_LEN()})</span> <input id="ixD" type="number" step="any" value="${toDisp(it.d || c[2])}"></label>` : ''}<div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
     el.querySelector('#ixKind').onchange = e => { pushHist(); it.kind = e.target.value; planChanged(); };
-    el.querySelector('#ixW')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= 16)) return; pushHist(); it.w = snapH(v); planChanged(); });
+    const most = RESIZE2.has(it.kind) ? 60 : 16; // a pool or patio can be far bigger than a cabinet run
+    el.querySelector('#ixW')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= most)) return; pushHist(); it.w = snapH(v); planChanged(); });
+    el.querySelector('#ixD')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= most)) return; pushHist(); it.d = snapH(v); planChanged(); });
     el.querySelector('#ixRot').onclick = () => { pushHist(); it.rot = ((it.rot || 0) + 1) % 4; planChanged(); };
     el.querySelector('#ixDup').onclick = () => { pushHist(); const c2 = { ...it, id: BID++, x: it.x + 2, z: it.z + 2 }; BM.items.push(c2); selectX({ kind: 'item', id: c2.id }); planChanged(); };
     el.querySelector('#ixDel').onclick = deleteSel; return true;
@@ -4875,6 +4982,7 @@ function mirrorPlan(axis) {
   for (const r of BM.rooms) { if (X) r.x = f(r.x + r.w); else r.z = f(r.z + r.d); if (r.rot !== undefined) r.rot = X ? (4 - r.rot) % 4 : (6 - r.rot) % 4; }
   for (const r of BM.rooms) if (r.finish?.accent) r.finish.accent.side = (X ? { w: 'e', e: 'w' } : { n: 's', s: 'n' })[r.finish.accent.side] || r.finish.accent.side;
   for (const s of BM.stairs || []) { if (X) s.cx = f(s.cx); else s.cz = f(s.cz); if (s.dir) s.dir = swapOut(s.dir); }
+  if (X && BM.site?.corner) BM.site.corner = BM.site.corner === 'left' ? 'right' : 'left'; // the side street flips with the house
   for (const it of BM.items || []) { if (X) it.x = f(it.x); else it.z = f(it.z); it.rot = X ? (4 - (it.rot || 0)) % 4 : (6 - (it.rot || 0)) % 4; }
   for (const n of BM.notes || []) { if (X) n.x = f(n.x); else n.z = f(n.z); }
   for (const d of BM.dims || []) { if (X) { d.x1 = f(d.x1); d.x2 = f(d.x2); } else { d.z1 = f(d.z1); d.z2 = f(d.z2); } }
@@ -4921,12 +5029,15 @@ document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
   <h6>Roof edge</h6>
   <div class="seg full" id="eaveF"><button type="button" data-eave-f="slim" title="A 1×6 fascia board">Slim</button><button type="button" data-eave-f="standard" title="A 1×8 fascia board">Standard</button><button type="button" data-eave-f="deep" title="A 1×10 fascia board">Deep</button></div>
-  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves, with downspouts">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
+  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
   <div class="fld fld-stack" style="margin-top:6px">Fascia and gutter colour <div class="chips" id="eaveC">${Object.entries(EDGE_COLORS).map(([k, c]) => `<button type="button" data-eave-c="${k}" title="${k[0].toUpperCase() + k.slice(1)}" style="background:${c}"></button>`).join('')}</div></div>
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
+  <div class="fld fld-stack">Corner lot <div class="seg full" id="stCorner"><button type="button" data-corner="">No</button><button type="button" data-corner="left" title="A side street down the left">Street on the left</button><button type="button" data-corner="right" title="A side street down the right">On the right</button></div></div>
+  <div id="stCornerMore"><div class="fld fld-stack">Driveway to <div class="seg full" id="stDrive"><button type="button" data-drive="front">Front street</button><button type="button" data-drive="side" title="The garage door faces the side street, with the front door still on the front">Side street</button></div></div>
+  <label class="fld"><span>Distance to the side street (<span class="u-len">ft</span>)</span> <input id="stSide" type="number" step="any" placeholder="24"></label></div>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="0"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -4958,7 +5069,10 @@ function syncPlanPop() {
     document.querySelectorAll('[data-eave-g]').forEach(b => { b.setAttribute('aria-pressed', String((b.dataset.eaveG === '1') === g)); b.disabled = flat; });
     document.querySelectorAll('[data-eave-c]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.eaveC === c))); }
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
-  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
+  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48);
+  document.querySelectorAll('[data-corner]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.corner === (S.corner || ''))));
+  document.querySelectorAll('[data-drive]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.drive === (S.drive === 'side' ? 'side' : 'front'))));
+  document.getElementById('stCornerMore').hidden = !S.corner; { const i = document.getElementById('stSide'); if (document.activeElement !== i) i.value = S.sideSetback == null ? '' : toDisp(S.sideSetback); } for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 // the roof edge: fascia size, gutters, colour (BM.eave; see ROOF_EDGE in roof.js)
 const setEave = patch => { pushHist(); BM.eave = { ...(BM.eave || {}), ...patch }; syncPlanPop(); planChanged(false); };
@@ -4969,7 +5083,14 @@ document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('ovR').onpointerdown = () => pushHist();
 document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
-for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
+for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2);
+  if (k === 'trees') { BM.items = (BM.items || []).filter(i => !i.auto); BM.site.treesPlaced = false; seedTrees(BM); } // the starting trees again, this many; the ones you added stay
+  planChanged(false); };
+// corner lot: which side the second street runs down, and which street the driveway goes to
+const setSite = patch => { pushHist(); BM.site = { ...(BM.site || {}), ...patch }; for (const k in patch) if (patch[k] == null || patch[k] === '') delete BM.site[k]; syncPlanPop(); planChanged(false); };
+document.querySelectorAll('[data-corner]').forEach(b => b.onclick = () => setSite({ corner: b.dataset.corner || null, ...(b.dataset.corner ? {} : { drive: null }) }));
+document.querySelectorAll('[data-drive]').forEach(b => b.onclick = () => setSite({ drive: b.dataset.drive === 'side' ? 'side' : null }));
+document.getElementById('stSide').onchange = e => { const v = e.target.value === '' ? null : fromDisp(+e.target.value); if (v != null && !(v >= 5 && v <= 200)) return syncPlanPop(); setSite({ sideSetback: v == null ? null : snapH(v) }); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
 
 // ---------- keys ----------
@@ -4983,9 +5104,9 @@ addEventListener('keydown', e => {
   else if (k === 'escape' && (PE.tool || PE.multi.size || PE.selX)) { setTool(null); PE.multi.clear(); selectX(null); }
   else if (!mod && k === 'r' && curItem()) { pushHist(); curItem().rot = (curItem().rot + 1) % 4; planChanged(); }
   else if (!mod && e.key.startsWith('Arrow') && (curItem() || curNote())) { e.preventDefault(); e.stopImmediatePropagation(); const t = curItem() || curNote(), st = e.shiftKey ? 2 : .5; pushHist();
-    t.x += e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0; t.z += e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0; planChanged(); }
+    t.x += e.key === 'ArrowLeft' ? st : e.key === 'ArrowRight' ? -st : 0; t.z += e.key === 'ArrowUp' ? st : e.key === 'ArrowDown' ? -st : 0; planChanged(); }
   else if (!mod && e.key.startsWith('Arrow') && PE.multi.size > 1) { e.preventDefault(); e.stopImmediatePropagation(); const st = e.shiftKey ? 2 : .5; pushHist();
-    for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0)).toFixed(2); } planChanged(); }
+    for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? st : e.key === 'ArrowRight' ? -st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? st : e.key === 'ArrowDown' ? -st : 0)).toFixed(2); } planChanged(); }
 }, true);
 
 // ---------- automatic dimension strings: room-by-room chains on the top and left, overall size outside them ----------
@@ -5208,11 +5329,15 @@ function applyVisibility() {
   uiSync();
 }
 function goView(v, instant) {
-  if (mode === 'walk') exitWalk();
+  const walking = mode === 'walk'; if (walking) exitWalk();
   if (curHouse === 2 && v === 'B') v = 'M';
   curView = v; applyVisibility();
   const V = HOUSES[curHouse].views[v] ?? VIEWS[v] ?? autoView(v); const from = { p: camera.position.clone(), t: controls.target.clone() };
   const to = { p: new THREE.Vector3(...V.pos), t: new THREE.Vector3(...V.tgt) };
+  // Changing the floor you look at keeps your angle and zoom: the camera only rises or drops to that floor while the floors
+  // above are cut away. (The named views, Front, Top and the rest, still go to their angle; so does leaving a walk.)
+  const isFloor = curHouse === 3 ? !!lvOf(v) : ['B', 'M', 'U'].includes(v);
+  if (isFloor && !walking && !instant) { const dy = V.tgt[1] - from.t.y; to.p.copy(from.p).setY(from.p.y + dy); to.t.copy(from.t).setY(from.t.y + dy); }
   if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { camera.position.copy(to.p); controls.target.copy(to.t); controls.update(); return; }
   anim = { from, to, t: 0 };
 }
@@ -5227,7 +5352,7 @@ function autoView(v) {
 //  WALK MODE
 // =====================================================================
 const player = { x: 15.9, z: -18, feet: 0, yaw: Math.PI, pitch: -0.05, vy: 0 };
-const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
+const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, camera, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), bm: () => BM, setBM: b => { BM = b; resetBID(); normalizeStairs(BM); rebuildHouse3(); }, draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
 function buildColliders() {
   scene.updateMatrixWorld(true); colliders = [];
   scene.traverse(o => {
@@ -5621,28 +5746,6 @@ function setHouse(n, fromHash) { setTimeout(planCheck, 0);
 }
 document.querySelectorAll('[data-house]').forEach(b => b.onclick = () => { if (+b.dataset.house !== tabHouse()) setHouse(+b.dataset.house); });
 addEventListener('hashchange', () => { const n = houseFromHash(); if (n !== tabHouse()) setHouse(n, true); });
-{
-  const peg = document.getElementById('peg'), ghost = document.getElementById('pegGhost'), ndc = new THREE.Vector2(), pr = new THREE.Raycaster();
-  let st = null;
-  peg.addEventListener('pointerdown', e => { st = { x: e.clientX, y: e.clientY, moved: false }; peg.setPointerCapture(e.pointerId); e.preventDefault(); });
-  peg.addEventListener('pointermove', e => {
-    if (!st) return; if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 6) st.moved = true;
-    if (st.moved) { ghost.hidden = false; ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; }
-  });
-  peg.addEventListener('pointerup', e => {
-    const s0 = st; st = null; ghost.hidden = true; if (!s0) return;
-    if (!s0.moved) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
-    if (document.elementFromPoint(e.clientX, e.clientY) !== renderer.domElement) return;
-    if (mode === 'walk') exitWalk();
-    ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); pr.setFromCamera(ndc, camera);
-    const h = pr.intersectObjects(walkables, false).find(i => shown(i.object));
-    if (!h) return fadeCut(() => enterWalk(HOUSES[curHouse].front, false));
-    const yaw = Math.atan2(-(h.point.x - camera.position.x), -(h.point.z - camera.position.z));
-    // From outside the drop usually hits a roof or wall: stand on the main floor (or the ground) under that spot instead.
-    const outside = !(curHouse === 3 ? lvOf(curView) : ['B', 'M', 'U'].includes(curView)), feet = outside ? (groundAt(h.point.x, h.point.z, MF + 3) ?? 0) + .5 : h.point.y + .5;
-    curView = 'front'; fadeCut(() => enterWalk([h.point.x, h.point.z, yaw, feet], false));
-  });
-}
 const tod = document.getElementById('tod'); tod.oninput = () => setSun(+tod.value);
 document.getElementById('optLabels').onchange = e => { showLabels = e.target.checked; applyVisibility(); };
 document.getElementById('optFurn').onchange = e => { showFurn = e.target.checked; applyVisibility(); };
@@ -5684,6 +5787,8 @@ setSun(15); buildColliders(); mergeStatic(HOUSE1); mergeStatic(HOUSE2);
 const baseColliders = colliders.slice(); syncDoorColliders();
 // Rebuild "My Design" from the room plan: geometry, colliders, merged meshes, labels, camera views.
 function rebuildHouse3() {
+  // a design you can edit gets its starting trees as yard trees, once (a customer's link and the sample houses are left alone)
+  if (curHouse === 3 && !H3P && !(typeof CL !== 'undefined' && CL.route?.kind === 'customer') && seedTrees(BM)) { resetBID(); saveBM(); }
   setTimeout(planCheck, 0); // the plan changed: recount its problems once this rebuild is done
   buildHouse3();
   scene.updateMatrixWorld(true);
@@ -6342,8 +6447,7 @@ function syncMe() {
 }
 document.querySelectorAll('[data-hpre]').forEach(b => b.onclick = () => { setMe({ h: +b.dataset.hpre }); syncMe(); });
 $u('meH').oninput = e => { setMe({ h: +e.target.value / 12 }); syncMe(); };
-$u('mePlay').onclick = () => { closePops(); fadeCut(() => setMode('walk')); };
-$u('peg').addEventListener('pointerup', () => setTimeout(closePops, 0));
+$u('mePlay').onclick = () => { closePops(); fadeCut(() => { if (mode === 'walk') exitWalk(); enterWalk(HOUSES[curHouse].front, false); }); }; // back to the front door, facing in, wherever you were
 
 // ---------- measure ----------
 const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene.add(MEAS.group);
@@ -6718,6 +6822,22 @@ function flightFits(inside, s) {
   const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
   return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
 }
+// One way round, the flight stands in stair rooms on its own floor AND its opening on the floor above lands in them too (the
+// builder cuts the whole W × L box out of the floor above, so a flight whose centre is in a hall can still open into a bedroom).
+function flightFitsBoth(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
+  const fits = (lv, a, b) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => { const r = agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); return !!r && AGENT_LANDING.has(r.type); });
+  return [[L, W], [W, L]].some(([a, b]) => fits(s.level, a, b) && (!up || fits(up, a, b)));
+}
+// the first room that isn't a hall or open room under the corners of the opening above, looking first at the way round that fits
+// its own floor (the way the builder will run it)
+function openingHits(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, C = [[-1, -1], [1, -1], [-1, 1], [1, 1]];
+  const at = (lv, a, b, i, j) => agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3));
+  const ways = [[L, W], [W, L]].sort(([a, b], [c, d]) => C.every(([i, j]) => AGENT_LANDING.has(at(s.level, c, d, i, j)?.type)) - C.every(([i, j]) => AGENT_LANDING.has(at(s.level, a, b, i, j)?.type)));
+  for (const [a, b] of ways) for (const [i, j] of C) { const r = at(up, a, b, i, j); if (r && !AGENT_LANDING.has(r.type)) return r; }
+  return null;
+}
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
 export function agentStairOk(plan, s) {
   const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
@@ -6726,7 +6846,7 @@ export function agentStairOk(plan, s) {
   if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
   if (!up || !inside.some(r => r.level === up)) return true;
   const above = agentAt(inside, up, cx, cz);
-  return !!above && AGENT_LANDING.has(above.type);
+  return !!above && AGENT_LANDING.has(above.type) && flightFitsBoth(inside, s, up);
 }
 // The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
 // above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
@@ -6746,7 +6866,7 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip, below) { // belo
     cx = +cx.toFixed(2); cz = +cz.toFixed(2);
     if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) return;
     if (!flightFits(inside, { level, cx, cz, W, L })) return;
-    if (highs && !flightFits(inside, { level: up, cx, cz, W, L })) return; // the opening above lands in halls too
+    if (highs && !flightFitsBoth(inside, { level, cx, cz, W, L }, up)) return; // the opening above lands in halls too, the same way round
     if (stairClash(plan, { level, cx, cz, W, L }, skip)) return;
     if (below && !flightFits(inside, { level: 'B', cx, cz, W: below.W, L: below.L })) return;
     const dist = Math.hypot(cx - nx, cz - nz);
@@ -6845,7 +6965,7 @@ function agentEmpty(on, where) {
 
 // How each floor reads as a house: no empty space, upper rooms over the floor below, no long strips, no loose rooms,
 // and stairs that start and arrive in a hall or open room.
-function agentLayout(rooms, stairs) {
+function agentLayout(rooms, stairs, site) {
   const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
   for (const lv of new Set(inside.map(r => r.level))) {
     const on = inside.filter(r => r.level === lv), where = AGENT_LV[lv] || lv;
@@ -6875,6 +6995,21 @@ function agentLayout(rooms, stairs) {
     const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
     if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
     else if (!AGENT_LANDING.has(above.type)) out.push(`Stair ${s.id} comes up inside ${agentLabel(above)} on the ${there}. Put a hall over it.`);
+    else if (here && AGENT_LANDING.has(here.type) && flightFits(inside, s) && !flightFitsBoth(inside, s, up)) {
+      const hit = openingHits(inside, s, up);
+      out.push(`Stair ${s.id}'s opening on the ${there} cuts into ${hit ? agentLabel(hit) : 'a room'}: the whole ${W} × ${L} ft flight needs a hall above it. Move the stair, or make the hall above cover it.`);
+    }
+  }
+  // last, as it matters least: a garage faces the street (the front, smaller z): its front wall is outside and at the front of the house, so the garage door
+  // and the driveway reach the road. A corner lot with the driveway on the side street is the exception.
+  if (main.length >= 2 && !(site?.corner && site?.drive === 'side')) {
+    const frontZ = Math.min(...main.map(r => r.z));
+    for (const g of main.filter(r => r.type === 'garage')) {
+      let open = [[g.x, g.x + g.w]]; // the parts of its front edge with no room in front
+      for (const o of main) if (o !== g && o.z < g.z - .3 && o.z + o.d > g.z - .3) open = open.flatMap(([a, b]) => { const c = Math.max(a, o.x), d = Math.min(b, o.x + o.w); return d - c < .05 ? [[a, b]] : [[a, c], [d, b]].filter(([p, q]) => q - p > .05); });
+      const free = Math.max(0, ...open.map(([a, b]) => b - a));
+      if (free < 10 || g.z - frontZ > 8) out.push(`${agentLabel(g)} does not face the street: a garage goes at the front of the main floor, at one side, with its front edge on the street side (z ${ft(frontZ)}) so its door and driveway reach the road. Move it there.`);
+    }
   }
   return out;
 }
@@ -6888,22 +7023,39 @@ export function agentIssues(plan, limit = 10) {
     const a = rooms[i], b = rooms[j];
     if (a.level === b.level && agentOverlap(a, b)) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
   }
-  out.push(...agentLayout(rooms, stairs));
+  out.push(...agentLayout(rooms, stairs, plan?.site));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
   return out.slice(0, limit);
 }
 
+// The finishes the agent may set: the Finishes panel's parts and their materials (app.js FIN), stored as plan.finishes[part] =
+// "material:#rrggbb" (or "material:index" for one of the panel's swatches).
+export const AGENT_FINISH = {
+  stucco: ['Main walls', ['stucco', 'lap', 'brick', 'lime', 'panel']], siding: ['Accent siding', ['batten', 'lap', 'panel', 'brick', 'metal']],
+  stone: ['Stone veneer', ['ledge', 'field', 'slate', 'brick']], roof: ['Roofing', ['shingle', 'metal', 'clay', 'cedar', 'slate']],
+  trim: ['Windows & fascia', ['paint', 'metal']], gdoor: ['Garage door', ['flat', 'wood', 'glass']], deck: ['Decking', ['wood', 'composite']],
+  floor: ['Main flooring', ['plank', 'herring', 'tile', 'bigtile', 'marble', 'slate', 'terrazzo', 'concrete', 'carpet']],
+  paint: ['Interior walls', ['paint', 'lime', 'panel', 'brick']], door: ['Doors', ['paint', 'wood', 'gloss']], cab: ['Cabinets', ['paint', 'wood', 'gloss']],
+  counter: ['Countertops', ['quartz', 'marble', 'granite', 'butcher', 'concrete']], tile: ['Bath & mud tile', ['square', 'subway', 'mosaic', 'bigtile', 'marble', 'slate']],
+  steel: ['Fixtures & appliances', ['metal', 'enamel']],
+};
+const AGENT_COLORS = { green: '#6f8f63', sage: '#9aa58f', forest: '#3f5244', olive: '#7d7f55', navy: '#3d4a63', blue: '#5b7a9a', red: '#8e3b32', white: '#f0efeb',
+  black: '#2d2f33', grey: '#9ea3a8', gray: '#9ea3a8', charcoal: '#55585c', beige: '#d8c8ad', cream: '#ebe3d4', brown: '#7a563c', tan: '#c8ad8a', yellow: '#d9c27a', terracotta: '#c9744a' };
+function finishText(plan) {
+  const f = plan?.finishes && typeof plan.finishes === 'object' ? plan.finishes : {};
+  return 'finishes (part: material:colour; parts not listed are the defaults): ' + (Object.keys(f).filter(k => AGENT_FINISH[k]).map(k => `${k}=${String(f[k]).slice(0, 24)}`).join(' ') || 'all defaults');
+}
 // `checks` are the editor's own warnings (stairs that land outside, rooms on the wrong floor), sent with the plan by the browser.
 export function agentBrief(plan, checks) {
   const rooms = (Array.isArray(plan?.rooms) ? plan.rooms : []).slice(0, 80);
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left and right are as seen from the street, as the plan shows them: left is the larger x, right is the smaller x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
-  const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
+  const sideWord = { east: 'left', west: 'right', south: 'back', north: 'front' }; // as seen from the street (the plan is drawn that way)
   for (const r of rooms) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
       .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');
@@ -6914,6 +7066,7 @@ export function agentBrief(plan, checks) {
   lines.push(stairs.length ? 'stairs (not rooms; remove one with @@del and its id):' : 'stairs: none');
   for (const s of stairs) lines.push(`${s.id} ${s.level} at ${s.cx ?? s.x},${s.cz ?? s.z} ${s.W ?? s.w}x${s.L ?? s.l}`);
   if (walls.length) lines.push('wall overrides: ' + walls.map(([k, v]) => `${k}=${v}`).join(' '));
+  lines.push(finishText(plan));
   const seen = (Array.isArray(checks) ? checks : []).map(c => String(c ?? '').replace(/[\r\n<>]/g, ' ').trim().slice(0, 200)).filter(Boolean);
   const issues = [...new Set([...agentIssues(plan), ...seen])].slice(0, 12);
   lines.push(issues.length ? 'Issues:\n' + issues.map(i => '- ' + i).join('\n') : 'Issues: none');
@@ -6956,6 +7109,19 @@ export function applyAgentLine(plan, line, types) {
     return say('act', `Set the roof to ${roof}.`, true);
   }
   const body = rest.startsWith('{') ? agentJson(rest) : null;
+  if (cmd === 'finish') { // a material and colour for one part of the house, as the Finishes panel sets them
+    if (!body) return say('err', 'Could not read that finish command.');
+    const part = String(body.part || '').toLowerCase(), F = AGENT_FINISH[part];
+    if (!F) return say('err', `Unknown part "${part}". Parts: ${Object.keys(AGENT_FINISH).join(', ')}.`);
+    const mats = F[1], cur = String(plan.finishes?.[part] || '').split(':')[0];
+    const material = String(body.material || cur || mats[0]).toLowerCase();
+    if (!mats.includes(material)) return say('err', `${F[0]} can be ${mats.join(', ')}, not "${material}".`);
+    let color = String(body.color ?? body.colour ?? '').trim().toLowerCase();
+    color = AGENT_COLORS[color] || color;
+    if (color && !/^#[0-9a-f]{6}$/.test(color)) return say('err', 'A colour is #rrggbb, or a plain name like green, navy, or white.');
+    plan.finishes = { ...(plan.finishes && typeof plan.finishes === 'object' ? plan.finishes : {}), [part]: `${material}:${color || 0}` };
+    return say('act', `Set ${F[0].toLowerCase()} to ${material}${color ? ` ${color}` : ''}.`, true);
+  }
   if (cmd === 'add') {
     if (!body) return say('err', 'Could not read that add command.');
     const type = String(body.type || '').toLowerCase();
@@ -7109,6 +7275,29 @@ function keepAgent(res) {
 // ---------- one message: the passes the chat runs (shared with scripts/agent-eval.mjs so both behave the same) ----------
 export const AGENT_PASSES = 5, AGENT_PASS_EDITS = 14;
 // A request to repair the plan: then every problem counts, not only the ones this message made.
+// Keyboard mash ("pieruhpiuh regiuhireuhgpiuhearp"): most of its letters are in words no language has: 17+ letters, or long runs of consonants.
+// Such a message asks for nothing, so the chat answers it without the model and never touches the house.
+export function agentUnclear(text, files) {
+  if (files?.length) return false;
+  const w = String(text || '').toLowerCase().match(/[a-z]+/g) || [];
+  if (!w.length) return !/\d/.test(String(text || ''));
+  const odd = w.filter(x => x.length >= 17 || /[bcdfghjklmnpqrstvwxz]{6,}/.test(x) || (x.length >= 5 && !/[aeiouy]/.test(x)));
+  return odd.join('').length / w.join('').length >= .5; // by letters: one huge run of mash outweighs a few short words
+}
+export const AGENT_UNCLEAR = 'I didn’t catch that. Tell me what to build or change, like “make the kitchen 2 feet deeper”, or ask me about the house.';
+// A question ("can you build a house?", "what if the kitchen were bigger?"): the model may still act on it, but the chat never
+// pushes it to change the house when it answered instead.
+export const agentAsks = text => /^\s*(can|could|would|will|do|does|did|is|are|was|should|how|what|whats|why|where|which|who|when)\b/i.test(String(text || '')) || /\?\s*$/.test(String(text || ''));
+// "Build me a 3 bedroom house" while a house is already here: ask, in code, whether to start over or change this one, rather than
+// trusting the model to ask before it bulldozes the plan. Each option carries the exact message it sends.
+export function agentNewHouseAsk(text, plan, files) {
+  const t = String(text || '').trim();
+  if (files?.length || !plan?.rooms?.length || agentAsks(t)) return null;
+  if (/\b(start over|start again|from scratch)\b|^change this house:/i.test(t)) return null;
+  if (!/\b(build|design|create|draw|make|give)\s+(me\s+|us\s+)?(a|an|another|new)\b[^.?!]*\b(house|home|bungalow|ranch|cottage|duplex)\b/i.test(t)) return null;
+  const q = 'You already have a house here. Start a new one, or change this one?';
+  return { kind: 'ask', text: q, options: [{ id: 'new', label: 'Start over with a new house', send: `Start over and build a new house: ${t}` }, { id: 'change', label: 'Change this house', send: `Change this house: ${t}` }] };
+}
 export const agentWantsFix = text => /\b(fix|align|line up|overlap|gap|hole|notch|tidy|clean ?up|repair|straighten|sort out)/i.test(String(text || ''));
 export const agentWantsEdit = (text, files) => !!files?.length || /\b(build|add|design|draw|make|create|widen|narrow|remove|delete|move|resize|change|replace|start over|floor plan)\b/i.test(String(text || ''));
 // Reads one streamed reply line by line. A pass ends at its first @@more, @@done or @@ask (anything after is ignored),
@@ -7142,7 +7331,7 @@ export function agentNext(turn, s) {
   if (turn.done) { // check the work before taking "done": anything this message broke gets one more pass
     const fresh = s.rechecked || s.step >= AGENT_PASSES || !s.acted ? [] : s.fresh();
     if (!fresh.length) return { finish: true };
-    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. If one cannot be fixed, say so in a sentence.` };
+    return { rechecked: true, extra: `You said done, but the plan now has these problems. The user does not see this note:\n${fresh.map(i => '- ' + i).join('\n')}\nFix each one with @@set or @@del using the design block, then @@done. Keep what the user asked for: never undo it or set a size back. Fix around it (grow or move a neighbour). If a problem cannot be fixed without undoing the request, leave it and say so in a sentence.` };
   }
   if (!turn.edited && !turn.more) {
     if (!s.build || s.step > 1) return { stop: true };
@@ -7158,7 +7347,7 @@ export function agentApplied(steps) {
 }
 // A repair that left the plan with as many problems as before (or more) is undone: a failed fix must not make things worse.
 // How bad a plan is: overlaps weigh most, then rooms over nothing and stair problems, then gaps, notches, and loose rooms.
-export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair/.test(i) ? 2 : 1), 0);
+export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair|cuts into|face the street/.test(i) ? 2 : 1), 0);
 export const agentRepairFailed = (fixing, acted, before, plan) => fixing && acted && agentBadness(plan) >= before;
 export const AGENT_REVERTED = 'I couldn’t improve the plan this time, so I put it back the way it was. Try one fix at a time, like “close the gap between Living and Hall”.';
 export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;
@@ -7265,7 +7454,7 @@ function pickAsk(n) {
   const m = chatMsgs.at(-1), o = m?.ask?.options?.[n];
   if (!o || chatBusy) return;
   delete m.ask;
-  sendChat(/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label, []);
+  sendChat(o.send || (/^\d+$/.test(o.id) ? `Use room ${o.id}. ${o.label}` : o.label), []);
 }
 function renderPending() {
   const box = $u('agentPending');
@@ -7275,10 +7464,13 @@ function renderPending() {
 }
 
 function fitComposer() {
-  const t = $u('agentInput');
-  t.style.height = 'auto';
-  t.style.height = Math.min(120, t.scrollHeight) + 'px';
-  t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden';
+  const t = $u('agentInput'), line = t.closest('.chat-line');
+  const size = () => { t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; t.style.overflowY = t.scrollHeight > 120 ? 'auto' : 'hidden'; };
+  size();
+  // past two lines, attach stacks over send; it goes back only at one line, so the wider text box rewrapping can't make it flicker
+  const cs = getComputedStyle(t), lh = parseFloat(cs.lineHeight) || 1.45 * parseFloat(cs.fontSize), lines = (t.scrollHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) / lh;
+  const tall = line?.classList.contains('tall');
+  if (line && (tall ? lines < 1.5 : lines > 2.5)) { line.classList.toggle('tall', !tall); size(); }
 }
 function syncSend() { // while the agent works, the send button is a Stop button
   const b = $u('agentSend'), stop = chatBusy;
@@ -7321,6 +7513,11 @@ function agentChecks() {
   try {
     for (const S of BM.stairs || []) { const st = stairStatus(S); if (!st.ok) out.push(`Stair ${S.id} on the ${LV_NAME[S.level]}: ${st.msg.replace(/ or ↻ rotate (it|them)$/, '')}.`); }
     for (const r of BM.rooms) if (!lvOK(r.type, r.level)) out.push(`${r.name || r.type} #${r.id} is on the wrong floor for a ${r.type}.`);
+    for (const it of BM.items || []) if (OUTDOOR.has(it.kind)) { // a yard piece set down inside the house
+      const [w, d] = itemDims(it), x0 = it.x - w / 2, x1 = it.x + w / 2, z0 = it.z - d / 2, z1 = it.z + d / 2;
+      const r = BM.rooms.find(q => q.level === 'M' && !RT[q.type]?.outdoor && x0 < q.x + q.w - .3 && x1 > q.x + .3 && z0 < q.z + q.d - .3 && z1 > q.z + .3);
+      if (r) out.push(`The ${CATALOG[it.kind][0].toLowerCase()} sits inside ${r.name || r.type}. Move it out into the yard.`);
+    }
   } catch { /* checks are a help, never a blocker */ }
   return out.slice(0, 8);
 }
@@ -7344,7 +7541,15 @@ function agentShow() {
   resetBID(); planChanged(); // saves, redraws the plan, and rebuilds the 3D a moment after the edits stop arriving
   if (!agentViewed && mode !== 'walk' && !PE.open && HOUSES?.[3]?.views?.aerial) { agentViewed = true; goView('aerial'); } // one look from above per message, not a jump per edit
 }
-function agentSettle() { clearTimeout(peTimer); rebuildHouse3(); } // end of a pass: the 3D catches up at once
+// End of a pass: the 3D catches up at once, and so do the finishes the plan sets. A part painted this session that the plan no
+// longer lists (the message was undone) goes back to its default.
+const agentFinTouched = new Set();
+function agentSettle() {
+  clearTimeout(peTimer); rebuildHouse3();
+  const f = BM.finishes || {};
+  for (const k of agentFinTouched) if (!(k in f)) FIN_PICK[k]?.(0);
+  for (const [k, v] of Object.entries(f)) { FIN_PICK[k]?.(v); agentFinTouched.add(k); }
+}
 function agentApiMessages(extra) {
   const list = chatMsgs.filter(m => m.text || m.raw || m.files?.some(f => f.data)).slice(-10).map(m => ({
     role: m.role,
@@ -7411,11 +7616,14 @@ async function sendChat(text, files) {
   if (pendingAsk?.ask) delete pendingAsk.ask;
   if (!text && files.length) text = 'Build the house from this drawing.';
   chatMsgs.push({ role: 'user', text, files });
+  const nh = agentNewHouseAsk(text, BM, files); // a new house over this one: ask first, without the model
+  if (nh) { chatMsgs.push({ role: 'assistant', text: nh.text, steps: [{ k: 'say', t: nh.text }], ask: { q: nh.text, options: nh.options } }); saveChat(); renderChat(); syncSend(); return; }
+  if (agentUnclear(text, files)) { chatMsgs.push({ role: 'assistant', text: AGENT_UNCLEAR, steps: [{ k: 'say', t: AGENT_UNCLEAR }] }); saveChat(); renderChat(); syncSend(); return; } // nothing asked: no model, no edits
   chatBusy = true; agentUndoSnap = snapshot(); agentViewed = false; chatCtl = new AbortController(); saveChat(); renderChat(); syncSend();
   const reply = { role: 'assistant', text: '', raw: '', steps: [] };
   const fixing = agentWantsFix(text), problems = () => [...agentIssues(BM), ...agentChecks()], before = new Set(fixing ? [] : problems()); // asked to fix: every problem counts
   const startSnap = agentUndoSnap, startCount = agentBadness(BM);
-  const build = agentWantsEdit(text, files);
+  const build = agentWantsEdit(text, files) && !agentAsks(text);
   try {
     let extra = null, step = 0, finished = false, review = false, rechecked = false;
     while (step < AGENT_PASSES) {

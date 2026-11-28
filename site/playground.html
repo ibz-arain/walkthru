@@ -11,8 +11,8 @@
 <script src="/track.js" defer></script>
 <script>if(!/^#c\//.test(location.hash))document.documentElement.classList.add("gate")</script>
 <script>try{var t=localStorage.getItem('walkthru-theme');if(t&&t!=='auto')document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="modulepreload" href="/assets/playground.b1bfec4d6f.js">
-<link rel="stylesheet" href="/assets/playground.fdfe6a9529.css">
+<link rel="modulepreload" href="/assets/playground.b2efaab4fa.js">
+<link rel="stylesheet" href="/assets/playground.4f013b0500.css">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-home" viewBox="0 0 16 16"><path d="M3 7.6 8 3l5 4.6V13H3z"/></symbol>
@@ -71,7 +71,7 @@
     <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
     <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
-    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
     <symbol id="i-clip" viewBox="0 0 24 24"><path d="m16.5 7.5-7.8 7.8a3 3 0 0 1-4.2-4.2l8-8a4.2 4.2 0 0 1 6 6l-8 8a5.5 5.5 0 0 1-7.8-7.8l7.3-7.3"/></symbol>
   </defs>
@@ -199,8 +199,7 @@
   <div class="vgrid" style="grid-template-columns:repeat(3,1fr)"><button type="button" data-hpre="6.25">6'3"</button><button type="button" data-hpre="5.75">5'9"</button><button type="button" data-hpre="5.1667">5'2"</button></div>
   <input type="range" id="meH" class="pop-range" min="48" max="84" step="1" aria-label="Height in inches">
   <h6>Start walking</h6>
-  <button class="drop-tile" id="peg" type="button" aria-label="Drag onto the house to start walking there"><svg class="ic"><use href="#i-drop"/></svg><span><b>Drag onto the house</b><small>Start walking where you drop it</small></span></button>
-  <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">From the front door</button>
+  <button class="btn btn-primary" id="mePlay" type="button" style="width:calc(100% - 12px);margin:6px">Restart from the entrance</button>
 </div>
 <div class="pop" id="viewPop" hidden role="dialog" aria-label="Camera views">
   <h6>Exterior</h6>
@@ -450,7 +449,6 @@
 <div class="panel" id="room" hidden><b id="roomName">Outside</b><span id="roomDim"></span></div>
 <div class="panel" id="measureBar" hidden><svg class="ic"><use href="#i-ruler"/></svg><span id="measureMsg">Click two points to measure</span><button class="btn" id="measureClear" type="button">Clear</button><button class="btn btn-primary" id="measureDone" type="button">Done</button></div>
 <div class="panel" id="mini" hidden><canvas id="miniC" width="380" height="300"></canvas></div>
-<div id="pegGhost" hidden><svg viewBox="0 0 24 32" width="26" height="34" aria-hidden="true"><path d="M12 31s10-10.2 10-18A10 10 0 0 0 2 13c0 7.8 10 18 10 18z" fill="#3b5bfd" stroke="#fff" stroke-width="2"/><circle cx="12" cy="13" r="4" fill="#fff"/></svg></div>
 <div class="panel" id="pad" hidden>
   <span></span><button data-k="f" aria-label="Forward">▲</button><span></span>
   <button data-k="l" aria-label="Step left">◀</button><button data-k="b" aria-label="Back">▼</button><button data-k="r" aria-label="Step right">▶</button>
@@ -460,5 +458,5 @@
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
 
-<script type="module" src="/assets/playground.b1bfec4d6f.js"></script>
+<script type="module" src="/assets/playground.b2efaab4fa.js"></script>
 </html>

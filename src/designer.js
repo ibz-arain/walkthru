@@ -55,21 +55,39 @@ const CATALOG = {
   walloven: ['Wall ovens', 2.5, 2.2, '#2d2f33', (g, y) => { box(g, -1.25, 1.25, y, y + 7.5, -1.1, 1.1, M.cab, { solid: true }); for (const yy of [2.2, 4.4]) box(g, -1.05, 1.05, y + yy, y + yy + 1.9, 1.1, 1.13, M.tv, { cast: false }); }],
   microwave: ['Microwave, built-in', 2, 1.4, '#2d2f33', (g, y) => { box(g, -1, 1, y + 4.6, y + 6, -.7, .7, M.tv); }],
   hottub: ['Hot tub', 7, 7, '#7cc3dc', (g, y) => { box(g, -3.5, 3.5, y, y + 3, -3.5, 3.5, M.deck, { solid: true }); box(g, -3, 3, y + 2.9, y + 2.95, -3, 3, M.water); }],
+  // ----- the yard: placed on the main-floor plan, built on the ground (see OUTDOOR) -----
+  treeS: ['Tree, small', 8, 8, '#4f7a37', (g, y, it) => { const k = (it?.w || 8) / 8; cyl(g, 0, 0, .35 * k, y, y + 6 * k, M.bark, 8, { solid: true }); crown(g, 0, y + 8.5 * k, 0, 4 * k, M.leaf, 1.15); }],
+  treeL: ['Tree, large', 14, 14, '#3f6a2e', (g, y, it) => { const k = (it?.w || 14) / 14; cyl(g, 0, 0, .5 * k, y, y + 9 * k, M.bark, 8, { solid: true }); crown(g, 0, y + 13 * k, 0, 7 * k, M.leaf2, 1.15); }], // sized by w (starting trees vary)
+  shrub: ['Shrub', 3, 3, '#5b8a3c', (g, y) => crown(g, 0, y + 1.1, 0, 1.4, M.leaf, .8)],
+  pool: ['Pool', 14, 28, '#2f7fa3', (g, y, it) => { const w = (it?.w || 14) / 2, d = (it?.d || 28) / 2; // coping round the edge, tile under the water
+    for (const [a0, a1, b0, b1] of [[-w, w, -d, -d + 1], [-w, w, d - 1, d], [-w, -w + 1, -d + 1, d - 1], [w - 1, w, -d + 1, d - 1]]) box(g, a0, a1, y, y + .25, b0, b1, M.white, { walk: true });
+    flat(g, rect(-w + 1, w - 1, -d + 1, d - 1), [], y + .03, M.poolTile); flat(g, rect(-w + 1, w - 1, -d + 1, d - 1), [], y + .12, M.water); }],
+  patio: ['Patio', 12, 12, '#bdb7ad', (g, y, it) => { const w = (it?.w || 12) / 2, d = (it?.d || 12) / 2; box(g, -w, w, y, y + .15, -d, d, M.pavers, { walk: true }); }],
+  planter: ['Planter', 6, 2, '#6b6f72', (g, y, it) => { const w = (it?.w || 6) / 2, d = (it?.d || 2) / 2; box(g, -w, w, y, y + 1.6, -d, d, M.panel, { solid: true }); flat(g, rect(-w + .2, w - .2, -d + .2, d - .2), [], y + 1.61, M.bark);
+    for (let x = -w + 1; x <= w - .9; x += 1.8) crown(g, x, y + 2.1, 0, .7, M.leaf2, .8); }],
+  bed: ['Garden bed', 8, 3, '#8b7d6b', (g, y, it) => { const w = (it?.w || 8) / 2, d = (it?.d || 3) / 2; flat(g, rect(-w, w, -d, d), [], y + .06, M.bark);
+    for (let x = -w + 1.2; x <= w - 1.1; x += 2.4) crown(g, x, y + .8, 0, Math.min(1, d * .7), M.leaf, .8); }],
   bbq: ['Grill', 4, 2, '#2d2f33', (g, y) => { box(g, -2, 2, y, y + 3, -1, 1, M.metal, { solid: true }); box(g, -1.6, 1.6, y + 3, y + 3.6, -.8, .8, M.black); }],
 };
 const ITEM_GROUPS = [['Living', ['sofa', 'sectional', 'loveseat', 'armchair', 'coffee', 'tvunit', 'walltv', 'fireplace', 'rug', 'art', 'sidetable', 'ottoman', 'console', 'pendant', 'piano']], ['Bedroom', ['queen', 'king', 'single', 'crib', 'dresser', 'wardrobe']],
-  ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Outdoor', ['hottub', 'bbq']]];
+  ['Kitchen', ['base', 'sinkbase', 'corner', 'upper', 'tall', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'island']], ['Dining', ['dining6', 'round4']], ['Bath & laundry', ['tub', 'vanity', 'toilet', 'washer']], ['Work & decor', ['desk', 'bookcase', 'plant', 'lamp']], ['Yard', ['treeS', 'treeL', 'shrub', 'pool', 'patio', 'planter', 'bed', 'hottub', 'bbq']]];
+// Yard pieces: always on the ground, always shown on the main-floor plan, sized by width and depth.
+const OUTDOOR = new Set(['treeS', 'treeL', 'shrub', 'pool', 'patio', 'planter', 'bed']), RESIZE2 = new Set(['pool', 'patio', 'planter', 'bed']);
+function crown(g, x, y, z, r, mat, sy) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 1), mat); m.position.set(x, y, z); m.scale.y = sy; m.castShadow = true; g.add(m); return m; }
 const RESIZABLE = new Set(['base', 'sinkbase', 'upper', 'tall']), WALL_ITEMS = new Set(['base', 'sinkbase', 'upper', 'tall', 'corner', 'fridge', 'range', 'hood', 'dishwasher', 'walloven', 'microwave', 'wardrobe', 'dresser', 'bookcase', 'tvunit', 'vanity', 'toilet', 'washer', 'tub', 'piano', 'desk']);
-const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1]; return it.rot % 2 ? [c[2], w] : [w, c[2]]; };
+const itemDims = it => { const c = CATALOG[it.kind], w = it.w || c[1], d = it.d || c[2]; return it.rot % 2 ? [d, w] : [w, d]; };
 
 // 3D: builder.js calls this at the end of buildHouse3.
 function placeItems() {
   const furn = new Proxy({}, { get: (_, k) => lvOf(k) ? LG(k).furn : null });
   for (const it of BM.items || []) {
     const c = CATALOG[it.kind]; if (!c || !furn[it.level]) continue;
+    // yard pieces, and anything set down outside the main floor's rooms, stand on the ground, not at floor height in mid-air
+    const inRoom = BM.rooms.some(r => r.level === it.level && it.x > r.x && it.x < r.x + r.w && it.z > r.z && it.z < r.z + r.d);
+    const ground = OUTDOOR.has(it.kind) || (it.level === 'M' && !inRoom);
     const g = new THREE.Group(); g.position.set(it.x, 0, it.z); g.rotation.y = -(it.rot || 0) * Math.PI / 2; g.scale.set(.996, 1, .996); // a hair smaller, so pieces pushed together don't share faces and flicker
-    const before = walkables.length; c[4](g, LV_Y[it.level], it); walkables.splice(before);
-    g.userData.item = it.id; furn[it.level].add(g); // tagged so a right-click in 3D finds the piece
+    const before = walkables.length; c[4](g, ground ? 0 : LV_Y[it.level], it); walkables.splice(before);
+    g.userData.item = it.id; (ground ? G3.site : furn[it.level]).add(g); // tagged so a right-click in 3D finds the piece
   }
 }
 
@@ -81,7 +99,7 @@ function viewCentre() { const r = pc.getBoundingClientRect(); return S2W(r.width
 function addItem(kind, at) {
   pushHist(); const host = BM.rooms.find(r => r.id === PE.sel && r.level === PE.lv);
   const [x, z] = at || (host ? [host.x + host.w / 2, host.z + host.d / 2] : viewCentre());
-  const it = { id: BID++, kind, level: PE.lv, x: snapH(x), z: snapH(z), rot: 0 };
+  const it = { id: BID++, kind, level: OUTDOOR.has(kind) ? 'M' : PE.lv, x: snapH(x), z: snapH(z), rot: 0 }; // the yard is drawn with the main floor
   (BM.items = BM.items || []).push(it); selectX({ kind: 'item', id: it.id }); planChanged();
 }
 document.querySelectorAll('[data-item]').forEach(b => {
@@ -90,7 +108,7 @@ document.querySelectorAll('[data-item]').forEach(b => {
   b.addEventListener('pointermove', e => { if (!st) return; if (!st.moved && Math.hypot(e.clientX - st.x, e.clientY - st.y) > 5) { st.moved = true; ghost = document.createElement('div'); ghost.id = 'pegDrop'; ghost.textContent = CATALOG[b.dataset.item][0]; ghost.style.background = CATALOG[b.dataset.item][3]; ghost.style.color = '#111'; document.body.appendChild(ghost); }
     if (ghost) { ghost.style.left = e.clientX + 'px'; ghost.style.top = e.clientY + 'px'; } });
   b.addEventListener('pointerup', e => { const s0 = st; st = null; ghost?.remove(); ghost = null; if (!s0) return; if (!s0.moved) return addItem(b.dataset.item);
-    const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return; addItem(b.dataset.item, S2W(e.clientX - r.left, e.clientY - r.top)); });
+    const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return; addItem(b.dataset.item, S2W(planX(e, r), planY(e, r))); });
 });
 
 // ---------- selection of items / notes / dimensions ----------
@@ -98,7 +116,7 @@ function selectX(x) { PE.selX = x; if (x) { PE.sel = null; PE.selStair = null; P
 const curItem = () => PE.selX?.kind === 'item' && (BM.items || []).find(i => i.id === PE.selX.id);
 const curNote = () => PE.selX?.kind === 'note' && (BM.notes || []).find(i => i.id === PE.selX.id);
 // Furniture lives in the 3D view: the plan only shows it with Plan settings → Furniture on, or the piece you're placing right now.
-const itemOnPlan = it => PE.furn || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
+const itemOnPlan = it => PE.furn || OUTDOOR.has(it.kind) || (PE.selX?.kind === 'item' && PE.selX.id === it.id);
 function itemAt(wx, wz) { const L = (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i)); for (let k = L.length - 1; k >= 0; k--) { const it = L[k], [w, d] = itemDims(it); if (Math.abs(wx - it.x) < w / 2 && Math.abs(wz - it.z) < d / 2) return it; } return null; }
 function noteAt(sx, sy) { return (BM.notes || []).find(n => { if (n.level !== PE.lv) return false; const [a, b] = W2S(n.x, n.z); return sx > a - 8 && sx < a + 8 + (n._w || 60) && sy > b - 22 && sy < b + 8; }); }
 function dimAt(sx, sy) {
@@ -136,6 +154,18 @@ function peDrawExtras(s) {
   px.save(); px.textBaseline = 'middle';
   for (const it of (BM.items || []).filter(i => i.level === PE.lv && itemOnPlan(i))) {
     const c = CATALOG[it.kind]; if (!c) continue; const [w, d] = itemDims(it), [a, b] = W2S(it.x - w / 2, it.z - d / 2), sel = PE.selX?.kind === 'item' && PE.selX.id === it.id;
+    if (it.kind === 'treeS' || it.kind === 'treeL' || it.kind === 'shrub') { // seen from above: a round crown, the trunk in the middle
+      const [cx, cy] = W2S(it.x, it.z), rr = Math.min(w, d) / 2 * s;
+      px.beginPath(); px.arc(cx, cy, rr, 0, Math.PI * 2); px.fillStyle = c[3] + 'b0'; px.fill(); px.strokeStyle = sel ? css('--accent') : 'rgba(40,70,30,.9)'; px.lineWidth = sel ? 2.2 : 1; px.stroke();
+      if (it.kind !== 'shrub') { px.beginPath(); px.arc(cx, cy, Math.max(1.5, .45 * s), 0, Math.PI * 2); px.fillStyle = '#5e4330'; px.fill(); }
+      continue;
+    }
+    if (it.kind === 'pool') { // coping round the water
+      px.fillStyle = '#e9e7e2'; px.fillRect(a, b, w * s, d * s); px.fillStyle = '#3f9fc6'; px.fillRect(a + s, b + s, (w - 2) * s, (d - 2) * s);
+      px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.strokeRect(a, b, w * s, d * s);
+      if (w * s > 46 && d * s > 16) { px.fillStyle = '#ffffff'; px.font = '600 10px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText('Pool', a + w * s / 2, b + d * s / 2); }
+      continue;
+    }
     px.fillStyle = c[3] + 'cc'; px.strokeStyle = sel ? css('--accent') : 'rgba(17,17,20,.55)'; px.lineWidth = sel ? 2.2 : 1; px.beginPath(); px.roundRect?.(a, b, w * s, d * s, Math.min(4, s * .3)) ?? px.rect(a, b, w * s, d * s); px.fill(); px.stroke();
     const fx = { 0: [0, 1], 1: [-1, 0], 2: [0, -1], 3: [1, 0] }[it.rot % 4]; // front edge marker
     px.strokeStyle = 'rgba(17,17,20,.7)'; px.lineWidth = 2; px.beginPath(); const cx = a + w * s / 2, cy = b + d * s / 2;
@@ -232,9 +262,11 @@ function peExtraInspector() {
   if (it) {
     const c = CATALOG[it.kind], [w, d] = itemDims(it); el.hidden = false;
     el.innerHTML = `<h3>${c[0]} <span class="pe-area">${ftin(w)} × ${ftin(d)}</span></h3><label class="fld">Swap for <select id="ixKind">${Object.entries(CATALOG).map(([k, v]) => `<option value="${k}" ${k === it.kind ? 'selected' : ''}>${v[0]}</option>`).join('')}</select></label>
-      ${RESIZABLE.has(it.kind) ? `<label class="fld"><span>Width (${U_LEN()})</span> <input id="ixW" type="number" step="any" value="${toDisp(it.w || c[1])}"></label>` : ''}<div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
+      ${RESIZABLE.has(it.kind) || RESIZE2.has(it.kind) ? `<label class="fld"><span>Width (${U_LEN()})</span> <input id="ixW" type="number" step="any" value="${toDisp(it.w || c[1])}"></label>` : ''}${RESIZE2.has(it.kind) ? `<label class="fld"><span>Depth (${U_LEN()})</span> <input id="ixD" type="number" step="any" value="${toDisp(it.d || c[2])}"></label>` : ''}<div class="pe-row"><button class="btn" id="ixRot" title="R">Rotate</button><button class="btn" id="ixDup">Duplicate</button><button class="btn danger" id="ixDel">Delete</button></div>`;
     el.querySelector('#ixKind').onchange = e => { pushHist(); it.kind = e.target.value; planChanged(); };
-    el.querySelector('#ixW')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= 16)) return; pushHist(); it.w = snapH(v); planChanged(); });
+    const most = RESIZE2.has(it.kind) ? 60 : 16; // a pool or patio can be far bigger than a cabinet run
+    el.querySelector('#ixW')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= most)) return; pushHist(); it.w = snapH(v); planChanged(); });
+    el.querySelector('#ixD')?.addEventListener('change', e => { const v = fromDisp(+e.target.value); if (!(v >= 1 && v <= most)) return; pushHist(); it.d = snapH(v); planChanged(); });
     el.querySelector('#ixRot').onclick = () => { pushHist(); it.rot = ((it.rot || 0) + 1) % 4; planChanged(); };
     el.querySelector('#ixDup').onclick = () => { pushHist(); const c2 = { ...it, id: BID++, x: it.x + 2, z: it.z + 2 }; BM.items.push(c2); selectX({ kind: 'item', id: c2.id }); planChanged(); };
     el.querySelector('#ixDel').onclick = deleteSel; return true;
@@ -289,6 +321,7 @@ function mirrorPlan(axis) {
   for (const r of BM.rooms) { if (X) r.x = f(r.x + r.w); else r.z = f(r.z + r.d); if (r.rot !== undefined) r.rot = X ? (4 - r.rot) % 4 : (6 - r.rot) % 4; }
   for (const r of BM.rooms) if (r.finish?.accent) r.finish.accent.side = (X ? { w: 'e', e: 'w' } : { n: 's', s: 'n' })[r.finish.accent.side] || r.finish.accent.side;
   for (const s of BM.stairs || []) { if (X) s.cx = f(s.cx); else s.cz = f(s.cz); if (s.dir) s.dir = swapOut(s.dir); }
+  if (X && BM.site?.corner) BM.site.corner = BM.site.corner === 'left' ? 'right' : 'left'; // the side street flips with the house
   for (const it of BM.items || []) { if (X) it.x = f(it.x); else it.z = f(it.z); it.rot = X ? (4 - (it.rot || 0)) % 4 : (6 - (it.rot || 0)) % 4; }
   for (const n of BM.notes || []) { if (X) n.x = f(n.x); else n.z = f(n.z); }
   for (const d of BM.dims || []) { if (X) { d.x1 = f(d.x1); d.x2 = f(d.x2); } else { d.z1 = f(d.z1); d.z2 = f(d.z2); } }
@@ -335,12 +368,15 @@ document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
   <h6>Roof edge</h6>
   <div class="seg full" id="eaveF"><button type="button" data-eave-f="slim" title="A 1×6 fascia board">Slim</button><button type="button" data-eave-f="standard" title="A 1×8 fascia board">Standard</button><button type="button" data-eave-f="deep" title="A 1×10 fascia board">Deep</button></div>
-  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves, with downspouts">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
+  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
   <div class="fld fld-stack" style="margin-top:6px">Fascia and gutter colour <div class="chips" id="eaveC">${Object.entries(EDGE_COLORS).map(([k, c]) => `<button type="button" data-eave-c="${k}" title="${k[0].toUpperCase() + k.slice(1)}" style="background:${c}"></button>`).join('')}</div></div>
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>
+  <div class="fld fld-stack">Corner lot <div class="seg full" id="stCorner"><button type="button" data-corner="">No</button><button type="button" data-corner="left" title="A side street down the left">Street on the left</button><button type="button" data-corner="right" title="A side street down the right">On the right</button></div></div>
+  <div id="stCornerMore"><div class="fld fld-stack">Driveway to <div class="seg full" id="stDrive"><button type="button" data-drive="front">Front street</button><button type="button" data-drive="side" title="The garage door faces the side street, with the front door still on the front">Side street</button></div></div>
+  <label class="fld"><span>Distance to the side street (<span class="u-len">ft</span>)</span> <input id="stSide" type="number" step="any" placeholder="24"></label></div>
   <div class="pe-wd"><label class="fld"><span>Lot width (<span class="u-len">ft</span>)</span> <input id="stLW" type="number" step="any" placeholder="None"></label><label class="fld"><span>Lot depth (<span class="u-len">ft</span>)</span> <input id="stLD" type="number" step="any" placeholder="None"></label></div>
-  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="4"></label></div>
+  <div class="pe-wd"><label class="fld"><span>Shift on lot (<span class="u-len">ft</span>)</span> <input id="stOX" type="number" step="any" placeholder="0"></label><label class="fld">Trees <input id="stTr" type="number" min="0" max="8" step="1" placeholder="0"></label></div>
   <h6>Flip the whole design</h6><div class="dm-row"><button class="btn" id="mirX" type="button">Left ↔ right</button><button class="btn" id="mirZ" type="button">Front ↔ back</button></div>`);
 const roofSeg = document.querySelector('#pePlanPop [data-roof="flat"]').parentElement;
 roofSeg.innerHTML = '<button type="button" data-roof="hip" title="Slopes on every side, worked out from the whole outline">Auto</button><button type="button" data-roof="gable" title="Gable walls at the ends of each wing">Gable</button><button type="button" data-roof="shed" title="One slope rising toward the back">Shed</button><button type="button" data-roof="flat">Flat</button>';
@@ -372,7 +408,10 @@ function syncPlanPop() {
     document.querySelectorAll('[data-eave-g]').forEach(b => { b.setAttribute('aria-pressed', String((b.dataset.eaveG === '1') === g)); b.disabled = flat; });
     document.querySelectorAll('[data-eave-c]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.eaveC === c))); }
   const ov = BM.ov ?? 1.5; document.getElementById('ovR').value = ov; document.getElementById('ovV').textContent = ftin(ov); document.getElementById('ovR').disabled = BM.roof === 'flat';
-  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48); for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
+  const S = BM.site || {}; document.getElementById('stSet').placeholder = toDisp(48);
+  document.querySelectorAll('[data-corner]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.corner === (S.corner || ''))));
+  document.querySelectorAll('[data-drive]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.drive === (S.drive === 'side' ? 'side' : 'front'))));
+  document.getElementById('stCornerMore').hidden = !S.corner; { const i = document.getElementById('stSide'); if (document.activeElement !== i) i.value = S.sideSetback == null ? '' : toDisp(S.sideSetback); } for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) { const i = document.getElementById(id); if (document.activeElement !== i) i.value = S[k] == null ? '' : k === 'trees' ? S[k] : toDisp(S[k]); }
 }
 // the roof edge: fascia size, gutters, colour (BM.eave; see ROOF_EDGE in roof.js)
 const setEave = patch => { pushHist(); BM.eave = { ...(BM.eave || {}), ...patch }; syncPlanPop(); planChanged(false); };
@@ -383,7 +422,14 @@ document.getElementById('pitchR').onpointerdown = () => pushHist();
 document.getElementById('ovR').onpointerdown = () => pushHist();
 document.getElementById('ovR').oninput = e => { BM.ov = +e.target.value; document.getElementById('ovV').textContent = ftin(BM.ov); clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
 document.getElementById('pitchR').oninput = e => { BM.pitch = +e.target.value; document.getElementById('pitchV').textContent = `${BM.pitch}:12`; clearTimeout(e.target.t); e.target.t = setTimeout(() => planChanged(false), 150); };
-for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2); planChanged(false); };
+for (const [id, k] of [['stSet', 'setback'], ['stLW', 'lotW'], ['stLD', 'lotD'], ['stOX', 'offsetX'], ['stTr', 'trees']]) document.getElementById(id).onchange = e => { pushHist(); BM.site = { ...(BM.site || {}) }; if (e.target.value === '') delete BM.site[k]; else BM.site[k] = k === 'trees' ? Math.max(0, Math.min(8, +e.target.value)) : +fromDisp(+e.target.value).toFixed(2);
+  if (k === 'trees') { BM.items = (BM.items || []).filter(i => !i.auto); BM.site.treesPlaced = false; seedTrees(BM); } // the starting trees again, this many; the ones you added stay
+  planChanged(false); };
+// corner lot: which side the second street runs down, and which street the driveway goes to
+const setSite = patch => { pushHist(); BM.site = { ...(BM.site || {}), ...patch }; for (const k in patch) if (patch[k] == null || patch[k] === '') delete BM.site[k]; syncPlanPop(); planChanged(false); };
+document.querySelectorAll('[data-corner]').forEach(b => b.onclick = () => setSite({ corner: b.dataset.corner || null, ...(b.dataset.corner ? {} : { drive: null }) }));
+document.querySelectorAll('[data-drive]').forEach(b => b.onclick = () => setSite({ drive: b.dataset.drive === 'side' ? 'side' : null }));
+document.getElementById('stSide').onchange = e => { const v = e.target.value === '' ? null : fromDisp(+e.target.value); if (v != null && !(v >= 5 && v <= 200)) return syncPlanPop(); setSite({ sideSetback: v == null ? null : snapH(v) }); };
 document.getElementById('mirX').onclick = () => mirrorPlan('x'); document.getElementById('mirZ').onclick = () => mirrorPlan('z');
 
 // ---------- keys ----------
@@ -397,9 +443,9 @@ addEventListener('keydown', e => {
   else if (k === 'escape' && (PE.tool || PE.multi.size || PE.selX)) { setTool(null); PE.multi.clear(); selectX(null); }
   else if (!mod && k === 'r' && curItem()) { pushHist(); curItem().rot = (curItem().rot + 1) % 4; planChanged(); }
   else if (!mod && e.key.startsWith('Arrow') && (curItem() || curNote())) { e.preventDefault(); e.stopImmediatePropagation(); const t = curItem() || curNote(), st = e.shiftKey ? 2 : .5; pushHist();
-    t.x += e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0; t.z += e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0; planChanged(); }
+    t.x += e.key === 'ArrowLeft' ? st : e.key === 'ArrowRight' ? -st : 0; t.z += e.key === 'ArrowUp' ? st : e.key === 'ArrowDown' ? -st : 0; planChanged(); }
   else if (!mod && e.key.startsWith('Arrow') && PE.multi.size > 1) { e.preventDefault(); e.stopImmediatePropagation(); const st = e.shiftKey ? 2 : .5; pushHist();
-    for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? -st : e.key === 'ArrowRight' ? st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? -st : e.key === 'ArrowDown' ? st : 0)).toFixed(2); } planChanged(); }
+    for (const r of BM.rooms.filter(r => PE.multi.has(r.id))) { r.x = +(r.x + (e.key === 'ArrowLeft' ? st : e.key === 'ArrowRight' ? -st : 0)).toFixed(2); r.z = +(r.z + (e.key === 'ArrowUp' ? st : e.key === 'ArrowDown' ? -st : 0)).toFixed(2); } planChanged(); }
 }, true);
 
 // ---------- automatic dimension strings: room-by-room chains on the top and left, overall size outside them ----------

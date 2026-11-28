@@ -129,6 +129,7 @@ function furnishRoom(F, r, y) {
     for (let p = x0 + .8; p < Math.min(x1 - .5, x0 + 5.7); p += 1.1) cyl(F, p, z0 + .5, .06, y + 4.3, y + 4.5, M.black, 6); rug(F, [x0 + 1, x1 - 1, cz, z1 - .8], y, rugM); return; }
   if (t === 'theatre' && W >= 10) { for (const [row, hh] of [[cz - 1, 0], [cz + 2.6, .6]]) { if (hh) box(F, x0 + .3, x1 - .3, y, y + hh, row - .2, z1 - .3, M.carpet, { walk: true }); for (let k = 0; k < Math.floor((W - 2) / 2.8); k++) sofa(F, [x0 + 1 + k * 2.8, x0 + 3.4 + k * 2.8, row, row + 2.6], y + hh, 's', M.leather); }
     box(F, cx - Math.min(5, W / 2 - 1), cx + Math.min(5, W / 2 - 1), y + 1.5, y + 7, z0 + .1, z0 + .2, M.white); return; }
+  if (t === 'foyer') return; // the way in stays clear
   if (t === 'hall' || t === 'foyer') { if (W >= 6 && D >= 6) { bx(F, [cx - 2, cx + 2, z0 + .3, z0 + 1.4], y, y + 2.8, pick(R, WOODS), { solid: true }); art(F, cx, z0 + .02, y + 4.6, 3, 2, R); plant(F, cx + 2.8, z0 + .9, y, R, false);
       rug(F, [cx - Math.min(3, W / 2 - 1), cx + Math.min(3, W / 2 - 1), z0 + 2.5, z1 - 1], y, rugM); } else if (D >= 10 && W >= 3.5) rug(F, [x0 + .8, x1 - .8, z0 + 1.5, z1 - 1.5], y, rugM); return; }
   if (t === 'storage') { shelving(F, [x0 + .3, x1 - .3, z0 + .2, z0 + 1.9], y, 's'); return; }
@@ -150,13 +151,29 @@ function conflicts(g, zones, y) { // how many furniture pieces sit in a keep-cle
     for (const z of zones) if (_fb.max.x > z.x0 && _fb.min.x < z.x1 && _fb.max.z > z.z0 && _fb.min.z < z.z1 && _fb.max.y > z.yMin) { n++; break; } });
   return n;
 }
-// Furnish a room: if you haven't turned it yourself, try each orientation (and a second layout) and keep the one that blocks the fewest doors, openings and windows.
+// Every layout stands its cabinets, beds, sofas and vanities against its "back" wall (local z0). Which side of the room that is
+// for each quarter turn (layoutGroup turns the group by -rot × 90°): north (smaller z), east, south, west.
+const BACK_SIDE = ['-z', '+x', '+z', '-x'];
+// How much of that side has no wall: the share of it open to a neighbouring room (a kitchen open to the dining room, say).
+function sideOpen(r, side) {
+  const ax = side[1] === 'z', c = side === '-z' ? r.z : side === '+z' ? r.z + r.d : side === '-x' ? r.x : r.x + r.w;
+  const a0 = ax ? r.x : r.z, a1 = ax ? r.x + r.w : r.z + r.d; let open = 0;
+  for (const o of BM.rooms) {
+    if (o === r || o.id === r.id || o.level !== r.level || isOut(o)) continue;
+    const o0 = ax ? o.z : o.x, o1 = ax ? o.z + o.d : o.x + o.w; if (Math.abs(o0 - c) > .3 && Math.abs(o1 - c) > .3) continue;
+    const s0 = Math.max(a0, ax ? o.x : o.z), s1 = Math.min(a1, ax ? o.x + o.w : o.z + o.d); if (s1 - s0 > .05 && wallMode(r, o) === 'open') open += s1 - s0;
+  }
+  return open / Math.max(.1, a1 - a0);
+}
+// Furnish a room: if you haven't turned it yourself, try each orientation (and a second layout) and keep the one that blocks the
+// fewest doors, openings and windows, never one that stands its back-wall pieces along an open side, where there is no wall.
 function furnish(F, r, y, zones = []) {
   const near = zones.filter(z => z.x1 > r.x - .5 && z.x0 < r.x + r.w + .5 && z.z1 > r.z - .5 && z.z0 < r.z + r.d + .5);
+  const noWall = BACK_SIDE.map(sd => sideOpen(r, sd) > .3 ? 100 : 0);
   const tries = r.rot !== undefined ? [[r.rot, r.var || 0]] : [0, 1, 2, 3].map(k => [k, r.var || 0]).concat([0, 1, 2, 3].map(k => [k, (r.var || 0) + 1]));
   let best = null;
   for (const [rot, vr] of tries) {
-    const g = layoutGroup(r, y, rot, vr), sc = near.length ? conflicts(g, near, y) : 0;
+    const g = layoutGroup(r, y, rot, vr), sc = (r.rot !== undefined ? 0 : noWall[((rot % 4) + 4) % 4]) + (near.length ? conflicts(g, near, y) : 0);
     if (!best || sc < best.sc) { if (best) dropLayout(best.g); best = { g, sc }; } else dropLayout(g);
     if (best.sc === 0) break;
   }
