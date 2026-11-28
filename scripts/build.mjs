@@ -24,8 +24,10 @@ writeFileSync('walkthru.html', `${head}<style>\n${css}</style>\n${body}<script t
 // 2. site
 mkdirSync('site/assets', { recursive: true });
 for (const f of readdirSync('site/assets')) rmSync(`site/assets/${f}`);
-for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/assets/og.png', 'og.png'], ['src/assets/walkthru-mark.png', 'walkthru-mark.png'], ['src/assets/favicon.svg', 'favicon.svg'], ['src/assets/icon-96.png', 'icon-96.png'], ['src/assets/icon-32.png', 'icon-32.png'], ['src/assets/apple-icon.png', 'apple-icon.png'], ['src/assets/home-render.jpg', 'home-render.jpg'], ['src/assets/home-plan.jpg', 'home-plan.jpg'], ['src/assets/home-walk.jpg', 'home-walk.jpg']]) copyFileSync(from, `site/${to}`);
-mkdirSync('site/media', { recursive: true }); for (const f of readdirSync('src/assets/media')) copyFileSync(`src/assets/media/${f}`, `site/media/${f}`); // the landing page's demo videos and poster
+for (const [from, to] of [['src/landing.html', 'index.html'], ['src/account.html', 'account.html'], ['src/track.js', 'track.js'], ['src/assets/og.png', 'og.png'], ['src/assets/walkthru-mark.png', 'walkthru-mark.png'], ['src/assets/favicon.svg', 'favicon.svg'], ['src/assets/icon-96.png', 'icon-96.png'], ['src/assets/icon-32.png', 'icon-32.png'], ['src/assets/apple-icon.png', 'apple-icon.png'], ['src/assets/home-render.jpg', 'home-render.jpg'], ['src/assets/home-plan.jpg', 'home-plan.jpg'], ['src/assets/home-plan-dark.jpg', 'home-plan-dark.jpg'], ['src/assets/home-walk.jpg', 'home-walk.jpg'], ['src/assets/upload-plan.svg', 'upload-plan.svg']]) copyFileSync(from, `site/${to}`);
+mkdirSync('site/media', { recursive: true });
+for (const f of readdirSync('site/media')) if (/\.(mp4|webm|mov)$/i.test(f)) rmSync(`site/media/${f}`); // video is on Cloudinary, not this deploy
+for (const f of readdirSync('src/assets/media')) if (!/\.(mp4|webm|mov)$/i.test(f)) copyFileSync(`src/assets/media/${f}`, `site/media/${f}`); // poster only; the mp4 stays in git
 
 mkdirSync('.build', { recursive: true });
 writeFileSync('.build/playground.js', code.replaceAll("'three/addons/", "'three/examples/jsm/"));
