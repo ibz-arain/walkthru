@@ -368,7 +368,7 @@ document.getElementById('pePlanPop').insertAdjacentHTML('beforeend', `
   <h6>Overhang <output id="ovV" class="pop-out"></output></h6><input type="range" id="ovR" min="0" max="3" step=".25" class="pop-range">
   <h6>Roof edge</h6>
   <div class="seg full" id="eaveF"><button type="button" data-eave-f="slim" title="A 1×6 fascia board">Slim</button><button type="button" data-eave-f="standard" title="A 1×8 fascia board">Standard</button><button type="button" data-eave-f="deep" title="A 1×10 fascia board">Deep</button></div>
-  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves, with downspouts">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
+  <div class="seg full" id="eaveG" style="margin-top:6px"><button type="button" data-eave-g="1" title="Gutters on the level eaves">Gutters</button><button type="button" data-eave-g="0" title="A bare fascia, no gutters">No gutters</button></div>
   <div class="fld fld-stack" style="margin-top:6px">Fascia and gutter colour <div class="chips" id="eaveC">${Object.entries(EDGE_COLORS).map(([k, c]) => `<button type="button" data-eave-c="${k}" title="${k[0].toUpperCase() + k.slice(1)}" style="background:${c}"></button>`).join('')}</div></div>
   <h6>Site</h6>
   <label class="fld"><span>Distance to the street (<span class="u-len">ft</span>)</span> <input id="stSet" type="number" step="any"></label>

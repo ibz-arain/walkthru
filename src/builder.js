@@ -869,7 +869,6 @@ function buildHouse3() {
     } }
   for (const r of ownRoof) { const x0 = r.x - e, x1 = r.x + r.w + e, z0 = r.z - e, z1 = r.z + r.d + e; // ridge runs front to back: a gable end faces the street
     hipRoof(G3.roof, { x0, x1, z0: z0 - 1.4, z1, plate: MC + .03, pitch, ov: 1.4, slopes: { e: true, w: true }, mat: rmo.roofMat, soffit: rmo.soffitMat, wall: CLAD()[r.clad] || gw, gables: [{ edge: 'n', at: z0 }, { edge: 's', at: z1 }] }); }
-  roofSpouts(G3.roof);
   // front gables (same pitch as the main roof, so each one dies into it a few feet back)
   for (const gb of BM.extras?.gables || []) hipRoof(G3.roof, { x0: gb.x0, x1: gb.x1, z0: gb.z0, z1: gb.z1, plate: gb.plate + .05, pitch: (gb.pitch || 7) / 12, ov: gb.ov ?? 1.2, slopes: { e: true, w: true }, wall: gb.wall === 'siding' ? M.dsiding : gb.wall === 'stone' ? M.fstone : M.batten,
     gables: [{ edge: 'n', at: gb.z0 + (gb.at ?? 1.05) }, ...(gb.back ? [{ edge: 's', at: gb.z1 }] : [])] });
