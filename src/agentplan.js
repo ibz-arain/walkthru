@@ -199,6 +199,19 @@ function flightFits(inside, s) {
   const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12, ok = (x, z) => { const r = agentAt(inside, s.level, x, z); return !!r && AGENT_LANDING.has(r.type); };
   return [[L, W], [W, L]].some(([a, b]) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => ok(cx + i * (a / 2 - .3), cz + j * (b / 2 - .3))));
 }
+// One way round, the flight stands in stair rooms on its own floor AND its opening on the floor above lands in them too (the
+// builder cuts the whole W × L box out of the floor above, so a flight whose centre is in a hall can still open into a bedroom).
+function flightFitsBoth(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
+  const fits = (lv, a, b) => [[-1, -1], [1, -1], [-1, 1], [1, 1]].every(([i, j]) => { const r = agentAt(inside, lv, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); return !!r && AGENT_LANDING.has(r.type); });
+  return [[L, W], [W, L]].some(([a, b]) => fits(s.level, a, b) && (!up || fits(up, a, b)));
+}
+// the first room that isn't a hall or open room under the corners of the opening above, either way round
+function openingHits(inside, s, up) {
+  const [cx, cz] = stairXY(s), W = s.W ?? 3.5, L = s.L ?? 12;
+  for (const [a, b] of [[L, W], [W, L]]) for (const [i, j] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const r = agentAt(inside, up, cx + i * (a / 2 - .3), cz + j * (b / 2 - .3)); if (r && !AGENT_LANDING.has(r.type)) return r; }
+  return null;
+}
 // The stair starts in a hall or open room, and (when the floor above has rooms) comes up in one.
 export function agentStairOk(plan, s) {
   const inside = agentInsideRooms(plan), [cx, cz] = stairXY(s), up = agentUp(s.level);
@@ -207,7 +220,7 @@ export function agentStairOk(plan, s) {
   if (!flightFits(inside, s)) return false; // the flight pokes out through a wall, or into the ground
   if (!up || !inside.some(r => r.level === up)) return true;
   const above = agentAt(inside, up, cx, cz);
-  return !!above && AGENT_LANDING.has(above.type);
+  return !!above && AGENT_LANDING.has(above.type) && flightFitsBoth(inside, s, up);
 }
 // The best centre for a W × L flight on `level`: inside a hall or open room there, under a hall or open room on the floor
 // above, with 2 ft to step on at its foot, clear of other stairs, and nearest to (nx, nz). Null when there is no such place.
@@ -227,7 +240,7 @@ export function agentStairSpot(plan, level, W, L, nx, nz, skip, below) { // belo
     cx = +cx.toFixed(2); cz = +cz.toFixed(2);
     if (others.some(o => { const [ox, oz] = stairXY(o); return Math.abs(ox - cx) < (W + (o.W ?? 3.5)) / 2 + .5 && Math.abs(oz - cz) < (L + (o.L ?? 12)) / 2; })) return;
     if (!flightFits(inside, { level, cx, cz, W, L })) return;
-    if (highs && !flightFits(inside, { level: up, cx, cz, W, L })) return; // the opening above lands in halls too
+    if (highs && !flightFitsBoth(inside, { level, cx, cz, W, L }, up)) return; // the opening above lands in halls too, the same way round
     if (stairClash(plan, { level, cx, cz, W, L }, skip)) return;
     if (below && !flightFits(inside, { level: 'B', cx, cz, W: below.W, L: below.L })) return;
     const dist = Math.hypot(cx - nx, cz - nz);
@@ -326,7 +339,7 @@ function agentEmpty(on, where) {
 
 // How each floor reads as a house: no empty space, upper rooms over the floor below, no long strips, no loose rooms,
 // and stairs that start and arrive in a hall or open room.
-function agentLayout(rooms, stairs) {
+function agentLayout(rooms, stairs, site) {
   const out = [], inside = rooms.filter(r => !AGENT_OUTSIDE.has(r.type)), main = inside.filter(r => r.level === 'M');
   for (const lv of new Set(inside.map(r => r.level))) {
     const on = inside.filter(r => r.level === lv), where = AGENT_LV[lv] || lv;
@@ -356,6 +369,21 @@ function agentLayout(rooms, stairs) {
     const above = agentAt(inside, up, cx, cz), there = AGENT_LV[up] || up;
     if (!above) out.push(`Stair ${s.id} comes up into empty space on the ${there}. Put a hall over it.`);
     else if (!AGENT_LANDING.has(above.type)) out.push(`Stair ${s.id} comes up inside ${agentLabel(above)} on the ${there}. Put a hall over it.`);
+    else if (here && AGENT_LANDING.has(here.type) && flightFits(inside, s) && !flightFitsBoth(inside, s, up)) {
+      const hit = openingHits(inside, s, up);
+      out.push(`Stair ${s.id}'s opening on the ${there} cuts into ${hit ? agentLabel(hit) : 'a room'}: the whole ${W} × ${L} ft flight needs a hall above it. Move the stair, or make the hall above cover it.`);
+    }
+  }
+  // last, as it matters least: a garage faces the street (the front, smaller z): its front wall is outside and at the front of the house, so the garage door
+  // and the driveway reach the road. A corner lot with the driveway on the side street is the exception.
+  if (main.length >= 2 && !(site?.corner && site?.drive === 'side')) {
+    const frontZ = Math.min(...main.map(r => r.z));
+    for (const g of main.filter(r => r.type === 'garage')) {
+      let open = [[g.x, g.x + g.w]]; // the parts of its front edge with no room in front
+      for (const o of main) if (o !== g && o.z < g.z - .3 && o.z + o.d > g.z - .3) open = open.flatMap(([a, b]) => { const c = Math.max(a, o.x), d = Math.min(b, o.x + o.w); return d - c < .05 ? [[a, b]] : [[a, c], [d, b]].filter(([p, q]) => q - p > .05); });
+      const free = Math.max(0, ...open.map(([a, b]) => b - a));
+      if (free < 10 || g.z - frontZ > 8) out.push(`${agentLabel(g)} does not face the street: a garage goes at the front of the main floor, at one side, with its front edge on the street side (z ${ft(frontZ)}) so its door and driveway reach the road. Move it there.`);
+    }
   }
   return out;
 }
@@ -369,7 +397,7 @@ export function agentIssues(plan, limit = 10) {
     const a = rooms[i], b = rooms[j];
     if (a.level === b.level && agentOverlap(a, b)) out.push(`${agentLabel(a)} overlaps ${agentLabel(b)} on the ${AGENT_LV[a.level] || a.level}.`);
   }
-  out.push(...agentLayout(rooms, stairs));
+  out.push(...agentLayout(rooms, stairs, plan?.site));
   if (levels.has('U') && !stairs.some(s => s.level === 'M')) out.push('The second floor has no stair up from the main floor.');
   if (levels.has('B') && !stairs.some(s => s.level === 'B')) out.push('The basement has no stair up to the main floor.');
   return out.slice(0, limit);
@@ -639,7 +667,7 @@ export function agentApplied(steps) {
 }
 // A repair that left the plan with as many problems as before (or more) is undone: a failed fix must not make things worse.
 // How bad a plan is: overlaps weigh most, then rooms over nothing and stair problems, then gaps, notches, and loose rooms.
-export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair/.test(i) ? 2 : 1), 0);
+export const agentBadness = plan => agentIssues(plan, Infinity).reduce((a, i) => a + (/overlaps/.test(i) ? 3 : /over nothing|not inside a room|comes up|starts inside|no stair|cuts into|face the street/.test(i) ? 2 : 1), 0);
 export const agentRepairFailed = (fixing, acted, before, plan) => fixing && acted && agentBadness(plan) >= before;
 export const AGENT_REVERTED = 'I couldn’t improve the plan this time, so I put it back the way it was. Try one fix at a time, like “close the gap between Living and Hall”.';
 export const agentLeftNote = left => `Still to fix: ${left.slice(0, 3).map(i => i.replace(/\.$/, '').replace(/\. .*$/, '')).join('; ')}${left.length > 3 ? `; and ${left.length - 3} more` : ''}. Ask me to fix them, or adjust them in the plan.`;

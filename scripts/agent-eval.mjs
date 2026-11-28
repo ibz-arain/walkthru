@@ -3,6 +3,7 @@
 //   --model NAME          set AGENT_MODEL         --backup NAME|none  set AGENT_BACKUP_MODEL
 //   --drawing plan.png    add a "build this drawing" case (PNG, JPEG, WebP, GIF, or PDF)
 //   --pause 6             seconds between requests, to stay under a free tier's per-minute limit
+//   --start plan.json --text "…"   add a case: your request on your plan (--only custom to run just it)
 // It runs the real /api/agent handler in-process with the key from .env, and the same pass loop as the chat
 // (agentPass / agentNext in src/agentplan.js). Each request counts against the model's quota.
 // Results print as a table and are saved to .data/agent-eval/<time>.json for comparing models and prompt changes.
@@ -86,6 +87,14 @@ const CASES = [
       beds(p, 'M').length < 3 && `${beds(p, 'M').length} bedrooms, wanted 3`,
       !p.rooms.some(r => r.type === 'garage') && 'no garage',
     ] },
+  { id: 'ranch', start: EMPTY, text: 'Build a 3 story home, raised ranch, with 5 beds and 3 bathrooms', // the landing page video's request
+    check: p => [
+      beds(p).length !== 5 && `${beds(p).length} bedrooms, wanted 5`,
+      p.rooms.filter(r => ['bath', 'ensuite'].includes(r.type)).length < 3 && 'fewer than 3 bathrooms',
+      ['B', 'M', 'U'].some(l => !p.rooms.some(r => r.level === l)) && 'not three floors',
+      !p.stairs.some(s => s.level === 'M') && 'no stair from the main floor',
+      !p.stairs.some(s => s.level === 'B') && 'no stair from the basement',
+    ] },
   { id: 'narrow', start: HOUSE, text: 'Make the living room 4 feet narrower.',
     check: (p, s) => [named(p, 'Living')?.w !== named(s, 'Living').w - 4 && `living is ${named(p, 'Living')?.w} ft wide, wanted ${named(s, 'Living').w - 4}`,
       p.rooms.length !== s.rooms.length && 'room count changed'] },
@@ -164,6 +173,9 @@ async function runCase(c) {
   return r;
 }
 
+// --start plan.json --text "…": one request of your own on your own plan (scored on plan issues only)
+if (opt.start || opt.text) { const f = opt.start && JSON.parse(readFileSync(String(opt.start), 'utf8')); const bm = f?.bm || f;
+  CASES.push({ id: 'custom', start: () => JSON.parse(JSON.stringify(bm || EMPTY())), text: String(opt.text || 'Fix the layout problems in this house.'), check: () => [] }); }
 // ---------- run and report ----------
 const only = opt.only ? String(opt.only).split(',') : null, runs = Math.max(1, +opt.runs || 1), pause = Math.max(0, +opt.pause || 0) * 1000;
 const cases = CASES.filter(c => !only || only.includes(c.id));

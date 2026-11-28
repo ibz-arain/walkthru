@@ -504,9 +504,16 @@ function stairFits(S, dir) { // the flight stays inside one room (or rooms open 
   const rs = pts.map(p => roomAt3(S.level, ...p)); if (rs.some(q => !q)) return 0;
   return rs.every(q => q === rs[0] || wallMode(q, rs[0]) === 'open') ? 2 : 1;
 }
+// the whole opening cut in the floor above lands in a hall or open room (not a bedroom or bath), or there is nothing above yet
+const STAIR_ROOMS = new Set(['hall', 'foyer', 'open', 'great', 'living', 'rec', 'mud']);
+function openingClear(S, dir) {
+  const up = stairUp(S); if (!up || !BM.rooms.some(o => o.level === up && !isOut(o))) return true;
+  const r = stairRect(S, dir);
+  return [[r.x + .3, r.z + .3], [r.x + r.w - .3, r.z + .3], [r.x + .3, r.z + r.d - .3], [r.x + r.w - .3, r.z + r.d - .3]].every(p => { const q = roomAt3(up, ...p); return !q || STAIR_ROOMS.has(q.type); });
+}
 function stairScore(S, dir) {
   const e = stairEnds(S, dir), a = roomAt3(S.level, ...e.start), b = roomAt3(S.level, ...e.startIn), t = roomAt3(stairUp(S), ...e.top);
-  return stairFits(S, dir) * 4 + (a ? 2 : 0) + (a && b && (a === b || wallMode(a, b) === 'open') ? 2 : 0) + (t ? 3 : 0);
+  return stairFits(S, dir) * 4 + (a ? 2 : 0) + (a && b && (a === b || wallMode(a, b) === 'open') ? 2 : 0) + (t ? 3 : 0) + (openingClear(S, dir) ? 5 : 0);
 }
 const OPP_DIR = { '+x': '-x', '-x': '+x', '+z': '-z', '-z': '+z' };
 function stairDirOf(S) { if (S.dir) return S.dir;

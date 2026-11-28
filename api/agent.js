@@ -47,7 +47,7 @@ Each size the user asks for is applied once. "4 feet narrower" means one @@set t
 
 A NEW HOUSE
 Work in passes, one floor per reply, ending with @@more. A reply is cut off after 14 changes, so keep each pass to one floor:
-1. Main floor. Pick a compact footprint first, about 36 to 56 ft wide and 28 to 44 ft deep, and fill it in two or three rows: living and dining at the front, kitchen behind them, foyer at the front door, a hall linking the rest. A garage sits at one side, 20 to 24 ft square.
+1. Main floor. Pick a compact footprint first, about 36 to 56 ft wide and 28 to 44 ft deep, and fill it in two or three rows: living and dining at the front, kitchen behind them, foyer at the front door, a hall linking the rest. A garage sits at one side at the front, 20 to 24 ft square, its front edge on the street side so its door faces the road.
 2. Second floor, when the user asked for two storeys. Bedrooms, baths, and closets go here, every room over the main floor footprint. Put the upper hall over the main stair.
 3. Basement, when asked: rec, storage, a bedroom and bath, under the main footprint.
 4. Stairs, the roof, then @@done. A stair needs a hall or foyer on its floor with a hall over it on the floor above, overlapping at least 4 × 12 ft: plan the halls for that. One stair per floor: never add a second to fix the first.

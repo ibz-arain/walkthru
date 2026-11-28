@@ -59,6 +59,8 @@ h1{font-size:clamp(36px,5.6vw,64px);line-height:1.03;letter-spacing:-.04em;font-
 .shots{display:grid;grid-template-columns:1.65fr 1fr;grid-template-rows:1fr 1fr;gap:12px;padding-bottom:28px;aspect-ratio:2.05/1}
 .shot{position:relative;margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--rule);background:var(--paper);box-shadow:0 1px 2px rgba(16,16,24,.04),0 20px 40px -24px rgba(16,16,24,.25)}
 .shot img{display:block;width:100%;height:100%;object-fit:cover}
+.film{margin:0 0 56px;border-radius:14px;overflow:hidden;border:1px solid var(--rule);background:#0b0b0d;box-shadow:0 1px 2px rgba(16,16,24,.04),0 30px 60px -30px rgba(16,16,24,.35)}
+.film video{display:block;width:100%;height:auto;aspect-ratio:16/9}
 .shot.big{grid-row:1 / 3}
 .shot.plan{background:#fff}
 .shot.plan img{object-fit:contain;padding:4%}
@@ -108,7 +110,14 @@ h1{font-size:clamp(36px,5.6vw,64px);line-height:1.03;letter-spacing:-.04em;font-
     <figure class="shot plan"><img src="/home-plan.jpg" alt="Main floor plan of the same house with room names and sizes" width="1200" height="943" loading="lazy"><figcaption>Floor plan</figcaption></figure>
     <figure class="shot"><img src="/home-walk.jpg" alt="First-person view inside the double-height great room, looking past a dining table under pendant lights to the TV over the stone fireplace" width="1200" height="750" loading="lazy"><figcaption>Walk inside</figcaption></figure>
   </section>
+
+  <figure class="film"><video id="film" muted loop playsinline preload="none" poster="/media/walkthru.jpg" aria-label="The design agent building a three-storey home from one sentence, then a walk inside"><source src="/media/walkthru.mp4" type="video/mp4"></video></figure>
 </main>
+<script>
+{ const v = document.getElementById('film');
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) v.controls = true;
+  else new IntersectionObserver(([e]) => { if (e.isIntersecting) { v.preload = 'auto'; v.play().catch(() => { v.controls = true; }); } else v.pause(); }, { threshold: .35 }).observe(v); }
+</script>
 
 <footer class="foot">
   <div class="wrap">

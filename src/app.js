@@ -157,7 +157,7 @@ function autoView(v) {
 //  WALK MODE
 // =====================================================================
 const player = { x: 15.9, z: -18, feet: 0, yaw: Math.PI, pitch: -0.05, vy: 0 };
-const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
+const keys = {}; let colliders = []; window.__house = { player, keys, renderer, scene, camera, roofGroup: () => G3.roof, cols: () => colliders, step: dt => stepWalk(dt), view: v => goView(v, true), rebuild: () => rebuildHouse3(), bm: () => BM, setBM: b => { BM = b; resetBID(); normalizeStairs(BM); rebuildHouse3(); }, draw: (p, t) => { if (p) { camera.position.set(...p); controls.target.set(...t); } controls.update(); renderer.render(scene, camera); labelRenderer.render(scene, camera); } };
 function buildColliders() {
   scene.updateMatrixWorld(true); colliders = [];
   scene.traverse(o => {
