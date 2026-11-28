@@ -381,10 +381,10 @@ export function agentBrief(plan, checks) {
   const stairs = (Array.isArray(plan?.stairs) ? plan.stairs : []).slice(0, 20);
   const walls = plan?.walls && typeof plan.walls === 'object' ? Object.entries(plan.walls).slice(0, 40) : [];
   const floors = Array.isArray(plan?.levels?.extra) ? plan.levels.extra.map(e => e && `${e.id} (${e.name || e.id})`).filter(Boolean) : [];
-  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left is the smaller x, right is the larger x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
+  const lines = [`roof ${AGENT_ROOF.has(plan?.roof) ? plan.roof : 'hip'}`, 'Front is the smaller z, back is the larger z. Left and right are as seen from the street, as the plan shows them: left is the larger x, right is the smaller x. Growing a room pushes the rooms on that side out, shrinking pulls them in, and the floors above and below follow. Rooms stay separate.'];
   if (floors.length) lines.push(`extra floors: ${floors.join(', ')}`);
   lines.push(rooms.length ? 'rooms:' : 'rooms: none');
-  const sideWord = { east: 'right', west: 'left', south: 'back', north: 'front' };
+  const sideWord = { east: 'left', west: 'right', south: 'back', north: 'front' }; // as seen from the street (the plan is drawn that way)
   for (const r of rooms) {
     const neighbours = rooms.map(o => agentTouch(r, o)).filter(Boolean).slice(0, 4)
       .map(t => `${sideWord[t.side] || t.side}: ${agentLabel(t.room)} #${t.room.id} ${t.room.w}x${t.room.d}`).join(', ');

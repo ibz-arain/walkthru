@@ -188,8 +188,7 @@ function syncMe() {
 }
 document.querySelectorAll('[data-hpre]').forEach(b => b.onclick = () => { setMe({ h: +b.dataset.hpre }); syncMe(); });
 $u('meH').oninput = e => { setMe({ h: +e.target.value / 12 }); syncMe(); };
-$u('mePlay').onclick = () => { closePops(); fadeCut(() => setMode('walk')); };
-$u('peg').addEventListener('pointerup', () => setTimeout(closePops, 0));
+$u('mePlay').onclick = () => { closePops(); fadeCut(() => { if (mode === 'walk') exitWalk(); enterWalk(HOUSES[curHouse].front, false); }); }; // back to the front door, facing in, wherever you were
 
 // ---------- measure ----------
 const MEAS = { on: false, a: null, down: null, group: new THREE.Group() }; scene.add(MEAS.group);

@@ -156,6 +156,11 @@ function agentChecks() {
   try {
     for (const S of BM.stairs || []) { const st = stairStatus(S); if (!st.ok) out.push(`Stair ${S.id} on the ${LV_NAME[S.level]}: ${st.msg.replace(/ or ↻ rotate (it|them)$/, '')}.`); }
     for (const r of BM.rooms) if (!lvOK(r.type, r.level)) out.push(`${r.name || r.type} #${r.id} is on the wrong floor for a ${r.type}.`);
+    for (const it of BM.items || []) if (OUTDOOR.has(it.kind)) { // a yard piece set down inside the house
+      const [w, d] = itemDims(it), x0 = it.x - w / 2, x1 = it.x + w / 2, z0 = it.z - d / 2, z1 = it.z + d / 2;
+      const r = BM.rooms.find(q => q.level === 'M' && !RT[q.type]?.outdoor && x0 < q.x + q.w - .3 && x1 > q.x + .3 && z0 < q.z + q.d - .3 && z1 > q.z + .3);
+      if (r) out.push(`The ${CATALOG[it.kind][0].toLowerCase()} sits inside ${r.name || r.type}. Move it out into the yard.`);
+    }
   } catch { /* checks are a help, never a blocker */ }
   return out.slice(0, 8);
 }

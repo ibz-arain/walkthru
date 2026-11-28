@@ -5,10 +5,19 @@
 // =====================================================================
 const PE = { guide: {}, lv: 'M', sel: null, selWall: null, selStair: null, s: 10, ox: 40, oy: 40, drag: null, hover: null, hist: [], redo: [], open: false, grid: true, dims: true, areas: false };
 const pc = document.getElementById('peCanvas'), px = pc.getContext('2d');
+{ const fill = px.fillText.bind(px), SWAP = { left: 'right', right: 'left', start: 'end', end: 'start', top: 'bottom', bottom: 'top' };
+  // text on the turned canvas: turned back about its own anchor so it reads normally, its alignment swapped so it still
+  // runs the same way across the plan as it was laid out
+  px.fillText = (t, x, y, mw) => { const a = px.textAlign, b = px.textBaseline; px.save(); px.translate(x, y); px.scale(-1, -1); px.textAlign = SWAP[a] || a; px.textBaseline = SWAP[b] || b;
+    if (mw === undefined) fill(t, 0, 0); else fill(t, 0, 0, mw); px.restore(); }; }
 const snapH = v => Math.round(v * 2) / 2; // 6" grid
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const lvRooms = () => BM.rooms.filter(r => r.level === PE.lv);
+// The plan is drawn as you'd see the house standing in the street: front at the bottom, its left on your left. That is the
+// old top-down view turned half way round, so the canvas is rotated 180° (see peSize) and these keep working in "plan
+// space" (x and y measured from the far corner). Pointer positions come in through planX / planY, and text is turned back.
 const W2S = (x, z) => [x * PE.s + PE.ox, z * PE.s + PE.oy];
+const planX = (e, r = pc.getBoundingClientRect()) => r.right - e.clientX, planY = (e, r = pc.getBoundingClientRect()) => r.bottom - e.clientY;
 const S2W = (sx, sy) => [(sx - PE.ox) / PE.s, (sy - PE.oy) / PE.s];
 function peFit() {
   const rs = BM.rooms.length ? BM.rooms : [{ x: 0, z: 0, w: 40, d: 40 }], r = pc.getBoundingClientRect();
@@ -20,7 +29,7 @@ function peSize() {
   const r = pc.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2), w = Math.round(r.width * d), h = Math.round(r.height * d);
   if (!w || !h) return;
   if (pc.width !== w || pc.height !== h) { pc.width = w; pc.height = h; }
-  px.setTransform(d, 0, 0, d, 0, 0); peDraw();
+  px.setTransform(-d, 0, 0, -d, w, h); peDraw(); // turned half way round: the street at the bottom, the house's left on your left
 }
 // The plan area changes height when the bottom strip grows or shrinks (e.g. a room gets selected): keep the canvas in step.
 if (window.ResizeObserver) new ResizeObserver(() => { if (PE.open) peSize(); }).observe(pc.parentElement);
@@ -57,6 +66,36 @@ function warnText(t, x, y) {
   warnBoxes.push([x, y, w]); px.fillStyle = 'rgba(255,255,255,.85)'; px.fillRect(x - w / 2, y - 7, w, 14); px.fillStyle = '#e5484d'; px.fillText(t, x, y + .5);
 }
 function warnBadge(x, y) { px.fillStyle = '#e5484d'; px.beginPath(); px.arc(x - 7, y + 7, 7, 0, Math.PI * 2); px.fill(); px.fillStyle = '#fff'; px.font = '700 10px Inter, system-ui, sans-serif'; px.textAlign = 'center'; px.fillText('!', x - 7, y + 7.5); }
+// '#1d1d21', '#fff' or 'rgb(…)' → [r, g, b]
+function toRGB(c) {
+  c = String(c).trim(); if (c[0] === '#') { const h = c.length === 4 ? c.slice(1).split('').map(x => x + x).join('') : c.slice(1, 7); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+  const m = c.match(/[\d.]+/g); return m ? m.slice(0, 3).map(Number) : [255, 255, 255];
+}
+// The site as the 3D builder last laid it out, under the main floor: you see the house where it sits on the lot.
+function drawSite(s, W, H) {
+  // solid colours, each a tint of the plan's own background: where shapes meet (a crossing, a drive over the sidewalk) the
+  // later one simply covers the earlier, instead of two see-through layers doubling up
+  const bg = toRGB(css('--paper')), tint = (rgb, a) => `rgb(${rgb.map((c, i) => Math.round(c * a + bg[i] * (1 - a))).join(',')})`;
+  const R = ([x0, x1, z0, z1], fill) => { const [a, b] = W2S(x0, z0); px.fillStyle = fill; px.fillRect(a, b, (x1 - x0) * s, (z1 - z0) * s); };
+  px.save();
+  for (const r of SITE2D.roads) R(r, tint([70, 72, 78], .55));
+  for (const r of SITE2D.walks) R(r, tint([196, 196, 202], .32));
+  for (const r of SITE2D.drives) R(r, tint([196, 196, 202], .38));
+  for (const r of SITE2D.paths) R(r, tint([212, 196, 160], .42));
+  for (const r of SITE2D.steps) R(r, tint([196, 196, 202], .5));
+  if (SITE2D.lot) { const [x0, x1, z0, z1] = SITE2D.lot, [a, b] = W2S(x0, z0); px.strokeStyle = 'rgba(92,160,80,.85)'; px.lineWidth = 1.5; px.setLineDash([6, 4]); px.strokeRect(a, b, (x1 - x0) * s, (z1 - z0) * s); px.setLineDash([]); }
+  for (const [x, z, r] of SITE2D.trees) { const [a, b] = W2S(x, z); px.beginPath(); px.arc(a, b, r * s, 0, Math.PI * 2); px.fillStyle = 'rgba(79,122,55,.38)'; px.fill(); px.strokeStyle = 'rgba(79,122,55,.75)'; px.lineWidth = 1; px.stroke();
+    px.beginPath(); px.arc(a, b, Math.max(1.5, .5 * s), 0, Math.PI * 2); px.fillStyle = 'rgba(96,72,48,.9)'; px.fill(); }
+  // name each street where it shows, along its length
+  px.font = '600 11px Inter, system-ui, sans-serif'; px.fillStyle = 'rgba(255,255,255,.7)'; px.textAlign = 'center'; px.textBaseline = 'middle';
+  const [vx0, vz0] = S2W(0, 0), [vx1, vz1] = S2W(W, H);
+  for (const [x0, x1, z0, z1] of SITE2D.roads) {
+    const cx = (Math.max(x0, Math.min(vx0, vx1)) + Math.min(x1, Math.max(vx0, vx1))) / 2, cz = (Math.max(z0, Math.min(vz0, vz1)) + Math.min(z1, Math.max(vz0, vz1))) / 2;
+    if (x1 - x0 > z1 - z0) { const [a, b] = W2S(cx, (z0 + z1) / 2); px.fillText('Street', a, b); }
+    else { const [a, b] = W2S((x0 + x1) / 2, cz); px.save(); px.translate(a, b); px.rotate(Math.PI / 2); px.fillText('Side street', 0, 0); px.restore(); }
+  }
+  px.restore();
+}
 function peDraw() {
   warnBoxes = [];
   const r = pc.getBoundingClientRect(), W = r.width, H = r.height, s = PE.s;
@@ -66,6 +105,7 @@ function peDraw() {
   for (const [step, a] of PE.grid ? [[1, .07], [5, .16]] : []) { if (step * s < 5) continue; px.strokeStyle = `rgba(31,63,209,${a})`; px.lineWidth = 1; px.beginPath();
     for (let x = Math.floor(gx0 / step) * step; x <= gx1; x += step) { const X = Math.round(x * s + PE.ox) + .5; px.moveTo(X, 0); px.lineTo(X, H); }
     for (let z = Math.floor(gz0 / step) * step; z <= gz1; z += step) { const Y = Math.round(z * s + PE.oy) + .5; px.moveTo(0, Y); px.lineTo(W, Y); } px.stroke(); }
+  if (PE.lv === 'M' && SITE2D) drawSite(s, W, H); // the street, sidewalks, driveway, front walk, lot and trees round the house
   // the floor below, dashed, to line things up
   const gm = guideMode(), guideLv = gm === 'none' ? null : gm === 'above' ? levelAbove(PE.lv) : levelBelow(PE.lv);
   const guide = guideLv ? BM.rooms.filter(q => q.level === guideLv) : [];
@@ -89,7 +129,7 @@ function peDraw() {
       for (let i = 1; i < n; i++) { if (alongX) { const x = a + q.w * s * i / n; px.moveTo(x, b + 2); px.lineTo(x, b + q.d * s - 2); } else { const y = b + q.d * s * i / n; px.moveTo(a + 2, y); px.lineTo(a + q.w * s - 2, y); } }
       px.stroke();
       const lab = st.msg ? '' : st.opening ? 'OPEN TO BELOW' : [st.up && 'UP', st.down && 'DOWN'].filter(Boolean).join(' / ');
-      if (lab) { px.fillStyle = '#18181b'; px.font = '600 10px "JetBrains Mono", monospace'; px.fillText(({ '+x': '→ ', '-x': '← ', '+z': '↓ ', '-z': '↑ ' })[sd] + lab, a + q.w * s / 2, b + q.d * s - 9); }
+      if (lab) { px.fillStyle = '#18181b'; px.font = '600 10px "JetBrains Mono", monospace'; px.fillText(({ '+x': '← ', '-x': '→ ', '+z': '↑ ', '-z': '↓ ' })[sd] + lab, a + q.w * s / 2, b + q.d * s - 9); }
       if (st.msg) { px.strokeStyle = '#d33'; px.lineWidth = 2; px.strokeRect(a + 1, b + 1, q.w * s - 2, q.d * s - 2);
         if (q.id === PE.sel) warnText(st.msg, a + q.w * s / 2, b + q.d * s + 13); else warnBadge(a + q.w * s - 2, b + 2); }
     }
@@ -101,10 +141,10 @@ function peDraw() {
       let [tw, th] = measure(), [lx, ly] = labelSpot(q, tw + 10, th + 6, s);
       if (lx === null && (sub || tallTxt)) { const keep = [sub, tallTxt]; sub = ''; tallTxt = ''; [tw, th] = measure(); [lx, ly] = labelSpot(q, tw + 10, th + 6, s); if (lx === null) [sub, tallTxt] = keep, [tw, th] = measure(); } // squeezed: the name alone
       if (lx === null) { px.fillStyle = 'rgba(255,255,255,.88)'; px.fillRect(a + q.w * s / 2 - tw / 2 - 5, b + q.d * s / 2 - th / 2 - 3, tw + 10, th + 6); } // nowhere free: keep it readable on top
-      const X = lx ?? a + q.w * s / 2, Y0 = (ly ?? b + q.d * s / 2) - th / 2 + 8;
+      const X = lx ?? a + q.w * s / 2, Y0 = (ly ?? b + q.d * s / 2) + th / 2 - 8; // the top line: up the mirrored canvas is +y
       px.fillStyle = '#18181b'; px.font = nameF; px.fillText(rname(q), X, Y0);
-      px.font = subF; px.fillStyle = '#5b5b66'; if (sub) px.fillText(sub, X, Y0 + 15);
-      if (tallTxt) { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(tallTxt, X, Y0 + (sub ? 28 : 15)); } });
+      px.font = subF; px.fillStyle = '#5b5b66'; if (sub) px.fillText(sub, X, Y0 - 15);
+      if (tallTxt) { px.font = '600 10px "JetBrains Mono", monospace'; px.fillStyle = isTall(q) ? '#1f3fd1' : '#c0392b'; px.fillText(tallTxt, X, Y0 - (sub ? 28 : 15)); } });
   }
   // walls + openings from the same generator the 3D uses
   for (const w of planLevel(PE.lv)) {
@@ -121,7 +161,7 @@ function peDraw() {
     }
   }
   // staircases: their own layer, drawn over the rooms
-  const ARW = { '+x': '→', '-x': '←', '+z': '↓', '-z': '↑' };
+  const ARW = { '+x': '←', '-x': '→', '+z': '↑', '-z': '↓' }; // the plan is turned half way round: toward the back is up, +x is left
   for (const S of (BM.stairs || [])) {
     const here = S.level === PE.lv, above = stairUp(S) === PE.lv; if (!here && !above) continue;
     const dir = stairDirOf(S), r = stairRect(S, dir), [a, b] = W2S(r.x, r.z), st = stairStatus(S), ax = dir[1] === 'x', n = 14;
@@ -142,7 +182,7 @@ function peDraw() {
     { const fromBelow = (BM.stairs || []).some(o => o !== S && stairUp(o) === PE.lv && ovl(stairRect(o, stairDirOf(o)), r)), t = (turns(S) ? `${ARW[dir]} UP ↺` : `${ARW[dir]} UP`) + (fromBelow ? ' · ↓' : '');
       px.font = '700 12px "JetBrains Mono", monospace'; px.textAlign = 'center'; let tt = t, tw = px.measureText(tt).width + 10; const across = ax ? r.d * s : r.w * s, along = ax ? r.w * s : r.d * s;
       const rot = tw > across && tw <= along ? 1 : 0; if (tw > Math.max(across, along)) { tt = ARW[dir]; tw = px.measureText(tt).width + 10; } // too narrow either way: just the arrow
-      if (rot && !ax) tt = tt.replace(/[↑↓]/g, c => c === '↓' ? '←' : '→'); // the text turns a quarter, so pre-turn the arrows to still point the way the stairs go
+      if (rot && !ax) tt = tt.replace(/[↑↓]/g, c => c === '↑' ? '→' : '←'); // the text turns a quarter, so pre-turn the arrows to still point the way the stairs go
       px.save(); px.translate(a + r.w * s / 2, b + r.d * s / 2); if (rot && !ax) px.rotate(-Math.PI / 2); // runs along the flight when it doesn't fit across it
       px.fillStyle = 'rgba(255,255,255,.9)'; px.fillRect(-tw / 2, -9, tw, 18); px.fillStyle = '#18181b'; px.fillText(tt, 0, .5); px.restore(); }
     if (!turns(S) && stairRail(S) !== 'none') { const sd = flightSides(S, r, dir, PE.lv); px.strokeStyle = '#4c7fd6'; px.lineWidth = 2.5; px.beginPath(); // railings along the flight
@@ -237,7 +277,7 @@ let peTimer = 0;
 function planChanged(redraw = true) { delete BM.extras; saveBM(); if (redraw) peDraw(); peInspector(); clearTimeout(peTimer); peTimer = setTimeout(() => { rebuildHouse3(); }, 260); }
 
 pc.addEventListener('pointerdown', e => {
-  const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
+  const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy);
   try { pc.setPointerCapture(e.pointerId); } catch (er) { }
   if (e.button === 2) { peMenuAt(sx, sy, wx, wz); return; }
   PE.menu = e.pointerType === 'touch'; // a click (or drag) only selects; its menu opens on right-click. Touch has no right-click, so a tap opens it.
@@ -267,7 +307,7 @@ pc.addEventListener('pointerdown', e => {
   PE.sel = null; PE.multi.clear(); peInspector(); PE.drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, ox: PE.ox, oy: PE.oy }; peDraw();
 });
 pc.addEventListener('pointermove', e => {
-  const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy), D = PE.drag;
+  const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy), D = PE.drag;
   if (peToolMove(e, wx, wz)) return;
   if (!D) { const hd = shapeHandleAt(wx, wz); if (hd) { PE.hover = null; pc.style.cursor = 'grab'; peDraw(); return; }
     const se = stairEdgeAt(wx, wz, 6 / PE.s); if (se) { PE.hover = null; pc.style.cursor = se.side === 'n' || se.side === 's' ? 'ns-resize' : 'ew-resize'; peDraw(); return; }
@@ -293,7 +333,7 @@ pc.addEventListener('pointermove', e => {
     }
     peDraw(); peInspector(); return;
   }
-  if (D.kind === 'pan') { PE.ox = D.ox + e.clientX - D.sx; PE.oy = D.oy + e.clientY - D.sy; peDraw(); return; }
+  if (D.kind === 'pan') { PE.ox = D.ox - (e.clientX - D.sx); PE.oy = D.oy - (e.clientY - D.sy); peDraw(); return; }
   if (D.kind === 'wall') {
     let delta = snapH((D.axis === 'x' ? wz : wx) - D.start);
     for (const b of D.base) { const size = D.axis === 'x' ? b.d : b.w; if (b.side === 'w' || b.side === 'n') delta = Math.min(delta, size - 3); else delta = Math.max(delta, 3 - size); }
@@ -370,7 +410,7 @@ function pickWall(D) {
   PE.selWall = lo && hi ? { A: lo.q, B: hi.q, axis: D.axis, c: D.c, a: Math.max(lo.e.a, hi.e.a), b: Math.min(lo.e.b, hi.e.b) } : { ext: true, R: (lo || hi).q, out: (lo || hi).e.out, axis: D.axis, c: D.c, a: (lo || hi).e.a, b: (lo || hi).e.b, at };
   const w = PE.selWall; if (w.ext && RT[w.R.type]?.rail) { const seg = railSegments(w.R, w.out).find(([s0, s1]) => at >= s0 - .05 && at <= s1 + .05); if (seg) { w.a = seg[0]; w.b = seg[1]; w.railSeg = seg; } } // a railing stretch: just that part
 }
-pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, [wx, wz] = S2W(sx, sy);
+pc.addEventListener('wheel', e => { e.preventDefault(); const r = pc.getBoundingClientRect(), sx = planX(e, r), sy = planY(e, r), [wx, wz] = S2W(sx, sy);
   PE.s = Math.max(3, Math.min(40, PE.s * Math.exp(-e.deltaY * .0015))); PE.ox = sx - wx * PE.s; PE.oy = sy - wz * PE.s; peDraw(); }, { passive: false });
 // Pinch with two fingers to zoom (and move) the plan around the point between them. The second finger turns the gesture
 // into a pinch: the plan stops taking those touches (no room moves) until both fingers lift. Mouse and pen are untouched.
@@ -382,7 +422,7 @@ pc.addEventListener('pointerdown', e => {
   if (pinch.pts.size === 2) {
     PE.drag = null; PE.menu = false;
     const r = pc.getBoundingClientRect(), m = pinchMid();
-    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(m.x - r.left, m.y - r.top) });
+    Object.assign(pinch, { on: true, s0: PE.s, d0: Math.max(10, m.d), w: S2W(r.right - m.x, r.bottom - m.y) });
   }
   if (pinch.on) e.stopImmediatePropagation();
 }, true);
@@ -392,7 +432,7 @@ pc.addEventListener('pointermove', e => {
   if (!pinch.on) return; e.stopImmediatePropagation();
   if (pinch.pts.size < 2) return;
   const r = pc.getBoundingClientRect(), m = pinchMid();
-  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = m.x - r.left - pinch.w[0] * PE.s; PE.oy = m.y - r.top - pinch.w[1] * PE.s; peDraw();
+  PE.s = Math.max(3, Math.min(40, pinch.s0 * m.d / pinch.d0)); PE.ox = r.right - m.x - pinch.w[0] * PE.s; PE.oy = r.bottom - m.y - pinch.w[1] * PE.s; peDraw();
 }, true);
 const pinchUp = e => { if (!pinch.pts.delete(e.pointerId) || !pinch.on) return; e.stopImmediatePropagation(); if (!pinch.pts.size) pinch.on = false; };
 pc.addEventListener('pointerup', pinchUp, true); pc.addEventListener('pointercancel', pinchUp, true);
@@ -414,7 +454,7 @@ document.querySelectorAll('[data-add]').forEach(b => {
     const s0 = st; st = null; ghost?.remove(); ghost = null; if (!s0) return;
     if (!s0.moved) return peAdd(b.dataset.add);
     const r = pc.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-    peAdd(b.dataset.add, S2W(e.clientX - r.left, e.clientY - r.top));
+    peAdd(b.dataset.add, S2W(planX(e, r), planY(e, r)));
   });
 });
 function peAdd(type, at) {
@@ -611,7 +651,7 @@ addEventListener('keydown', e => {
 let nudgeT = 0;
 function peNudge(key, step) { // arrows move the selected room or stairs; one undo step per burst of presses
   if (Date.now() - nudgeT > 700) pushHist(); nudgeT = Date.now();
-  const dx = key === 'ArrowLeft' ? -step : key === 'ArrowRight' ? step : 0, dz = key === 'ArrowUp' ? -step : key === 'ArrowDown' ? step : 0;
+  const dx = key === 'ArrowLeft' ? step : key === 'ArrowRight' ? -step : 0, dz = key === 'ArrowUp' ? step : key === 'ArrowDown' ? -step : 0; // up the screen is toward the back
   const q = BM.rooms.find(r => r.id === PE.sel), S = (BM.stairs || []).find(o => o.id === PE.selStair);
   if (q) { q.x = +(q.x + dx).toFixed(2); q.z = +(q.z + dz).toFixed(2); } else if (S) { S.cx = +(S.cx + dx).toFixed(2); S.cz = +(S.cz + dz).toFixed(2); }
   planChanged();
@@ -656,7 +696,7 @@ function pePlaceSide() {
   if (innerWidth <= 760) { el.style.left = el.style.top = ''; return; }
   const B = body.getBoundingClientRect(), C = pc.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, g = 16, m = 8, sb = peSelBox();
   let L, T, R, Bt; // the selection on screen, relative to the editor body
-  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = a + C.left - B.left; T = b + C.top - B.top; R = c + C.left - B.left; Bt = d + C.top - B.top; }
+  if (sb) { const [a, b] = W2S(sb[0], sb[1]), [c, d] = W2S(sb[2], sb[3]); L = C.right - c - B.left; T = C.bottom - d - B.top; R = C.right - a - B.left; Bt = C.bottom - b - B.top; } // plan space → screen: turned half way round
   else if (pePt) { L = R = pePt[0] - B.left; T = Bt = pePt[1] - B.top; } else return;
   const minX = C.left - B.left + m, maxX = B.width - m, clampY = y => Math.max(m, Math.min(y, B.height - h - m)), clampX = x => Math.max(minX, Math.min(x, maxX - w));
   const opts = [ // [x, y, free space on that side]

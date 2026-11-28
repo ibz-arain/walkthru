@@ -181,6 +181,22 @@ Object.assign(M, { cedar: std({ map: TX.cedar, color: '#ffffff', roughness: .7, 
   limeW: std({ map: TX.limestone, color: '#efebe3', roughness: .9, ...DS2 }), wood2: std({ map: TX.cedar, color: '#ffffff', roughness: .7 }), poolTile: std({ color: '#2f7fa3', roughness: .3 }), soffitM: std({ color: '#ecebe7', roughness: .8, side: THREE.DoubleSide }), panelSlat: std({ color: '#33363a', roughness: .6 }), gdoorDark: std({ color: '#5a5e63', roughness: .55, metalness: .1 }), seamRoof: std({ map: TX.seam, color: '#26282b', roughness: .75, metalness: .1, side: THREE.DoubleSide }) });
 const CLAD = () => ({ cedar: M.cedar, dark: M.panel, render: M.render, stone: M.limeW, fstone: M.fstone });
 let BM;
+let SITE2D = null; // the site as last built (streets, paths, trees, lot), for the plan editor
+// Where a house's starting trees go: round the outside, clear of a corner lot's side street. SITE.trees of them (4 by default).
+function autoTreeSpots(m = BM) {
+  const all = (m.rooms || []).filter(r => !belowGrade(r.level)), S = m.site || {};
+  const minX = Math.min(...all.map(r => r.x), 0), maxX = Math.max(...all.map(r => r.x + r.w), 30), minZ = Math.min(...all.map(r => r.z), 0), maxZ = Math.max(...all.map(r => r.z + r.d), 30);
+  const gap = S.sideSetback ?? 24, sideX = S.corner === 'right' ? minX - gap : S.corner === 'left' ? maxX + gap : null;
+  const spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
+  return spots.filter(([x]) => sideX == null || (S.corner === 'right' ? x > sideX + 6 || x < sideX - 40 : x < sideX - 6 || x > sideX + 40)).slice(0, S.trees ?? 4);
+}
+// Give a design its starting trees as yard trees you can move and delete (once; marked auto so the Trees count can redo them).
+function seedTrees(m = BM) {
+  if (!m?.rooms?.length || m.site?.treesPlaced) return false;
+  m.items = m.items || []; m.site = { ...(m.site || {}), treesPlaced: true };
+  for (const [x, z, sc] of autoTreeSpots(m)) { const w = Math.round(14 * sc); m.items.push({ id: BID++, kind: 'treeL', level: 'M', x: +x.toFixed(1), z: +z.toFixed(1), rot: 0, w, d: w, auto: true }); }
+  return true;
+}
 try { BM = JSON.parse(localStorage.getItem('walkthru-builder-v1') || 'null'); } catch (e) { }
 if (!BM || !Array.isArray(BM.rooms)) BM = starterPlan();
 
@@ -384,7 +400,10 @@ function planLevel(lv) {
     .sort((p, q) => (clearToStreet(q) ? 1 : 0) - (clearToStreet(p) ? 1 : 0) || (RT[q.room.type]?.entry ? 1 : 0) - (RT[p.room.type]?.entry ? 1 : 0) || (q.b - q.a) - (p.b - p.a));
   if (!frontDone && frontCands[0]) { const w = frontCands[0], L = w.b - w.a, o = opAt(w, extKey(w.room, w.out), L >= 7.5 ? 5.67 : 3, 8); w.ops.push({ c: o.c, w: o.w, b: LV_Y.M, h: o.h, ...extDoorOp(o, o.w >= 5 ? 'front' : 'extdoor') }); w.front = true; frontDone = true; }
   const gUsed = new Set();
-  walls.sort((p, q) => (q.out === '-z') - (p.out === '-z'));
+  // a corner lot can put the garage door, and the driveway, on the side street (BM.site.corner left|right, drive: 'side')
+  const gOut = BM.site?.corner && BM.site.drive === 'side' ? (BM.site.corner === 'left' ? '+x' : '-x') : null; // left as seen from the street is +x
+  const sideGarage = w => gOut && w.ext && w.out === gOut && RT[w.room.type]?.garage && w.b - w.a >= 10;
+  walls.sort((p, q) => (sideGarage(q) ? 2 : 0) + (q.out === '-z') - (sideGarage(p) ? 2 : 0) - (p.out === '-z'));
   for (const w of walls) {
     if (w.angled) continue;
     const L = w.b - w.a, mid = (w.a + w.b) / 2, y = LV_Y[lv];
@@ -404,7 +423,7 @@ function planLevel(lv) {
       w.ops.push({ c: w.a + L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }, { c: w.b - L * .26, w: 8.5, b: GF, h: 8, k: 'garage', fm: M.gdoor2 }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
     if (T.garage && lv === 'M' && BM.style === 'batten' && w.out === '-z' && L >= 26 && !gUsed.has(w.room.group || w.room.id)) { // triple garage: single + double door, brick pier between
       w.ops.push({ c: w.a + 6.1, w: 9, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }, { c: w.b - 10.2, w: 16, b: GF, h: 8, k: 'garage', top: 1, fm: M.gdoor }); gUsed.add(w.room.group || w.room.id); w.garageDoor = true; continue; }
-    if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
+    if (T.garage && lv === 'M') { const key = w.room.group || w.room.id; if (L >= 10 && !gUsed.has(key) && (w.out === '-z' || w.out === gOut || L >= 16)) { const gw = L >= 18.5 ? 16 : 9; w.ops.push({ c: mid, w: gw, b: GF, h: 8, k: 'garage' }); gUsed.add(key); w.garageDoor = true; } continue; }
     if (belowGrade(lv)) { if (L >= 5 && (T.win || T.private)) w.ops.push(baseWin(mid, L, lv)); continue; }
     if (T.small) { if (L >= 4) w.ops.push({ c: mid, w: 2.5, b: y + 4.2, h: 3 }); continue; }
     if (T.win && L >= 4.5) { const n = Math.max(1, Math.min(3, Math.floor(L / 7))), ww = Math.min(4.5, L / n - 1.6);
@@ -863,7 +882,7 @@ function buildHouse3() {
   // landscaping for the stone house: shrubs and a gravel bed along the front, flower pots by the steps
   for (const sb of BM.extras?.shrubs || []) { const m = new THREE.Mesh(new THREE.IcosahedronGeometry(sb[2], 1), sb[3] === 'f' ? M.flowers[(sb[0] * 7 | 0) % 3] : (sb[0] * 3 | 0) % 2 ? M.leaf : M.leaf2);
     m.position.set(sb[0], (sb[4] || 0) + sb[2] * .8, sb[1]); m.scale.y = .8; m.castShadow = true; G3.site.add(m); }
-  for (const t of BM.extras?.trees || []) tree(t[0], t[1], t[2], G3.trees);
+  for (const t of BM.extras?.trees || []) tree(t[0], t[1], t[2], G3.trees); const extraTrees = (BM.extras?.trees || []).map(t => [t[0], t[1], 7 * t[2]]);
   for (const pl of BM.extras?.pools || []) { const [x0, x1, z0, z1] = pl; // pool: paver deck, coping and water
     flat(G3.site, rect(x0 - 5, x1 + 5, z0 - 5, z1 + 5), [rect(x0 - 1, x1 + 1, z0 - 1, z1 + 1)], .05, M.pavers, { walk: true });
     for (const [a0, a1, b0, b1] of [[x0 - 1, x1 + 1, z0 - 1, z0], [x0 - 1, x1 + 1, z1, z1 + 1], [x0 - 1, x0, z0, z1], [x1, x1 + 1, z0, z1]]) box(G3.site, a0, a1, 0, .25, b0, b1, M.white, { walk: true });
@@ -882,11 +901,25 @@ function buildHouse3() {
     for (const [a0, a1, b0, b1] of rectCells([bb], .5, bsm)) flat(G3.site, rect(a0, a1, b0, b1), [], 0, M.grass, { walk: true });
   }
   const SITE = BM.site || {}, roadZ = minZ - (SITE.setback ?? 48);
+  // what the plan editor draws round the house: the same streets, paths and trees as here, in plan feet ([x0, x1, z0, z1])
+  SITE2D = { roads: [[-420, 420, roadZ - 26, roadZ]], walks: [], drives: [], paths: [], steps: [], lot: null, trees: [...extraTrees] };
   flat(G3.site, rect(-420, 420, roadZ - 26, roadZ), [], .03, M.asphalt, { walk: true });
-  flat(G3.site, rect(-420, 420, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true });
+  // corner lot: a second street and sidewalk down one side
+  const corner = SITE.corner === 'left' || SITE.corner === 'right' ? SITE.corner : null, sideGap = SITE.sideSetback ?? 24;
+  const sideX = corner === 'right' ? minX - sideGap : corner === 'left' ? maxX + sideGap : null; // the sidewalk's house-side edge; left and right as seen from the street
+  if (corner === 'right') { flat(G3.site, rect(sideX - 31, sideX - 5, roadZ - 26, 420), [], .031, M.asphalt, { walk: true }); flat(G3.site, rect(sideX - 5, sideX, roadZ + 5, 420), [], .051, M.concrete, { walk: true }); SITE2D.roads.push([sideX - 31, sideX - 5, roadZ - 26, 420]); SITE2D.walks.push([sideX - 5, sideX, roadZ + 5, 420]); }
+  if (corner === 'left') { flat(G3.site, rect(sideX + 5, sideX + 31, roadZ - 26, 420), [], .031, M.asphalt, { walk: true }); flat(G3.site, rect(sideX, sideX + 5, roadZ + 5, 420), [], .051, M.concrete, { walk: true }); SITE2D.roads.push([sideX + 5, sideX + 31, roadZ - 26, 420]); SITE2D.walks.push([sideX, sideX + 5, roadZ + 5, 420]); }
+  // the front sidewalk stops at the side street instead of running across it
+  const cut = corner === 'right' ? [sideX - 31, sideX - 5] : corner === 'left' ? [sideX + 5, sideX + 31] : null;
+  for (const [x0, x1] of cut ? [[-420, cut[0]], [cut[1], 420]] : [[-420, 420]]) { flat(G3.site, rect(x0, x1, roadZ, roadZ + 5), [], .05, M.concrete, { walk: true }); SITE2D.walks.push([x0, x1, roadZ, roadZ + 5]); }
   const mw = planLevel('M'), fd = mw.find(w => w.front), gd = mw.find(w => w.garageDoor);
+  if (gd && corner && (gd.out === '-x' || gd.out === '+x')) { // the driveway runs out to the side street
+    const gops = gd.ops.filter(o => o.k === 'garage'), d0 = Math.min(...gops.map(o => o.c - o.w / 2)) - 1, d1 = Math.max(...gops.map(o => o.c + o.w / 2)) + 1;
+    const streetX = gd.out === '-x' ? sideX - 5 : sideX + 5;
+    box(G3.site, Math.min(streetX, gd.c), Math.max(streetX, gd.c), 0, .12, d0, d1, M.concrete, { walk: true }); SITE2D.drives.push([Math.min(streetX, gd.c), Math.max(streetX, gd.c), d0, d1]);
+    H3_DRIVE = [(streetX + gd.c) / 2, (d0 + d1) / 2, gd.out === '-x' ? Math.PI / 2 : -Math.PI / 2, 1]; }
   if (gd && gd.axis === 'x' && gd.out === '-z') { const gops = gd.ops.filter(o => o.k === 'garage'), d0 = Math.min(...gops.map(o => o.c - o.w / 2)) - 1, d1 = Math.max(...gops.map(o => o.c + o.w / 2)) + 1;
-    box(G3.site, d0, d1, 0, .12, roadZ, gd.c, M.concrete, { walk: true }); H3_DRIVE = [(d0 + d1) / 2, (roadZ + gd.c) / 2, Math.PI, 1];
+    box(G3.site, d0, d1, 0, .12, roadZ, gd.c, M.concrete, { walk: true }); SITE2D.drives.push([d0, d1, roadZ, gd.c]); H3_DRIVE = [(d0 + d1) / 2, (roadZ + gd.c) / 2, Math.PI, 1];
     if (BM.style === 'batten') for (const lx of [d0 + .4, ...gops.slice(1).map((o, i) => (gops[i].c + gops[i].w / 2 + o.c - o.w / 2) / 2), d1 - .4]) { // coach lights
       box(G3.site, lx - .3, lx + .3, 6.2, 7.4, gd.c - EXT / 2 - .45, gd.c - EXT / 2, M.trim); box(G3.site, lx - .2, lx + .2, 6.4, 7.2, gd.c - EXT / 2 - .5, gd.c - EXT / 2 - .4, M.lamp); } }
   if (BM.style === 'batten') { // wood privacy fence round the back yard and a dark garden shed
@@ -901,14 +934,13 @@ function buildHouse3() {
   if (fd) { const op = fd.ops[0];
     const inWay = rooms.filter(r => r.level === 'M' && !isOut(r) && r.z < fd.c - .6 && r.x < op.c + 2 && r.x + r.w > op.c - 2); // only if no clear wall was left
     const walkEnd = inWay.length ? Math.min(...inWay.map(r => r.z)) - .6 : fd.c - .4;
-    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
+    box(G3.site, op.c - 2, op.c + 2, 0, .1, roadZ, walkEnd, M.pavers, { walk: true }); SITE2D.paths.push([op.c - 2, op.c + 2, roadZ + 5, walkEnd]); SITE2D.steps.push([op.c - 3.5, op.c + 3.5, fd.c - 4 - Math.ceil((MF - .35) / .62) * 1.05, fd.c - .3]); box(G3.site, op.c - 3.5, op.c + 3.5, 0, Math.max(.1, MF - .35), fd.c - 4, fd.c - .3, M.concrete, { walk: true });
     { const top = MF - .35, n = Math.ceil(top / .62); for (let k = 1; k < n; k++) box(G3.site, op.c - 3.5, op.c + 3.5, 0, top * (n - k) / n, fd.c - 4 - k * 1.05, fd.c - 4 - (k - 1) * 1.05, M.concrete, { walk: true }); } /* a step every 7½" or so down to the walk */ H3_FRONT = [op.c, fd.c - 14, Math.PI, 1]; }
   else H3_FRONT = [(minX + maxX) / 2, minZ - 14, Math.PI, 1];
-  const nTrees = SITE.trees ?? 4, spots = [[minX - 18, minZ - 20, 1.1], [maxX + 18, minZ - 15, 1], [minX - 20, maxZ + 15, 1.2], [maxX + 22, maxZ + 10, 1], [(minX + maxX) / 2, maxZ + 28, 1.15], [minX - 26, (minZ + maxZ) / 2, .95], [maxX + 26, (minZ + maxZ) / 2, 1.05], [maxX + 10, maxZ + 30, .9]];
-  for (const [x, z, s] of spots.slice(0, nTrees)) tree(x, z, s, G3.trees);
+  if (!SITE.treesPlaced) for (const [x, z, sc] of autoTreeSpots(BM)) { tree(x, z, sc, G3.trees); SITE2D.trees.push([x, z, 7 * sc]); } // until the design has its own (see seedTrees)
   H3_LOT = null;
   if (SITE.lotW && SITE.lotD) { // property line: low hedge around the lot, front edge at the sidewalk
-    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1];
+    const cx = (minX + maxX) / 2 + (SITE.offsetX || 0), lx0 = cx - SITE.lotW / 2, lx1 = cx + SITE.lotW / 2, lz0 = roadZ + 5, lz1 = lz0 + SITE.lotD; H3_LOT = [lx0, lx1, lz0, lz1]; SITE2D.lot = H3_LOT;
     for (const [a0, a1, b0, b1] of [[lx0, lx1, lz1 - .6, lz1], [lx0, lx0 + .6, lz0 + 3, lz1], [lx1 - .6, lx1, lz0 + 3, lz1]]) box(G3.site, a0, a1, 0, 2.2, b0, b1, M.leaf2, { solid: true });
   }
   placeItems();
